@@ -8,6 +8,7 @@ let _searchPage = 0;
 let _searchFilters = {};
 let _currentListing = null;
 let _currentListingImages = [];
+let _currentShopId = null;
 
 // ═══════════════════════════════════════════════════════════
 // NAVIGATION
@@ -24,6 +25,7 @@ function showPage(id) {
   if (id === 'profile') initProfilePage();
   if (id === 'post')    initPostPage();
   if (id === 'admin')   initAdminPage();
+  if (id === 'shop')    initShopPage();
 }
 
 // ── Mobile nav ─────────────────────────────────────────────
@@ -261,6 +263,10 @@ function buildListingCard(l) {
 
   const carMeta = [l.car_make, l.car_model, l.year_from && l.year_to ? `${l.year_from}–${l.year_to}` : ''].filter(Boolean).join(' ');
 
+  const shopClickable = l.user_id && l.shop_name
+    ? `class="card-shop clickable" onclick="event.stopPropagation();openShop('${l.user_id}')"`
+    : 'class="card-shop"';
+
   return `
     <div class="listing-card${l.is_vip ? ' vip-card' : ''}" onclick="openDetail('${l.id}')">
       <div class="card-img">
@@ -274,7 +280,7 @@ function buildListingCard(l) {
         <div class="card-title">${l.title}</div>
         <div class="card-meta">${carMeta || l.category || ''}</div>
         <div class="card-footer">
-          <span class="card-shop">🏪 ${l.shop_name || 'Хувь хүн'}${verified}</span>
+          <span ${shopClickable}>🏪 ${l.shop_name || 'Хувь хүн'}${verified}</span>
           <span class="card-date">${formatDate(l.created_at)}</span>
         </div>
       </div>
@@ -637,9 +643,12 @@ async function openDetail(id) {
     // Shop
     const shopInitial = (l.shop_name || l.phone || 'Х').charAt(0).toUpperCase();
     const verifiedIcon = l.is_verified ? '<span class="verified-badge" title="Баталгаажсан дэлгүүр"></span>' : '';
+    const shopClickHandler = (l.user_id && l.shop_name)
+      ? `onclick="closeDetail();openShop('${l.user_id}')" class="detail-shop-info clickable"`
+      : 'class="detail-shop-info"';
     document.getElementById('detail-shop').innerHTML = `
       <div class="detail-shop-avatar">${shopInitial}</div>
-      <div class="detail-shop-info">
+      <div ${shopClickHandler}>
         <div class="detail-shop-name">${l.shop_name || 'Хувь хүн'}${verifiedIcon}</div>
         <div class="detail-shop-loc">📍 ${l.location || 'Байршил тодорхойгүй'}</div>
       </div>`;
@@ -895,6 +904,111 @@ function adminSwitchTab(tab) {
   _origAdminSwitchTab(tab);
   const bulkBtn = document.getElementById('admin-bulk-btn');
   if (bulkBtn) bulkBtn.style.display = tab === 'marks' ? 'inline-flex' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHOP PROFILE PAGE
+// ═══════════════════════════════════════════════════════════
+async function openShop(userId, shopName) {
+  if (!userId) {
+    showToast('Дэлгүүрийн мэдээлэл олдсонгүй', 'info');
+    return;
+  }
+  _currentShopId = userId;
+  showPage('shop');
+}
+
+function initShopPage() {
+  if (!_currentShopId) {
+    document.getElementById('shop-listings-container').innerHTML = renderEmptyState('error');
+    return;
+  }
+  loadShopProfile(_currentShopId);
+}
+
+async function loadShopProfile(userId) {
+  renderSkeletons('shop-listings-container', 8);
+
+  // ── Fetch shop profile ─────────────────────────────────
+  let profile = null;
+  if (!DEMO_MODE) {
+    try {
+      const { data } = await sb.from('profiles').select('*').eq('id', userId).single();
+      profile = data;
+    } catch(e) { /* handled below */ }
+  }
+
+  // ── Fetch shop's listings ──────────────────────────────
+  let listings = [];
+  let totalViews = 0;
+  let totalCount = 0;
+  if (DEMO_MODE) {
+    listings = DEMO_LISTINGS.filter(l => l.user_id === userId);
+    totalCount = listings.length;
+    totalViews = listings.reduce((s, l) => s + (l.view_count || 0), 0);
+    if (!profile && listings.length) {
+      profile = {
+        id: userId,
+        shop_name: listings[0].shop_name,
+        name: listings[0].shop_name,
+        phone: listings[0].phone || '',
+        user_type: 'shop',
+        is_verified: false,
+        created_at: listings[0].created_at,
+      };
+    }
+  } else {
+    try {
+      const { data: active } = await sb
+        .from('listings')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+        .order('created_at', { ascending: false });
+      listings = active || [];
+
+      const { count } = await sb
+        .from('listings')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      totalCount = count || 0;
+
+      totalViews = listings.reduce((s, l) => s + (l.view_count || 0), 0);
+    } catch(e) { console.warn('Shop listings failed:', e.message); }
+  }
+
+  // ── Render header ──────────────────────────────────────
+  const displayName = profile?.shop_name || profile?.name || 'Дэлгүүр';
+  const initial = displayName.charAt(0).toUpperCase();
+  document.getElementById('shop-avatar-lg').textContent = initial;
+  document.getElementById('shop-name-text').textContent = displayName;
+  document.getElementById('shop-verified').style.display = profile?.is_verified ? 'inline-flex' : 'none';
+
+  const loc = listings[0]?.location || '';
+  document.getElementById('shop-loc-text').textContent = loc ? '📍 ' + loc : '';
+
+  const phone = profile?.phone || listings[0]?.phone || '';
+  document.getElementById('shop-phone-text').textContent = phone ? '📞 +976 ' + phone.replace(/^\+976/, '') : '';
+
+  const since = profile?.created_at ? new Date(profile.created_at).getFullYear() : '';
+  document.getElementById('shop-since-text').textContent = since ? `📅 ${since} оноос` : '';
+
+  const callBtn = document.getElementById('shop-call-btn');
+  if (phone) {
+    callBtn.href = 'tel:+976' + phone.replace(/^\+976/, '');
+    callBtn.style.display = 'inline-block';
+  } else {
+    callBtn.style.display = 'none';
+  }
+
+  // ── Stats ──────────────────────────────────────────────
+  document.getElementById('shop-stat-active').textContent = listings.length;
+  document.getElementById('shop-stat-total').textContent  = totalCount;
+  document.getElementById('shop-stat-views').textContent  = totalViews;
+
+  // ── Listings grid ──────────────────────────────────────
+  renderGrid(listings, 'shop-listings-container', { emptyType: 'search' });
 }
 
 // ═══════════════════════════════════════════════════════════

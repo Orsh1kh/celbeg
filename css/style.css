@@ -644,3 +644,71 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
   transition: background .15s, color .15s;
 }
 .btn-extend:hover { background: var(--gold); color: #1a1a1a; }
+
+/* ═══════════════════════════════════════════════════════════
+   SHOP PROFILE PAGE
+═══════════════════════════════════════════════════════════ */
+.shop-page { padding-top: 24px; padding-bottom: 48px; }
+
+.shop-header-card {
+  display: grid; grid-template-columns: 96px 1fr auto; gap: 20px; align-items: center;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px; margin-bottom: 20px;
+}
+.shop-avatar-lg {
+  width: 96px; height: 96px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), var(--red2));
+  color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 42px;
+  display: flex; align-items: center; justify-content: center;
+}
+.shop-header-info { min-width: 0; }
+.shop-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.shop-name {
+  font-size: 26px; font-weight: 700; color: var(--text);
+  margin: 0; line-height: 1.1;
+}
+.shop-name-row .verified-badge { width: 20px; height: 20px; font-size: 12px; }
+.shop-meta {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  margin-top: 8px; font-size: 13px; color: var(--muted);
+}
+.shop-meta span:empty { display: none; }
+.shop-actions .btn-shop-call {
+  display: inline-block; padding: 11px 22px;
+  background: var(--red); color: #fff; border-radius: 8px;
+  font-size: 14px; font-weight: 600;
+  transition: background .15s, transform .12s;
+}
+.shop-actions .btn-shop-call:hover { background: var(--red2); transform: translateY(-1px); }
+
+.shop-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin-bottom: 24px;
+}
+.shop-stat {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px; text-align: center;
+}
+.shop-stat strong {
+  display: block; font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; color: var(--red);
+}
+.shop-stat span {
+  display: block; margin-top: 2px;
+  font-size: 12px; color: var(--muted); font-weight: 500;
+}
+
+/* Card shop link */
+.card-shop.clickable, .detail-shop-info.clickable { cursor: pointer; }
+.card-shop.clickable:hover { color: var(--red); }
+
+@media (max-width: 700px) {
+  .shop-header-card { grid-template-columns: 72px 1fr; padding: 18px; }
+  .shop-avatar-lg { width: 72px; height: 72px; font-size: 32px; }
+  .shop-name { font-size: 20px; }
+  .shop-actions { grid-column: 1 / -1; }
+  .shop-actions .btn-shop-call { display: block; text-align: center; }
+  .shop-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .shop-stat { padding: 12px 6px; }
+  .shop-stat strong { font-size: 22px; }
+}

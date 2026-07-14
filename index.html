@@ -33,7 +33,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -508,6 +508,44 @@
   </section>
 
   <!-- ──────────────────────────────────────────────────────
+       SHOP PROFILE PAGE
+  ────────────────────────────────────────────────────── -->
+  <section id="page-shop" class="page">
+    <div class="container shop-page">
+      <div class="shop-header-card" id="shop-header-card">
+        <div class="shop-avatar-lg" id="shop-avatar-lg">S</div>
+        <div class="shop-header-info">
+          <div class="shop-name-row">
+            <h1 class="shop-name" id="shop-name-text">—</h1>
+            <span id="shop-verified" style="display:none"><span class="verified-badge"></span></span>
+          </div>
+          <div class="shop-meta">
+            <span id="shop-loc-text"></span>
+            <span id="shop-phone-text"></span>
+            <span id="shop-since-text"></span>
+          </div>
+        </div>
+        <div class="shop-actions">
+          <a class="btn-shop-call" id="shop-call-btn" href="#">📞 Залгах</a>
+        </div>
+      </div>
+
+      <div class="shop-stats">
+        <div class="shop-stat"><strong id="shop-stat-active">0</strong><span>Идэвхтэй зар</span></div>
+        <div class="shop-stat"><strong id="shop-stat-total">0</strong><span>Нийт зар</span></div>
+        <div class="shop-stat"><strong id="shop-stat-views">0</strong><span>Нийт үзэлт</span></div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Дэлгүүрийн зарууд</div>
+      </div>
+      <div id="shop-listings-container">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────
        PROFILE PAGE
   ────────────────────────────────────────────────────── -->
   <section id="page-profile" class="page">
@@ -672,12 +710,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=4"></script>
-<script src="js/data-manager.js?v=4"></script>
-<script src="js/auth.js?v=4"></script>
-<script src="js/listings.js?v=4"></script>
-<script src="js/upload.js?v=4"></script>
-<script src="js/admin.js?v=4"></script>
-<script src="js/main.js?v=4"></script>
+<script src="js/supabase-client.js?v=5"></script>
+<script src="js/data-manager.js?v=5"></script>
+<script src="js/auth.js?v=5"></script>
+<script src="js/listings.js?v=5"></script>
+<script src="js/upload.js?v=5"></script>
+<script src="js/admin.js?v=5"></script>
+<script src="js/main.js?v=5"></script>
 </body>
 </html>
