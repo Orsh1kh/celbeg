@@ -33,7 +33,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=5">
+<link rel="stylesheet" href="css/style.css?v=6">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -202,6 +202,29 @@
         </div>
       </div>
       <button class="btn-submit" id="reg-submit-btn" onclick="submitRegister()">Бүртгүүлэх</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     REVIEW MODAL
+════════════════════════════════════════════════════════ -->
+<div id="modal-review" onclick="if(event.target===this)closeReviewModal()">
+  <div class="review-panel">
+    <button class="review-close-btn" onclick="closeReviewModal()" title="Хаах">✕</button>
+    <h2>Дэлгүүрийг үнэлэх</h2>
+    <div class="review-target" id="review-target-name">—</div>
+    <div class="review-form-group">
+      <label>Үнэлгээ *</label>
+      <div class="star-input" id="review-star-input"></div>
+    </div>
+    <div class="review-form-group">
+      <label>Тайлбар (сонголтоор)</label>
+      <textarea id="review-comment" placeholder="Жш: Хугацаанд нь хүлээж авсан, тайлбар зөв байсан."></textarea>
+    </div>
+    <div class="review-footer">
+      <button class="btn-cancel" onclick="closeReviewModal()">Цуцлах</button>
+      <button class="btn-submit" id="review-submit-btn" onclick="submitReview()">Илгээх</button>
     </div>
   </div>
 </div>
@@ -536,11 +559,23 @@
         <div class="shop-stat"><strong id="shop-stat-views">0</strong><span>Нийт үзэлт</span></div>
       </div>
 
+      <div id="shop-rating-hero"></div>
+
       <div class="section-header">
         <div class="section-title">Дэлгүүрийн зарууд</div>
       </div>
       <div id="shop-listings-container">
         <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+
+      <div class="reviews-section">
+        <div class="reviews-header">
+          <div class="section-title">💬 Сэтгэгдэл, үнэлгээ</div>
+          <button class="btn-write-review" id="btn-write-review" onclick="openReviewModal()" style="display:none">✍ Үнэлгээ бичих</button>
+        </div>
+        <div id="shop-reviews-container">
+          <div class="loading-center"><div class="spinner"></div></div>
+        </div>
       </div>
     </div>
   </section>
@@ -710,12 +745,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=5"></script>
-<script src="js/data-manager.js?v=5"></script>
-<script src="js/auth.js?v=5"></script>
-<script src="js/listings.js?v=5"></script>
-<script src="js/upload.js?v=5"></script>
-<script src="js/admin.js?v=5"></script>
-<script src="js/main.js?v=5"></script>
+<script src="js/supabase-client.js?v=6"></script>
+<script src="js/data-manager.js?v=6"></script>
+<script src="js/auth.js?v=6"></script>
+<script src="js/listings.js?v=6"></script>
+<script src="js/upload.js?v=6"></script>
+<script src="js/admin.js?v=6"></script>
+<script src="js/main.js?v=6"></script>
 </body>
 </html>

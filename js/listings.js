@@ -108,6 +108,46 @@ async function extendListing(id) {
   return data;
 }
 
+// ═══════════════════════════════════════════════════════════
+// REVIEWS / RATINGS
+// ═══════════════════════════════════════════════════════════
+async function fetchProfileRating(userId) {
+  if (DEMO_MODE || !sb || !userId) return { rating_avg: 0, rating_count: 0 };
+  try {
+    const { data } = await sb.from('profile_ratings')
+      .select('rating_avg,rating_count')
+      .eq('user_id', userId).single();
+    return data || { rating_avg: 0, rating_count: 0 };
+  } catch { return { rating_avg: 0, rating_count: 0 }; }
+}
+
+async function fetchShopReviews(shopId, limit = 50) {
+  if (DEMO_MODE || !sb) return [];
+  try {
+    const { data, error } = await sb.rpc('get_shop_reviews', { shop_id: shopId, lim: limit });
+    if (error) throw error;
+    return data || [];
+  } catch(e) { console.warn('Reviews fetch failed:', e.message); return []; }
+}
+
+async function submitReviewRPC({ target_user_id, rating, comment = '', listing_id = null }) {
+  if (DEMO_MODE) throw new Error('DEMO горимд review илгээх боломжгүй');
+  const { data, error } = await sb.rpc('add_review', {
+    target_user: target_user_id,
+    rating_val: rating,
+    comment_val: comment,
+    listing_ref: listing_id
+  });
+  if (error) throw error;
+  return data;
+}
+
+async function deleteReviewRPC(id) {
+  if (DEMO_MODE) return;
+  const { error } = await sb.from('reviews').delete().eq('id', id);
+  if (error) throw error;
+}
+
 async function fetchMyQuota() {
   if (DEMO_MODE) {
     const user = authGetUser();

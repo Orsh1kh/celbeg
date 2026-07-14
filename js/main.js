@@ -651,7 +651,19 @@ async function openDetail(id) {
       <div ${shopClickHandler}>
         <div class="detail-shop-name">${l.shop_name || 'Хувь хүн'}${verifiedIcon}</div>
         <div class="detail-shop-loc">📍 ${l.location || 'Байршил тодорхойгүй'}</div>
+        <div class="detail-shop-rating" id="detail-shop-rating" style="margin-top:4px"></div>
       </div>`;
+
+    // Fetch rating async (background)
+    if (l.user_id) {
+      fetchProfileRating(l.user_id).then(r => {
+        const el = document.getElementById('detail-shop-rating');
+        if (!el) return;
+        if (r.rating_count > 0) {
+          el.innerHTML = `<span class="rating-summary">${renderStars(r.rating_avg, 'sm')}<span class="rating-num">${Number(r.rating_avg).toFixed(1)}</span><span class="rating-count">${r.rating_count}</span></span>`;
+        }
+      });
+    }
 
     // Actions
     const phone = l.phone ? '+976' + l.phone.replace(/^\+976/, '') : '';
@@ -907,6 +919,169 @@ function adminSwitchTab(tab) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// RATING / REVIEW UI
+// ═══════════════════════════════════════════════════════════
+let _reviewShopId = null;
+let _reviewShopName = '';
+let _reviewSelected = 0;
+
+function renderStars(rating, size = '') {
+  const r = Math.round(Number(rating) || 0);
+  const cls = size ? ` ${size}` : '';
+  let html = `<span class="stars${cls}">`;
+  for (let i = 1; i <= 5; i++) {
+    html += `<span class="star${i <= r ? ' filled' : ''}">★</span>`;
+  }
+  html += '</span>';
+  return html;
+}
+
+function renderStarInput(selected = 0) {
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    html += `<button type="button" class="star-btn${i <= selected ? ' filled' : ''}" data-val="${i}" onclick="setReviewRating(${i})">★</button>`;
+  }
+  return html;
+}
+
+function setReviewRating(v) {
+  _reviewSelected = v;
+  const wrap = document.getElementById('review-star-input');
+  if (wrap) wrap.innerHTML = renderStarInput(v);
+}
+
+function openReviewModal() {
+  const user = authGetUser();
+  if (!user) {
+    openAuthModal('login');
+    showToast('Эхлээд нэвтэрнэ үү', 'info');
+    return;
+  }
+  if (!_currentShopId) return;
+  if (user.id === _currentShopId) {
+    showToast('Өөрийгөө үнэлэх боломжгүй', 'info');
+    return;
+  }
+  _reviewShopId = _currentShopId;
+  _reviewShopName = document.getElementById('shop-name-text').textContent || '';
+  _reviewSelected = 0;
+  document.getElementById('review-target-name').textContent = _reviewShopName;
+  document.getElementById('review-comment').value = '';
+  document.getElementById('review-star-input').innerHTML = renderStarInput(0);
+  document.getElementById('modal-review').classList.add('open');
+}
+
+function closeReviewModal() {
+  document.getElementById('modal-review').classList.remove('open');
+  _reviewShopId = null;
+  _reviewSelected = 0;
+}
+
+async function submitReview() {
+  if (!_reviewShopId) return;
+  if (_reviewSelected < 1) {
+    showToast('Одыг сонгоно уу', 'info');
+    return;
+  }
+  const comment = document.getElementById('review-comment').value.trim();
+  const btn = document.getElementById('review-submit-btn');
+  btn.disabled = true;
+  try {
+    await submitReviewRPC({
+      target_user_id: _reviewShopId,
+      rating: _reviewSelected,
+      comment
+    });
+    showToast('Үнэлгээ илгээгдлээ', 'success');
+    const shopId = _reviewShopId;
+    closeReviewModal();
+    // Refresh shop page's rating + reviews if still viewing same shop
+    if (_currentShopId === shopId) {
+      await loadShopRatingAndReviews(shopId);
+    }
+  } catch(e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function doDeleteReview(id) {
+  if (!confirm('Үнэлгээг устгах уу?')) return;
+  try {
+    await deleteReviewRPC(id);
+    showToast('Устгагдлаа', 'success');
+    if (_currentShopId) await loadShopRatingAndReviews(_currentShopId);
+  } catch(e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+async function loadShopRatingAndReviews(shopId) {
+  const heroEl = document.getElementById('shop-rating-hero');
+  const listEl = document.getElementById('shop-reviews-container');
+  const btn    = document.getElementById('btn-write-review');
+  if (!heroEl || !listEl) return;
+
+  const [rating, reviews] = await Promise.all([
+    fetchProfileRating(shopId),
+    fetchShopReviews(shopId, 50)
+  ]);
+
+  // Rating hero
+  if (rating.rating_count > 0) {
+    heroEl.className = 'shop-rating-hero';
+    heroEl.innerHTML = `
+      <div class="shop-rating-big">${Number(rating.rating_avg).toFixed(1)}</div>
+      <div class="shop-rating-info">
+        ${renderStars(rating.rating_avg, 'lg')}
+        <span class="rating-count-txt">${rating.rating_count} үнэлгээ</span>
+      </div>`;
+  } else {
+    heroEl.className = 'shop-rating-hero empty';
+    heroEl.innerHTML = 'Одоогоор үнэлгээ байхгүй байна.';
+  }
+
+  // Write button — зөвхөн нэвтэрсэн, өөр хэрэглэгч бол харагдана
+  const user = authGetUser();
+  if (btn) {
+    const canWrite = !!user && user.id !== shopId && !DEMO_MODE;
+    btn.style.display = canWrite ? 'inline-block' : 'none';
+  }
+
+  // Reviews list
+  if (!reviews.length) {
+    listEl.innerHTML = '<div class="no-results"><div class="no-icon">💬</div><p>Эхний үнэлгээг та үлдээж болно</p></div>';
+    return;
+  }
+  listEl.innerHTML = '<div class="review-list">' + reviews.map(r => {
+    const initial = (r.reviewer_name || 'Х').charAt(0).toUpperCase();
+    const isOwn = user && user.id === r.reviewer_id;
+    return `
+      <div class="review-card">
+        <div class="review-head">
+          <div class="review-reviewer">
+            <div class="review-avatar">${initial}</div>
+            <div>
+              <div class="review-name">${r.reviewer_name}</div>
+              <div class="review-date">${formatDate(r.created_at)}</div>
+            </div>
+          </div>
+          ${renderStars(r.rating)}
+        </div>
+        ${r.comment ? `<div class="review-comment">${escapeHtml(r.comment)}</div>` : ''}
+        ${isOwn ? `<div class="review-actions"><button onclick="doDeleteReview('${r.id}')">Устгах</button></div>` : ''}
+      </div>`;
+  }).join('') + '</div>';
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// ═══════════════════════════════════════════════════════════
 // SHOP PROFILE PAGE
 // ═══════════════════════════════════════════════════════════
 async function openShop(userId, shopName) {
@@ -1009,6 +1184,9 @@ async function loadShopProfile(userId) {
 
   // ── Listings grid ──────────────────────────────────────
   renderGrid(listings, 'shop-listings-container', { emptyType: 'search' });
+
+  // ── Rating + reviews (async, doesn't block listings) ───
+  loadShopRatingAndReviews(userId);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1045,6 +1223,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     if (e.key === 'Escape') {
+      closeReviewModal();
       closeDetail();
       closeAuthModal();
       closeAdminModal();
