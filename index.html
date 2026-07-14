@@ -12,8 +12,15 @@
 <meta name="robots" content="index, follow">
 
 <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
-<link rel="apple-touch-icon" href="img/favicon.svg">
+<link rel="apple-touch-icon" href="img/icon-192.svg">
 <link rel="canonical" href="https://celbeg.mn/">
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CELBEG.MN">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
@@ -33,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -56,6 +63,17 @@
 
 <!-- ── Toast ─────────────────────────────────────────────── -->
 <div id="toast-container"></div>
+
+<!-- ── PWA Install banner ────────────────────────────────── -->
+<div id="pwa-install-banner">
+  <img src="img/icon-192.svg" alt="" class="pwa-banner-icon">
+  <div class="pwa-banner-text">
+    <strong>Апп болгож суулгах</strong>
+    <span>Гар утаснаас нэг товшилтоор нээгдэнэ</span>
+  </div>
+  <button class="pwa-banner-install" onclick="installPWA()">Суулгах</button>
+  <button class="pwa-banner-close" onclick="dismissPWA()" title="Хаах">✕</button>
+</div>
 
 <!-- ── Scroll to top ─────────────────────────────────────── -->
 <button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -781,12 +799,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=7"></script>
-<script src="js/data-manager.js?v=7"></script>
-<script src="js/auth.js?v=7"></script>
-<script src="js/listings.js?v=7"></script>
-<script src="js/upload.js?v=7"></script>
-<script src="js/admin.js?v=7"></script>
-<script src="js/main.js?v=7"></script>
+<script src="js/supabase-client.js?v=8"></script>
+<script src="js/data-manager.js?v=8"></script>
+<script src="js/auth.js?v=8"></script>
+<script src="js/listings.js?v=8"></script>
+<script src="js/upload.js?v=8"></script>
+<script src="js/admin.js?v=8"></script>
+<script src="js/main.js?v=8"></script>
 </body>
 </html>

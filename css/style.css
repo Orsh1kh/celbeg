@@ -714,6 +714,40 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 }
 
 /* ═══════════════════════════════════════════════════════════
+   PWA INSTALL BANNER
+═══════════════════════════════════════════════════════════ */
+#pwa-install-banner {
+  display: none;
+  position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 300;
+  padding: 12px 14px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: 0 8px 32px var(--shadow);
+  align-items: center; gap: 12px;
+  animation: slideIn .3s ease;
+  max-width: 480px; margin: 0 auto;
+}
+#pwa-install-banner.visible { display: flex; }
+.pwa-banner-icon { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; }
+.pwa-banner-text { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
+.pwa-banner-text strong { font-size: 13px; color: var(--text); }
+.pwa-banner-text span { font-size: 11px; color: var(--muted); }
+.pwa-banner-install {
+  padding: 8px 16px; background: var(--red); color: #fff;
+  border-radius: 8px; font-size: 13px; font-weight: 600;
+  transition: background .15s;
+}
+.pwa-banner-install:hover { background: var(--red2); }
+.pwa-banner-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  color: var(--muted); font-size: 14px; flex-shrink: 0;
+}
+.pwa-banner-close:hover { color: var(--text); background: var(--bg3); }
+
+@media (min-width: 700px) {
+  #pwa-install-banner { right: auto; left: 20px; bottom: 20px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
    SHOPS BROWSE PAGE
 ═══════════════════════════════════════════════════════════ */
 .shops-page { padding-top: 24px; padding-bottom: 48px; }

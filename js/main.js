@@ -1272,6 +1272,78 @@ function renderShopsGrid(shops) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// PWA — service worker + install prompt
+// ═══════════════════════════════════════════════════════════
+let _pwaInstallPromptEvent = null;
+
+function initPWA() {
+  // Register service worker (only on https / localhost)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(err =>
+        console.warn('SW registration failed:', err)
+      );
+    });
+  }
+
+  // Capture install prompt
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _pwaInstallPromptEvent = e;
+    // Хэрэглэгч 3 удаа dismiss хийсэн бол дахин үзүүлэхгүй
+    const dismissCount = parseInt(localStorage.getItem('cb_pwa_dismiss') || '0');
+    if (dismissCount < 3) {
+      setTimeout(() => {
+        const banner = document.getElementById('pwa-install-banner');
+        if (banner && !isPWAInstalled()) banner.classList.add('visible');
+      }, 8000);
+    }
+  });
+
+  // Suulgasan bol banner huulahgui
+  window.addEventListener('appinstalled', () => {
+    dismissPWA();
+    showToast('✅ Апп амжилттай суугдлаа!', 'success');
+  });
+}
+
+function isPWAInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
+}
+
+async function installPWA() {
+  if (!_pwaInstallPromptEvent) {
+    showToast('Suulgah сонголт одоохондоо боломжгүй байна', 'info');
+    return;
+  }
+  _pwaInstallPromptEvent.prompt();
+  const { outcome } = await _pwaInstallPromptEvent.userChoice;
+  _pwaInstallPromptEvent = null;
+  document.getElementById('pwa-install-banner')?.classList.remove('visible');
+  if (outcome === 'accepted') showToast('Суулгаж байна...', 'info');
+}
+
+function dismissPWA() {
+  document.getElementById('pwa-install-banner')?.classList.remove('visible');
+  const count = parseInt(localStorage.getItem('cb_pwa_dismiss') || '0');
+  localStorage.setItem('cb_pwa_dismiss', String(count + 1));
+}
+
+// URL shortcut handler (?action=post|shops|search)
+function handleUrlAction() {
+  const params = new URLSearchParams(location.search);
+  const action = params.get('action');
+  if (!action) return;
+  const map = { post: 'post', shops: 'shops', search: 'search', profile: 'profile' };
+  if (map[action]) {
+    // clean URL so refresh doesn't loop
+    history.replaceState({}, '', location.pathname);
+    setTimeout(() => showPage(map[action]), 100);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1294,6 +1366,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderIconPicker();
 
   initHomePage();
+
+  // PWA registration + install prompt
+  initPWA();
+
+  // Handle ?action= URL shortcut (from manifest shortcuts)
+  handleUrlAction();
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
