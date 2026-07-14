@@ -13,20 +13,22 @@
   status = 200
 
 # ── Static asset cache ─────────────────────────────────────
+# JS/CSS файл-д hash байхгүй тул богино cache, revalidate заавал
 [[headers]]
   for = "/css/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=300, must-revalidate"
 
 [[headers]]
   for = "/js/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=300, must-revalidate"
 
+# Зураг өөрчлөгдөх магадлал бага тул урт cache
 [[headers]]
   for = "/img/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=604800"
 
 # ── HTML cache-гүй ─────────────────────────────────────────
 [[headers]]
