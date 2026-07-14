@@ -17,7 +17,68 @@ function adminSwitchTab(tab) {
 function renderAdminTable() {
   const wrap = document.getElementById('admin-table-wrap');
   if (_adminTab === 'categories') renderCategoryTable(wrap);
-  else renderMarkTable(wrap);
+  else if (_adminTab === 'marks') renderMarkTable(wrap);
+  else if (_adminTab === 'shops') renderShopsTable(wrap);
+}
+
+// ── Shops (verified toggle) ──────────────────────────────
+async function renderShopsTable(wrap) {
+  wrap.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (DEMO_MODE) {
+    wrap.innerHTML = `<div class="no-results"><div class="no-icon">⚠️</div><h3>DEMO горим</h3><p>Дэлгүүрийн жагсаалт зөвхөн бодит Supabase холболттой үед харагдана.</p></div>`;
+    return;
+  }
+  try {
+    const { data: shops, error } = await sb
+      .from('profiles')
+      .select('id,name,phone,shop_name,is_verified,created_at')
+      .eq('user_type', 'shop')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    if (!shops || !shops.length) {
+      wrap.innerHTML = `<div class="no-results"><div class="no-icon">🏪</div><h3>Дэлгүүр байхгүй</h3><p>Одоогоор дэлгүүрийн бүртгэлтэй хэрэглэгч алга байна.</p></div>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th style="width:48px">✓</th>
+            <th>Дэлгүүрийн нэр</th>
+            <th>Хэрэглэгчийн нэр</th>
+            <th style="width:130px">Утас</th>
+            <th style="width:120px">Үйлдэл</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${shops.map(s => `
+            <tr id="shop-row-${s.id}">
+              <td class="admin-center">${s.is_verified ? '<span class="verified-badge" title="Баталгаажсан"></span>' : ''}</td>
+              <td><strong>${s.shop_name || '—'}</strong></td>
+              <td>${s.name || '—'}</td>
+              <td>${s.phone || ''}</td>
+              <td class="admin-actions">
+                <button class="${s.is_verified ? 'ab-del' : 'ab-edit'}" onclick="toggleShopVerified('${s.id}',${s.is_verified})">
+                  ${s.is_verified ? '✕ Цуцлах' : '✓ Баталгаа'}
+                </button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) {
+    wrap.innerHTML = `<div class="no-results"><div class="no-icon">⚠️</div><h3>Алдаа</h3><p>${e.message}</p></div>`;
+  }
+}
+
+async function toggleShopVerified(id, current) {
+  try {
+    const { error } = await sb.from('profiles').update({ is_verified: !current }).eq('id', id);
+    if (error) throw error;
+    showToast(current ? 'Баталгаа цуцаллаа' : 'Баталгаажууллаа', 'success');
+    renderShopsTable(document.getElementById('admin-table-wrap'));
+  } catch(e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
 }
 
 function renderCategoryTable(wrap) {

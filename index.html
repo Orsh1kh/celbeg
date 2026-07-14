@@ -33,7 +33,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=4">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -355,6 +355,16 @@
             </div>
           </div>
 
+          <div class="filter-group">
+            <label class="filter-label">Буцаан авах</label>
+            <div class="filter-radio">
+              <label class="filter-radio-item"><input type="radio" name="f-policy" value="" checked> Бүгд</label>
+              <label class="filter-radio-item"><input type="radio" name="f-policy" value="return_ok"> 🟢 Буцаана</label>
+              <label class="filter-radio-item"><input type="radio" name="f-policy" value="defect_only"> 🟡 Гэмтэлтэй бол</label>
+              <label class="filter-radio-item"><input type="radio" name="f-policy" value="no_return"> 🔴 Буцаахгүй</label>
+            </div>
+          </div>
+
           <button class="filter-btn-apply" onclick="applyFilters()">Шүүлт хийх<span class="filter-count-badge" id="filter-count-badge">0</span></button>
           <button class="filter-btn-reset" onclick="resetFilters()">Цэвэрлэх</button>
         </aside>
@@ -438,11 +448,25 @@
               <label class="form-label">Таарах он (дуусгавар)</label>
               <input class="form-input" id="p-year-to" type="number" placeholder="2024" min="1990" max="2026">
             </div>
+            <div class="form-group">
+              <label class="form-label">Буцаан авах бодлого *</label>
+              <select class="form-input" id="p-policy">
+                <option value="no_return">🔴 Буцаахгүй</option>
+                <option value="defect_only">🟡 Гэмтэлтэй бол буцаана</option>
+                <option value="return_ok">🟢 Тохирохгүй бол буцаана</option>
+              </select>
+            </div>
             <div class="form-group post-full">
               <label class="form-label">Тайлбар</label>
               <textarea class="form-input" id="p-desc" rows="4" placeholder="Сэлбэгийн тухай дэлгэрэнгүй..."></textarea>
             </div>
           </div>
+        </div>
+
+        <!-- Quota info -->
+        <div class="quota-info" id="quota-info" style="display:none">
+          <span class="quota-icon">📊</span>
+          <span id="quota-text">Идэвхтэй зар:</span>
         </div>
 
         <!-- Price & contact -->
@@ -543,6 +567,7 @@
       <div class="admin-tabs">
         <div class="admin-tab active" data-tab="categories" onclick="adminSwitchTab('categories')">📂 Ангилал</div>
         <div class="admin-tab" data-tab="marks" onclick="adminSwitchTab('marks')">🚗 Машины марк</div>
+        <div class="admin-tab" data-tab="shops" onclick="adminSwitchTab('shops')">🏪 Дэлгүүр</div>
       </div>
 
       <!-- Toolbar -->
@@ -647,12 +672,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=3"></script>
-<script src="js/data-manager.js?v=3"></script>
-<script src="js/auth.js?v=3"></script>
-<script src="js/listings.js?v=3"></script>
-<script src="js/upload.js?v=3"></script>
-<script src="js/admin.js?v=3"></script>
-<script src="js/main.js?v=3"></script>
+<script src="js/supabase-client.js?v=4"></script>
+<script src="js/data-manager.js?v=4"></script>
+<script src="js/auth.js?v=4"></script>
+<script src="js/listings.js?v=4"></script>
+<script src="js/upload.js?v=4"></script>
+<script src="js/admin.js?v=4"></script>
+<script src="js/main.js?v=4"></script>
 </body>
 </html>

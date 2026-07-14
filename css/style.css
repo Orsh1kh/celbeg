@@ -591,3 +591,56 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
   font-size: 11px; font-weight: 700; margin-left: 8px;
 }
 .filter-count-badge.visible { display: inline-flex; }
+
+/* ── Quota info (post form) ────────────────────────────── */
+.quota-info {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-bottom: 12px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  font-size: 13px; color: var(--muted);
+}
+.quota-info .quota-icon { font-size: 18px; }
+.quota-info strong { color: var(--text); }
+.quota-info.warning { border-color: var(--gold); background: rgba(240,165,0,.08); color: var(--text); }
+.quota-info.danger  { border-color: var(--red);  background: rgba(192,57,43,.08); color: var(--text); }
+
+/* ── Policy badge (card + detail) ──────────────────────── */
+.card-policy {
+  position: absolute; bottom: 8px; left: 8px;
+  padding: 3px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 700;
+  background: rgba(0,0,0,.55); color: #fff; backdrop-filter: blur(4px);
+}
+.card-policy.return_ok   { background: rgba(29,158,117,.9); }
+.card-policy.defect_only { background: rgba(240,165,0,.9); color: #1a1a1a; }
+.card-policy.no_return   { background: rgba(0,0,0,.6); }
+
+.detail-badge.policy_return_ok   { background: var(--green); color: #fff; }
+.detail-badge.policy_defect_only { background: var(--gold);  color: #1a1a1a; }
+.detail-badge.policy_no_return   { background: #555;         color: #fff; }
+
+/* ── Verified badge ────────────────────────────────────── */
+.verified-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; margin-left: 4px;
+  background: #1d9bf0; color: #fff; border-radius: 50%;
+  font-size: 9px; vertical-align: middle;
+}
+.verified-badge::before { content: '✓'; font-weight: 900; }
+.detail-shop-name .verified-badge { width: 18px; height: 18px; font-size: 11px; }
+
+/* ── Expiry countdown (my listings) ────────────────────── */
+.expiry-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+.expiry-tag.ok      { background: rgba(29,158,117,.15); color: var(--green); }
+.expiry-tag.warning { background: rgba(240,165,0,.15);  color: var(--gold); }
+.expiry-tag.danger  { background: rgba(192,57,43,.15);  color: var(--red); }
+.expiry-tag.expired { background: rgba(0,0,0,.25);      color: var(--muted); }
+.btn-extend {
+  padding: 6px 12px; border: 1px solid var(--gold); color: var(--gold);
+  border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.btn-extend:hover { background: var(--gold); color: #1a1a1a; }

@@ -4,10 +4,10 @@
 
 const PAGE_SIZE = 12;
 
-async function fetchListings({ category='', car_make='', car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', keyword='', sort='newest', page=0 } = {}) {
-  if (DEMO_MODE) return _filterDemo({ category, car_make, car_model, year_from, year_to, price_min, price_max, part_type, keyword, sort, page });
+async function fetchListings({ category='', car_make='', car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', exchange_policy='', keyword='', sort='newest', page=0 } = {}) {
+  if (DEMO_MODE) return _filterDemo({ category, car_make, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, keyword, sort, page });
 
-  let q = sb.from('listings').select('*').eq('is_active', true);
+  let q = sb.from('listings').select('*').eq('is_active', true).or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
   if (category)  q = q.eq('category', category);
   if (car_make)  q = q.eq('car_make', car_make);
@@ -17,6 +17,7 @@ async function fetchListings({ category='', car_make='', car_model='', year_from
   if (price_min) q = q.gte('price', parseInt(price_min));
   if (price_max) q = q.lte('price', parseInt(price_max));
   if (part_type) q = q.eq('part_type', part_type);
+  if (exchange_policy) q = q.eq('exchange_policy', exchange_policy);
   if (keyword)   q = q.ilike('title', `%${keyword}%`);
 
   if (sort === 'price_asc')  q = q.order('price', { ascending: true });
@@ -96,8 +97,33 @@ async function toggleListingActive(id, current) {
   await sb.from('listings').update({ is_active: !current }).eq('id', id);
 }
 
+async function extendListing(id) {
+  if (DEMO_MODE) {
+    const l = DEMO_LISTINGS.find(x => x.id === id);
+    if (l) l.expires_at = new Date(Date.now() + 7*24*3600*1000).toISOString();
+    return l?.expires_at;
+  }
+  const { data, error } = await sb.rpc('extend_listing', { listing_id: id });
+  if (error) throw error;
+  return data;
+}
+
+async function fetchMyQuota() {
+  if (DEMO_MODE) {
+    const user = authGetUser();
+    if (!user) return { max_active: 0, active: 0, remaining: 0, max_daily: 0, daily: 0, daily_remaining: 0 };
+    const utype = user.user_type || 'buyer';
+    return utype === 'shop'
+      ? { max_active: 50, active: 0, remaining: 50, max_daily: 20, daily: 0, daily_remaining: 20 }
+      : { max_active: 5,  active: 0, remaining: 5,  max_daily: 3,  daily: 0, daily_remaining: 3 };
+  }
+  const { data, error } = await sb.rpc('my_listing_quota');
+  if (error) throw error;
+  return data;
+}
+
 // ── Demo filter helper ──────────────────────────────────────
-function _filterDemo({ category, car_make, car_model, year_from, year_to, price_min, price_max, part_type, keyword, sort, page }) {
+function _filterDemo({ category, car_make, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, keyword, sort, page }) {
   let list = [...DEMO_LISTINGS];
   if (category)  list = list.filter(l => l.category === category);
   if (car_make)  list = list.filter(l => l.car_make === car_make);
@@ -107,6 +133,7 @@ function _filterDemo({ category, car_make, car_model, year_from, year_to, price_
   if (price_min) list = list.filter(l => l.price >= parseInt(price_min));
   if (price_max) list = list.filter(l => l.price <= parseInt(price_max));
   if (part_type) list = list.filter(l => l.part_type === part_type);
+  if (exchange_policy) list = list.filter(l => l.exchange_policy === exchange_policy);
   if (keyword)   list = list.filter(l => l.title.toLowerCase().includes(keyword.toLowerCase()) || l.description?.toLowerCase().includes(keyword.toLowerCase()));
 
   if (sort === 'price_asc')  list.sort((a,b) => a.price - b.price);

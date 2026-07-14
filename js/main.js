@@ -255,6 +255,9 @@ function buildListingCard(l) {
   const badgeClass = l.part_type === 'original' ? 'original' : 'substitute';
   const badgeText  = l.part_type === 'original' ? 'Оригинал' : 'Орлуулах';
   const vipTag     = l.is_vip ? '<div class="card-vip-tag">VIP</div>' : '';
+  const policy     = policyMeta(l.exchange_policy);
+  const policyTag  = policy ? `<div class="card-policy ${l.exchange_policy}">${policy.short}</div>` : '';
+  const verified   = l.is_verified ? '<span class="verified-badge" title="Баталгаажсан дэлгүүр"></span>' : '';
 
   const carMeta = [l.car_make, l.car_model, l.year_from && l.year_to ? `${l.year_from}–${l.year_to}` : ''].filter(Boolean).join(' ');
 
@@ -264,17 +267,40 @@ function buildListingCard(l) {
         ${img}
         <div class="card-badge ${badgeClass}">${badgeText}</div>
         ${vipTag}
+        ${policyTag}
       </div>
       <div class="card-body">
         <div class="card-price">${formatPrice(l.price)}</div>
         <div class="card-title">${l.title}</div>
         <div class="card-meta">${carMeta || l.category || ''}</div>
         <div class="card-footer">
-          <span class="card-shop">🏪 ${l.shop_name || 'Хувь хүн'}</span>
+          <span class="card-shop">🏪 ${l.shop_name || 'Хувь хүн'}${verified}</span>
           <span class="card-date">${formatDate(l.created_at)}</span>
         </div>
       </div>
     </div>`;
+}
+
+// ── Policy metadata ───────────────────────────────────────
+function policyMeta(policy) {
+  const map = {
+    return_ok:   { short: '🟢 Буцаана',      long: 'Тохирохгүй бол буцаана',  cls: 'policy_return_ok' },
+    defect_only: { short: '🟡 Гэмтэлтэй бол', long: 'Гэмтэлтэй бол буцаана',   cls: 'policy_defect_only' },
+    no_return:   { short: '🔴 Буцаахгүй',    long: 'Худалдсан, худалдсан',    cls: 'policy_no_return' },
+  };
+  return map[policy] || null;
+}
+
+// ── Expiry helpers ────────────────────────────────────────
+function expiryTag(expiresAt) {
+  if (!expiresAt) return '';
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (ms <= 0) return '<span class="expiry-tag expired">⏰ Хугацаа дууссан</span>';
+  const days = Math.floor(ms / (24*3600*1000));
+  const hours = Math.floor(ms / (3600*1000));
+  const cls = days >= 3 ? 'ok' : days >= 1 ? 'warning' : 'danger';
+  const txt = days >= 1 ? `${days} хоног үлдсэн` : `${hours} цаг үлдсэн`;
+  return `<span class="expiry-tag ${cls}">⏱ ${txt}</span>`;
 }
 
 function renderGrid(listings, containerId, opts = {}) {
@@ -363,14 +389,15 @@ function updateFilterCountBadge() {
   if (!badge) return;
   const f = getFilters();
   let count = 0;
-  if (f.category)  count++;
-  if (f.car_make)  count++;
-  if (f.car_model) count++;
-  if (f.year_from) count++;
-  if (f.year_to)   count++;
-  if (f.price_min) count++;
-  if (f.price_max) count++;
-  if (f.part_type) count++;
+  if (f.category)        count++;
+  if (f.car_make)        count++;
+  if (f.car_model)       count++;
+  if (f.year_from)       count++;
+  if (f.year_to)         count++;
+  if (f.price_min)       count++;
+  if (f.price_max)       count++;
+  if (f.part_type)       count++;
+  if (f.exchange_policy) count++;
   badge.textContent = count;
   badge.classList.toggle('visible', count > 0);
 }
@@ -467,15 +494,16 @@ async function initSearchPage() {
 
 function getFilters() {
   return {
-    category:  document.getElementById('f-category').value,
-    car_make:  document.getElementById('f-make').value,
-    car_model: document.getElementById('f-model').value.trim(),
-    year_from: document.getElementById('f-year-from').value,
-    year_to:   document.getElementById('f-year-to').value,
-    price_min: document.getElementById('f-price-min').value,
-    price_max: document.getElementById('f-price-max').value,
-    part_type: document.querySelector('input[name="f-type"]:checked')?.value || '',
-    sort:      document.getElementById('sort-select').value,
+    category:        document.getElementById('f-category').value,
+    car_make:        document.getElementById('f-make').value,
+    car_model:       document.getElementById('f-model').value.trim(),
+    year_from:       document.getElementById('f-year-from').value,
+    year_to:         document.getElementById('f-year-to').value,
+    price_min:       document.getElementById('f-price-min').value,
+    price_max:       document.getElementById('f-price-max').value,
+    part_type:       document.querySelector('input[name="f-type"]:checked')?.value || '',
+    exchange_policy: document.querySelector('input[name="f-policy"]:checked')?.value || '',
+    sort:            document.getElementById('sort-select').value,
   };
 }
 
@@ -518,6 +546,8 @@ function resetFilters() {
   document.getElementById('f-price-min').value = '';
   document.getElementById('f-price-max').value = '';
   document.querySelector('input[name="f-type"]').checked = true;
+  const firstPolicy = document.querySelector('input[name="f-policy"]');
+  if (firstPolicy) firstPolicy.checked = true;
   document.getElementById('sort-select').value = 'newest';
   _searchFilters = {};
   loadSearchResults(true);
@@ -582,10 +612,12 @@ async function openDetail(id) {
     // Badges
     const badgeClass = l.part_type === 'original' ? 'original' : 'substitute';
     const badgeText  = l.part_type === 'original' ? 'Оригинал' : 'Орлуулах';
+    const policy     = policyMeta(l.exchange_policy);
     document.getElementById('detail-badges').innerHTML =
       `<span class="detail-badge ${badgeClass}">${badgeText}</span>` +
       `<span class="detail-badge category">${l.category || ''}</span>` +
-      (l.is_vip ? '<span class="detail-badge vip">⭐ VIP</span>' : '');
+      (l.is_vip ? '<span class="detail-badge vip">⭐ VIP</span>' : '') +
+      (policy ? `<span class="detail-badge ${policy.cls}">${policy.short}</span>` : '');
 
     document.getElementById('detail-price').textContent = formatPrice(l.price);
     document.getElementById('detail-title').textContent = l.title;
@@ -604,10 +636,11 @@ async function openDetail(id) {
 
     // Shop
     const shopInitial = (l.shop_name || l.phone || 'Х').charAt(0).toUpperCase();
+    const verifiedIcon = l.is_verified ? '<span class="verified-badge" title="Баталгаажсан дэлгүүр"></span>' : '';
     document.getElementById('detail-shop').innerHTML = `
       <div class="detail-shop-avatar">${shopInitial}</div>
       <div class="detail-shop-info">
-        <div class="detail-shop-name">${l.shop_name || 'Хувь хүн'}</div>
+        <div class="detail-shop-name">${l.shop_name || 'Хувь хүн'}${verifiedIcon}</div>
         <div class="detail-shop-loc">📍 ${l.location || 'Байршил тодорхойгүй'}</div>
       </div>`;
 
@@ -647,10 +680,45 @@ function closeDetail() {
 // ═══════════════════════════════════════════════════════════
 // POST LISTING
 // ═══════════════════════════════════════════════════════════
-function initPostPage() {
+async function initPostPage() {
   document.getElementById('post-form-wrap').style.display = 'block';
   document.getElementById('post-success').style.display   = 'none';
   initUploadZone('upload-zone', 'upload-preview');
+  await refreshQuotaInfo();
+}
+
+async function refreshQuotaInfo() {
+  const el = document.getElementById('quota-info');
+  const txt = document.getElementById('quota-text');
+  const btn = document.getElementById('post-submit-btn');
+  if (!el || !authGetUser()) return;
+  try {
+    const q = await fetchMyQuota();
+    el.style.display = 'flex';
+    el.classList.remove('warning', 'danger');
+    const activeUnlimited = q.max_active >= 999999;
+    const dailyUnlimited  = q.max_daily  >= 999999;
+    const activeText = activeUnlimited ? '∞' : `<strong>${q.active}/${q.max_active}</strong>`;
+    const dailyText  = dailyUnlimited  ? '∞' : `<strong>${q.daily}/${q.max_daily}</strong>`;
+    txt.innerHTML = `Идэвхтэй зар: ${activeText} · Өнөөдөр нэмсэн: ${dailyText}`;
+
+    if (!activeUnlimited && q.remaining === 0) {
+      el.classList.add('danger');
+      txt.innerHTML += ' — <strong>Хязгаарт хүрсэн.</strong> Хуучин зар устгаад дахин оролдоно уу.';
+      if (btn) btn.disabled = true;
+    } else if (!dailyUnlimited && q.daily_remaining === 0) {
+      el.classList.add('danger');
+      txt.innerHTML += ' — <strong>Өдрийн хязгаарт хүрсэн.</strong> Маргааш дахин оролдоно уу.';
+      if (btn) btn.disabled = true;
+    } else if (!activeUnlimited && q.remaining <= 1) {
+      el.classList.add('warning');
+      if (btn) btn.disabled = false;
+    } else {
+      if (btn) btn.disabled = false;
+    }
+  } catch(e) {
+    el.style.display = 'none';
+  }
 }
 
 function selectType(type) {
@@ -692,6 +760,7 @@ async function submitListing() {
       year_from: parseInt(document.getElementById('p-year-from').value) || null,
       year_to:   parseInt(document.getElementById('p-year-to').value)   || null,
       part_type: document.getElementById('p-type').value,
+      exchange_policy: document.getElementById('p-policy')?.value || 'no_return',
       description: document.getElementById('p-desc').value.trim(),
       price:     parseInt(price),
       phone,
@@ -749,17 +818,23 @@ async function loadMyListings() {
       const thumb = l.images?.[0]
         ? `<img src="${l.images[0]}" alt="${l.title}" loading="lazy">`
         : '';
+      const expTag = expiryTag(l.expires_at);
+      const expired = l.expires_at && new Date(l.expires_at) < new Date();
+      const extendBtn = (l.expires_at)
+        ? `<button class="btn-extend" onclick="doExtendListing('${l.id}')">${expired ? '🔄 Дахин нээх' : '⏱ Сунгах'}</button>`
+        : '';
       return `
         <div class="my-listing-card" id="mlc-${l.id}">
           <div class="my-listing-img">${thumb}</div>
           <div class="my-listing-body">
             <div class="my-listing-info">
-              <div class="my-listing-title">${l.title}</div>
+              <div class="my-listing-title">${l.title} ${expTag}</div>
               <div class="my-listing-meta">${l.car_make || ''} ${l.car_model || ''} • ${l.category || ''}</div>
             </div>
             <div class="my-listing-price">${formatPrice(l.price)}</div>
             <div class="my-listing-actions">
               <button class="btn-view-listing" onclick="openDetail('${l.id}')">Харах</button>
+              ${extendBtn}
               <button class="btn-toggle" onclick="doToggleActive('${l.id}',${l.is_active})">${l.is_active ? 'Идэвхгүй' : 'Идэвхтэй'}</button>
               <button class="btn-del" onclick="doDeleteListing('${l.id}')">Устгах</button>
             </div>
@@ -786,6 +861,16 @@ async function doToggleActive(id, current) {
   try {
     await toggleListingActive(id, current);
     showToast(current ? 'Идэвхгүй болголоо' : 'Идэвхтэй болголоо', 'success');
+    await loadMyListings();
+  } catch(e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+async function doExtendListing(id) {
+  try {
+    await extendListing(id);
+    showToast('Зар сунгагдлаа', 'success');
     await loadMyListings();
   } catch(e) {
     showToast('Алдаа: ' + e.message, 'error');
