@@ -571,15 +571,16 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 
 /* ── Header search clear button ────────────────────────── */
 .header-search { position: relative; }
-.header-search-clear {
-  position: absolute; right: 48px; top: 50%; transform: translateY(-50%);
-  width: 22px; height: 22px; border-radius: 50%;
+.header-search button.header-search-clear {
+  position: absolute; right: 56px; top: 50%; transform: translateY(-50%);
+  width: 22px; height: 22px; padding: 0; border-radius: 50%;
   background: var(--bg3); color: var(--muted); font-size: 12px; cursor: pointer;
   display: none; align-items: center; justify-content: center;
   transition: background .15s, color .15s;
+  z-index: 2;
 }
-.header-search-clear.visible { display: flex; }
-.header-search-clear:hover { background: var(--border); color: var(--text); }
+.header-search button.header-search-clear.visible { display: flex; }
+.header-search button.header-search-clear:hover { background: var(--border); color: var(--text); }
 
 /* ── Filter count badge ────────────────────────────────── */
 .filter-btn-apply { position: relative; }
