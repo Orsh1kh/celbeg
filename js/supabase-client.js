@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════
 
 const SUPABASE_URL = 'https://ocgufpfbicgjoxguawiq.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_I1WGTZAv4eY79Z5qxrMxHA_rhpuT...'; // ← anon key энд
+const SUPABASE_ANON_KEY = 'sb_publishable_I1WGTZAv4eY79Z5qxrMxHA_rhpuTi6X'; // ← anon key энд
 
 // ───────────────────────────────────────────────────────────
 // ADMIN PHONES — 8 оронтой (+976 гүй) утасны дугаарууд.
