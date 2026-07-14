@@ -7,6 +7,7 @@ let _homePage   = 0;
 let _searchPage = 0;
 let _searchFilters = {};
 let _currentListing = null;
+let _currentListingImages = [];
 
 // ═══════════════════════════════════════════════════════════
 // NAVIGATION
@@ -276,13 +277,138 @@ function buildListingCard(l) {
     </div>`;
 }
 
-function renderGrid(listings, containerId) {
+function renderGrid(listings, containerId, opts = {}) {
   const el = document.getElementById(containerId);
   if (!listings.length) {
-    el.innerHTML = `<div class="no-results"><div class="no-icon">🔍</div><p>Зар олдсонгүй</p></div>`;
+    el.innerHTML = renderEmptyState(opts.emptyType || 'search');
     return;
   }
   el.innerHTML = `<div class="listing-grid">${listings.map(buildListingCard).join('')}</div>`;
+}
+
+// ── Skeleton loader ────────────────────────────────────
+function renderSkeletons(containerId, count = 8) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const card = `
+    <div class="skeleton-card">
+      <div class="skeleton skeleton-img"></div>
+      <div class="skeleton-body">
+        <div class="skeleton skeleton-line price"></div>
+        <div class="skeleton skeleton-line title"></div>
+        <div class="skeleton skeleton-line meta"></div>
+        <div class="skeleton skeleton-line footer"></div>
+      </div>
+    </div>`;
+  el.innerHTML = `<div class="skeleton-grid">${card.repeat(count)}</div>`;
+}
+
+// ── Empty state templates ──────────────────────────────
+function renderEmptyState(type) {
+  const templates = {
+    search: {
+      icon: '🔍',
+      title: 'Зар олдсонгүй',
+      msg: 'Таны хайлтад тохирсон зар одоогоор байхгүй байна. Шүүлтээ өөрчилж дахин үзнэ үү.',
+      cta: 'Шүүлт цэвэрлэх',
+      action: "resetFilters()"
+    },
+    home: {
+      icon: '📦',
+      title: 'Одоогоор зар байхгүй',
+      msg: 'Эхний зарыг нийтэлж зах зээлээ нээцгээе!',
+      cta: '+ Эхний зар нийтлэх',
+      action: "showPage('post')"
+    },
+    myListings: {
+      icon: '📭',
+      title: 'Та зар нийтлээгүй байна',
+      msg: 'Худалдах сэлбэг байгаа бол дэлгэрэнгүй мэдээлэлтэйгээр нийтэлж эхлээрэй.',
+      cta: '+ Зар нийтлэх',
+      action: "showPage('post')"
+    },
+    error: {
+      icon: '⚠️',
+      title: 'Алдаа гарлаа',
+      msg: 'Мэдээлэл ачаалахад асуудал үүслээ. Дараа дахин оролдоно уу.',
+      cta: 'Дахин ачаалах',
+      action: 'location.reload()'
+    }
+  };
+  const t = templates[type] || templates.search;
+  return `
+    <div class="no-results">
+      <div class="no-icon">${t.icon}</div>
+      <h3>${t.title}</h3>
+      <p>${t.msg}</p>
+      ${t.cta ? `<div class="no-cta" onclick="${t.action}">${t.cta}</div>` : ''}
+    </div>`;
+}
+
+// ── Header search UX ───────────────────────────────────
+function toggleHeaderSearchClear() {
+  const input = document.getElementById('header-search-input');
+  const clear = document.getElementById('header-search-clear');
+  if (clear) clear.classList.toggle('visible', input.value.length > 0);
+}
+function clearHeaderSearch() {
+  const input = document.getElementById('header-search-input');
+  if (input) { input.value = ''; input.focus(); }
+  toggleHeaderSearchClear();
+}
+
+// ── Filter count badge ─────────────────────────────────
+function updateFilterCountBadge() {
+  const badge = document.getElementById('filter-count-badge');
+  if (!badge) return;
+  const f = getFilters();
+  let count = 0;
+  if (f.category)  count++;
+  if (f.car_make)  count++;
+  if (f.car_model) count++;
+  if (f.year_from) count++;
+  if (f.year_to)   count++;
+  if (f.price_min) count++;
+  if (f.price_max) count++;
+  if (f.part_type) count++;
+  badge.textContent = count;
+  badge.classList.toggle('visible', count > 0);
+}
+
+// ═══════════════════════════════════════════════════════════
+// LIGHTBOX
+// ═══════════════════════════════════════════════════════════
+let _lightboxImages = [];
+let _lightboxIdx = 0;
+
+function openLightbox(images, startIdx = 0) {
+  if (!images || !images.length) return;
+  _lightboxImages = images;
+  _lightboxIdx = startIdx;
+  renderLightbox();
+  document.getElementById('modal-lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('modal-lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function lightboxNav(dir) {
+  _lightboxIdx = (_lightboxIdx + dir + _lightboxImages.length) % _lightboxImages.length;
+  renderLightbox();
+}
+function renderLightbox() {
+  const img = document.getElementById('lightbox-img');
+  const counter = document.getElementById('lightbox-counter');
+  const prev = document.getElementById('lightbox-prev');
+  const next = document.getElementById('lightbox-next');
+  if (!img) return;
+  img.src = _lightboxImages[_lightboxIdx] || '';
+  counter.textContent = `${_lightboxIdx + 1} / ${_lightboxImages.length}`;
+  const many = _lightboxImages.length > 1;
+  prev.style.display = many ? 'flex' : 'none';
+  next.style.display = many ? 'flex' : 'none';
+  counter.style.display = many ? 'block' : 'none';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -297,35 +423,33 @@ async function initHomePage() {
 async function loadHomeListings(reset = false) {
   if (reset) {
     _homePage = 0;
-    document.getElementById('home-listings-container').innerHTML =
-      '<div class="loading-center"><div class="spinner"></div></div>';
+    renderSkeletons('home-listings-container', 8);
   }
   try {
     const listings = await fetchListings({ sort: 'newest', page: _homePage });
     const container = document.getElementById('home-listings-container');
     if (reset) {
-      renderGrid(listings, 'home-listings-container');
+      renderGrid(listings, 'home-listings-container', { emptyType: 'home' });
     } else {
       const grid = container.querySelector('.listing-grid');
       if (grid) grid.insertAdjacentHTML('beforeend', listings.map(buildListingCard).join(''));
-      else renderGrid(listings, 'home-listings-container');
+      else renderGrid(listings, 'home-listings-container', { emptyType: 'home' });
     }
     document.getElementById('home-load-more').style.display = listings.length >= PAGE_SIZE ? 'block' : 'none';
   } catch(e) {
-    document.getElementById('home-listings-container').innerHTML =
-      '<div class="no-results"><div class="no-icon">⚠️</div><p>Мэдээлэл ачаалахад алдаа гарлаа</p></div>';
+    document.getElementById('home-listings-container').innerHTML = renderEmptyState('error');
   }
 }
 
 async function loadVipListings() {
+  const header = document.getElementById('vip-section-header');
+  const grid   = document.getElementById('vip-grid');
   try {
     const vips = await fetchVipListings();
-    const header = document.getElementById('vip-section-header');
-    const grid   = document.getElementById('vip-grid');
     if (!vips.length) { header.style.display = 'none'; grid.innerHTML = ''; return; }
     header.style.display = 'flex';
     grid.innerHTML = vips.map(buildListingCard).join('');
-  } catch(e) { /* silent */ }
+  } catch(e) { header.style.display = 'none'; grid.innerHTML = ''; }
 }
 
 function loadMoreHome() {
@@ -358,16 +482,16 @@ function getFilters() {
 async function loadSearchResults(reset = false) {
   if (reset) {
     _searchPage = 0;
-    document.getElementById('search-listings-container').innerHTML =
-      '<div class="loading-center"><div class="spinner"></div></div>';
+    renderSkeletons('search-listings-container', 8);
     document.getElementById('results-count').textContent = 'Хайж байна...';
   }
+  updateFilterCountBadge();
   try {
     const filters = { ...getFilters(), ..._searchFilters, page: _searchPage };
     const listings = await fetchListings(filters);
     const container = document.getElementById('search-listings-container');
     if (reset) {
-      renderGrid(listings, 'search-listings-container');
+      renderGrid(listings, 'search-listings-container', { emptyType: 'search' });
       document.getElementById('results-count').innerHTML =
         `<strong>${listings.length}</strong> зар олдлоо`;
     } else {
@@ -376,8 +500,7 @@ async function loadSearchResults(reset = false) {
     }
     document.getElementById('search-load-more').style.display = listings.length >= PAGE_SIZE ? 'block' : 'none';
   } catch(e) {
-    document.getElementById('search-listings-container').innerHTML =
-      '<div class="no-results"><div class="no-icon">⚠️</div><p>Алдаа гарлаа</p></div>';
+    document.getElementById('search-listings-container').innerHTML = renderEmptyState('error');
   }
 }
 
@@ -444,13 +567,16 @@ async function openDetail(id) {
     const mainWrap = document.getElementById('detail-main-img-wrap');
     const thumbsWrap = document.getElementById('detail-thumbs');
     if (l.images?.length) {
-      mainWrap.innerHTML = `<img src="${l.images[0]}" alt="${l.title}">`;
+      const imgsJson = encodeURIComponent(JSON.stringify(l.images));
+      mainWrap.innerHTML = `<img src="${l.images[0]}" alt="${l.title}" onclick="openLightbox(JSON.parse(decodeURIComponent('${imgsJson}')), 0)">`;
       thumbsWrap.innerHTML = l.images.map((url, i) =>
-        `<div class="gallery-thumb ${i===0?'active':''}" onclick="switchDetailImg(this,'${url}')"><img src="${url}" loading="lazy"></div>`
+        `<div class="gallery-thumb ${i===0?'active':''}" onclick="switchDetailImg(this,'${url}',${i})"><img src="${url}" loading="lazy"></div>`
       ).join('');
+      _currentListingImages = l.images;
     } else {
       mainWrap.innerHTML = `<div class="no-photo"><span>📦</span><small>Зураг байхгүй</small></div>`;
       thumbsWrap.innerHTML = '';
+      _currentListingImages = [];
     }
 
     // Badges
@@ -500,8 +626,14 @@ async function openDetail(id) {
   }
 }
 
-function switchDetailImg(thumb, url) {
-  document.querySelector('#detail-main-img-wrap img')?.setAttribute('src', url);
+function switchDetailImg(thumb, url, idx) {
+  const mainImg = document.querySelector('#detail-main-img-wrap img');
+  if (mainImg) {
+    mainImg.setAttribute('src', url);
+    if (typeof idx === 'number') {
+      mainImg.onclick = () => openLightbox(_currentListingImages, idx);
+    }
+  }
   document.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
   thumb.classList.add('active');
 }
@@ -606,11 +738,11 @@ async function initProfilePage() {
 
 async function loadMyListings() {
   const container = document.getElementById('my-listings-container');
-  container.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  renderSkeletons('my-listings-container', 4);
   try {
     const listings = await myListings();
     if (!listings.length) {
-      container.innerHTML = `<div class="profile-empty"><div class="empty-icon">📭</div><p>Одоогоор зар байхгүй байна</p></div>`;
+      container.innerHTML = renderEmptyState('myListings');
       return;
     }
     container.innerHTML = listings.map(l => {
@@ -704,8 +836,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initHomePage();
 
-  // ESC closes modals
+  // Keyboard shortcuts
   document.addEventListener('keydown', e => {
+    const lightboxOpen = document.getElementById('modal-lightbox')?.classList.contains('open');
+    if (lightboxOpen) {
+      if (e.key === 'Escape')      closeLightbox();
+      else if (e.key === 'ArrowLeft')  lightboxNav(-1);
+      else if (e.key === 'ArrowRight') lightboxNav(1);
+      return;
+    }
     if (e.key === 'Escape') {
       closeDetail();
       closeAuthModal();

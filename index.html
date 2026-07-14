@@ -95,7 +95,8 @@
 
     <!-- Search -->
     <div class="header-search">
-      <input type="text" id="header-search-input" placeholder="Сэлбэг хайх..." onkeydown="if(event.key==='Enter')doHeaderSearch()">
+      <input type="text" id="header-search-input" placeholder="Сэлбэг хайх..." oninput="toggleHeaderSearchClear()" onkeydown="if(event.key==='Enter')doHeaderSearch()">
+      <button type="button" class="header-search-clear" id="header-search-clear" onclick="clearHeaderSearch()" title="Цэвэрлэх">✕</button>
       <button onclick="doHeaderSearch()">🔍</button>
     </div>
 
@@ -203,6 +204,17 @@
       <button class="btn-submit" id="reg-submit-btn" onclick="submitRegister()">Бүртгүүлэх</button>
     </div>
   </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     IMAGE LIGHTBOX
+════════════════════════════════════════════════════════ -->
+<div id="modal-lightbox" onclick="if(event.target===this)closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()" title="Хаах">✕</button>
+  <button class="lightbox-nav prev" id="lightbox-prev" onclick="lightboxNav(-1)" title="Өмнөх">‹</button>
+  <div class="lightbox-counter" id="lightbox-counter">1 / 1</div>
+  <div class="lightbox-img-wrap"><img id="lightbox-img" src="" alt=""></div>
+  <button class="lightbox-nav next" id="lightbox-next" onclick="lightboxNav(1)" title="Дараах">›</button>
 </div>
 
 <!-- ════════════════════════════════════════════════════════
@@ -343,7 +355,7 @@
             </div>
           </div>
 
-          <button class="filter-btn-apply" onclick="applyFilters()">Шүүлт хийх</button>
+          <button class="filter-btn-apply" onclick="applyFilters()">Шүүлт хийх<span class="filter-count-badge" id="filter-count-badge">0</span></button>
           <button class="filter-btn-reset" onclick="resetFilters()">Цэвэрлэх</button>
         </aside>
 
@@ -635,12 +647,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=2"></script>
-<script src="js/data-manager.js?v=2"></script>
-<script src="js/auth.js?v=2"></script>
-<script src="js/listings.js?v=2"></script>
-<script src="js/upload.js?v=2"></script>
-<script src="js/admin.js?v=2"></script>
-<script src="js/main.js?v=2"></script>
+<script src="js/supabase-client.js?v=3"></script>
+<script src="js/data-manager.js?v=3"></script>
+<script src="js/auth.js?v=3"></script>
+<script src="js/listings.js?v=3"></script>
+<script src="js/upload.js?v=3"></script>
+<script src="js/admin.js?v=3"></script>
+<script src="js/main.js?v=3"></script>
 </body>
 </html>
