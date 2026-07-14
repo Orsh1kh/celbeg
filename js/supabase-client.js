@@ -9,18 +9,14 @@
 // ═══════════════════════════════════════════════════════════
 
 const SUPABASE_URL = 'https://ocgufpfbicgjoxguawiq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOi...';  // ← anon key энд
-
-const ADMIN_PHONES = [
-  '95113973',  // ← Өөрийн 8 оронтой дугаар (+976 гүй)
-];
+const SUPABASE_ANON_KEY = 'sb_publishable_I1WGTZAv4eY79Z5qxrMxHA_rhpuT...'; // ← anon key энд
 
 // ───────────────────────────────────────────────────────────
 // ADMIN PHONES — 8 оронтой (+976 гүй) утасны дугаарууд.
 // Эдгээр дугаараар нэвтэрсэн бүртгэлд is_admin=true оноогдоно.
 // ───────────────────────────────────────────────────────────
 const ADMIN_PHONES = [
-  // '99112233',
+  '95113973',
 ];
 
 // ───────────────────────────────────────────────────────────
