@@ -1,254 +1,646 @@
 <!DOCTYPE html>
-<html lang="mn">
+<html lang="mn" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Celbeg.mn — Машины Сэлбэгийн Зах</title>
-<meta name="description" content="Монголын машины сэлбэгийн анхны мэргэжлийн платформ.">
+<title>CELBEG.MN — Авто сэлбэгийн онлайн зах</title>
+
+<meta name="description" content="Монголын хамгийн том авто сэлбэгийн онлайн зах зээл. Toyota, Hyundai, BMW, Lexus зэрэг бүх маркийн оригинал болон орлуулах сэлбэгийг шуурхай олоорой.">
+<meta name="keywords" content="авто сэлбэг, машины сэлбэг, оригинал сэлбэг, орлуулах сэлбэг, celbeg, celbeg.mn, Монгол, Улаанбаатар, Toyota сэлбэг, Hyundai сэлбэг">
+<meta name="author" content="CELBEG.MN">
+<meta name="theme-color" content="#e63946">
+<meta name="robots" content="index, follow">
+
+<link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+<link rel="apple-touch-icon" href="img/favicon.svg">
+<link rel="canonical" href="https://celbeg.mn/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CELBEG.MN">
+<meta property="og:title" content="CELBEG.MN — Авто сэлбэгийн онлайн зах">
+<meta property="og:description" content="Монголын хамгийн том авто сэлбэгийн онлайн зах зээл. Оригинал болон орлуулах сэлбэгийг шуурхай олоорой.">
+<meta property="og:url" content="https://celbeg.mn/">
+<meta property="og:image" content="https://celbeg.mn/img/favicon.svg">
+<meta property="og:locale" content="mn_MN">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CELBEG.MN — Авто сэлбэгийн онлайн зах">
+<meta name="twitter:description" content="Монголын хамгийн том авто сэлбэгийн онлайн зах зээл.">
+<meta name="twitter:image" content="https://celbeg.mn/img/favicon.svg">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+
+<!-- Structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "CELBEG.MN",
+  "url": "https://celbeg.mn/",
+  "description": "Монголын хамгийн том авто сэлбэгийн онлайн зах зээл.",
+  "inLanguage": "mn-MN",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://celbeg.mn/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <div class="logo" onclick="showPage('home')">CELBEG<span>.</span>MN</div>
-  <ul class="nav-links">
-    <li><a onclick="showPage('home')" id="nav-home" class="active">Нүүр</a></li>
-    <li><a onclick="showPage('shops')" id="nav-shops">Дэлгүүрүүд</a></li>
-    <li><a onclick="showPage('zar')" id="nav-zar">Зар нийтлэх</a></li>
-  </ul>
-  <div class="nav-right" id="nav-right">
-    <button class="nav-login" onclick="openModal('login')">Нэвтрэх</button>
-    <button class="nav-btn" onclick="openModal('register')">Бүртгүүлэх</button>
+<!-- ── Toast ─────────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ── Scroll to top ─────────────────────────────────────── -->
+<button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- ════════════════════════════════════════════════════════
+     MOBILE NAV
+════════════════════════════════════════════════════════ -->
+<div id="mobile-overlay" onclick="closeMobileNav()"></div>
+<nav id="mobile-nav">
+  <div class="mobile-nav-header">
+    <div class="mobile-nav-logo">CELBEG<span style="color:var(--text)">.MN</span></div>
+    <button class="mobile-nav-close" onclick="closeMobileNav()">✕</button>
+  </div>
+  <div class="mobile-nav-link" onclick="showPage('home');closeMobileNav()">🏠 Нүүр</div>
+  <div class="mobile-nav-link" onclick="showPage('search');closeMobileNav()">🔍 Зарууд харах</div>
+  <div class="mobile-nav-link" onclick="showPage('post');closeMobileNav()">➕ Зар нийтлэх</div>
+  <div class="mobile-nav-link" onclick="showPage('profile');closeMobileNav()">👤 Миний хэсэг</div>
+  <div class="mobile-nav-link admin-nav-link" id="mob-admin-link" onclick="showPage('admin');closeMobileNav()">⚙️ Удирдлага</div>
+  <div class="mobile-nav-sep"></div>
+  <div id="mob-auth-area">
+    <div class="mobile-nav-btn outline" onclick="openAuthModal('login');closeMobileNav()">Нэвтрэх</div>
+    <div class="mobile-nav-btn red" style="margin-top:8px" onclick="openAuthModal('register');closeMobileNav()">Бүртгүүлэх</div>
+  </div>
+  <div id="mob-user-area" style="display:none">
+    <div class="mobile-nav-link" id="mob-user-name">Хэрэглэгч</div>
+    <div class="mobile-nav-btn outline" onclick="doLogout();closeMobileNav()">Гарах</div>
   </div>
 </nav>
 
-<!-- НЭВТРЭХ / БҮРТГЭЛ MODAL -->
-<div class="modal-overlay" id="auth-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <h3>CELBEG<span style="color:var(--red)">.</span>MN</h3>
-    <p>Утасны дугаараар нэвтэрнэ</p>
+<!-- ════════════════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════════════════ -->
+<header id="site-header">
+  <div class="header-main">
+    <!-- Logo -->
+    <div class="header-logo" onclick="showPage('home')">CELBEG<span>.MN</span></div>
 
-    <div class="modal-tabs">
-      <button class="modal-tab active" id="tab-login" onclick="switchTab('login')">Нэвтрэх</button>
-      <button class="modal-tab" id="tab-register" onclick="switchTab('register')">Бүртгүүлэх</button>
+    <!-- Search -->
+    <div class="header-search">
+      <input type="text" id="header-search-input" placeholder="Сэлбэг хайх..." onkeydown="if(event.key==='Enter')doHeaderSearch()">
+      <button onclick="doHeaderSearch()">🔍</button>
     </div>
 
-    <!-- НЭВТРЭХ -->
-    <div class="modal-form active" id="form-login">
-      <div class="form-group">
-        <label>Утасны дугаар</label>
-        <div class="otp-row">
-          <input class="form-input" id="login-phone" type="tel" placeholder="9911-2233">
-          <button class="otp-btn" id="login-otp-btn" onclick="sendOTP('login')">OTP авах</button>
-        </div>
-        <div class="modal-hint">Таны утас руу 6 оронтой код илгээнэ</div>
+    <!-- Actions -->
+    <div class="header-actions">
+      <button class="btn-theme" id="theme-btn" onclick="toggleTheme()" title="Өнгө сэлгэх">🌙</button>
+      <button class="btn-post" onclick="showPage('post')">+ Зар нийтлэх</button>
+      <!-- Guest -->
+      <div id="guest-btns">
+        <button class="btn-auth" onclick="openAuthModal('login')">Нэвтрэх</button>
       </div>
-      <div class="otp-fields" id="login-otp-fields">
-        <div class="form-group">
-          <label>OTP код</label>
-          <input class="form-input" id="login-otp" type="number" placeholder="123456" maxlength="6">
+      <!-- Logged in -->
+      <div id="user-btns" style="display:none; align-items:center; gap:8px;">
+        <button class="btn-auth admin-nav-link" id="admin-header-link" onclick="showPage('admin')" style="display:none">⚙️ Удирдлага</button>
+        <div class="user-badge" onclick="showPage('profile')">
+          <div class="user-avatar" id="user-avatar-char">U</div>
+          <span class="user-name" id="user-display-name">Хэрэглэгч</span>
         </div>
+        <button class="btn-logout" onclick="doLogout()">Гарах</button>
       </div>
-      <div class="error-msg" id="login-error"></div>
-      <button class="submit-btn" onclick="submitLogin()">Нэвтрэх</button>
+      <!-- Hamburger -->
+      <button class="btn-hamburger" onclick="toggleMobileNav()">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Category nav (populated dynamically by data-manager.js) -->
+  <div class="cat-nav">
+    <div class="cat-nav-inner" id="cat-nav-inner">
+      <button class="cat-nav-btn active" data-cat="" onclick="selectCatNav(this,'')">Бүгд</button>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════
+     AUTH MODAL
+════════════════════════════════════════════════════════ -->
+<div id="modal-auth">
+  <div class="modal-overlay" onclick="closeAuthModal()"></div>
+  <div class="auth-panel">
+    <button class="auth-close-btn" onclick="closeAuthModal()">✕</button>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Нэвтрэх</div>
+      <div class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Бүртгүүлэх</div>
     </div>
 
-    <!-- БҮРТГЭЛ -->
-    <div class="modal-form" id="form-register">
+    <!-- Login form -->
+    <div class="auth-form active" id="form-login">
       <div class="form-group">
-        <label>Нэр *</label>
-        <input class="form-input" id="reg-name" placeholder="Таны нэр">
-      </div>
-      <div class="form-group">
-        <label>Хэрэглэгчийн төрөл *</label>
-        <select class="form-input" id="reg-type">
-          <option value="">Сонгоно уу</option>
-          <option value="buyer">Худалдан авагч</option>
-          <option value="shop">Дэлгүүр / Худалдагч</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Утасны дугаар *</label>
+        <label class="form-label">Утасны дугаар</label>
         <div class="otp-row">
-          <input class="form-input" id="reg-phone" type="tel" placeholder="9911-2233">
-          <button class="otp-btn" id="reg-otp-btn" onclick="sendOTP('reg')">OTP авах</button>
+          <input class="form-input" id="login-phone" type="tel" placeholder="99xxxxxx" maxlength="8">
+          <button id="login-otp-btn" onclick="sendLoginOTP()">OTP илгээх</button>
         </div>
-        <div class="modal-hint">Таны утас руу 6 оронтой код илгээнэ</div>
+        <div class="form-error" id="login-phone-err"></div>
       </div>
-      <div class="otp-fields" id="reg-otp-fields">
+      <div class="otp-code-wrap" id="login-otp-wrap">
         <div class="form-group">
-          <label>OTP код</label>
-          <input class="form-input" id="reg-otp" type="number" placeholder="123456" maxlength="6">
+          <label class="form-label">OTP код</label>
+          <input class="form-input" id="login-otp" type="text" placeholder="6 оронтой код" maxlength="6">
+          <div class="form-error" id="login-otp-err"></div>
         </div>
       </div>
-      <div class="error-msg" id="reg-error"></div>
-      <button class="submit-btn" onclick="submitRegister()">Бүртгүүлэх</button>
+      <button class="btn-submit" id="login-submit-btn" onclick="submitLogin()">Нэвтрэх</button>
+    </div>
+
+    <!-- Register form -->
+    <div class="auth-form" id="form-register">
+      <div class="form-group">
+        <label class="form-label">Нэр</label>
+        <input class="form-input" id="reg-name" type="text" placeholder="Таны нэр">
+        <div class="form-error" id="reg-name-err"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Хэрэглэгчийн төрөл</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="reg-type" value="buyer" checked> Худалдан авагч
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="reg-type" value="shop"> Дэлгүүр
+          </label>
+        </div>
+      </div>
+      <div class="form-group reg-shop-wrap" id="reg-shop-wrap">
+        <label class="form-label">Дэлгүүрийн нэр</label>
+        <input class="form-input" id="reg-shop" type="text" placeholder="Дэлгүүрийн нэр">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Утасны дугаар</label>
+        <div class="otp-row">
+          <input class="form-input" id="reg-phone" type="tel" placeholder="99xxxxxx" maxlength="8">
+          <button id="reg-otp-btn" onclick="sendRegOTP()">OTP илгээх</button>
+        </div>
+        <div class="form-error" id="reg-phone-err"></div>
+      </div>
+      <div class="otp-code-wrap" id="reg-otp-wrap">
+        <div class="form-group">
+          <label class="form-label">OTP код</label>
+          <input class="form-input" id="reg-otp" type="text" placeholder="6 оронтой код" maxlength="6">
+          <div class="form-error" id="reg-otp-err"></div>
+        </div>
+      </div>
+      <button class="btn-submit" id="reg-submit-btn" onclick="submitRegister()">Бүртгүүлэх</button>
     </div>
   </div>
 </div>
 
-<!-- НҮҮР ХУУДАС -->
-<div class="page active" id="page-home">
-  <div class="hero">
-    <div>
-      <div class="hero-tag">МОНГОЛЫН АНХНЫ</div>
-      <h1>МАШИНЫ<br><span>СЭЛБЭГ</span><br>ЗАХ</h1>
-      <p>Оригинал болон орлуулах сэлбэгийг нэг дороос хайж, дэлгүүртэй шууд холбогдоорой.</p>
+<!-- ════════════════════════════════════════════════════════
+     LISTING DETAIL MODAL
+════════════════════════════════════════════════════════ -->
+<div id="modal-detail">
+  <div class="modal-overlay" onclick="closeDetail()"></div>
+  <div class="detail-panel">
+    <button class="modal-close-btn" onclick="closeDetail()">✕</button>
+    <!-- Gallery -->
+    <div class="detail-gallery">
+      <div class="gallery-main" id="detail-main-img-wrap">
+        <div class="no-photo"><span>📦</span><small>Зураг байхгүй</small></div>
+      </div>
+      <div class="gallery-thumbs" id="detail-thumbs"></div>
+    </div>
+    <!-- Info -->
+    <div class="detail-info">
+      <div class="detail-badges" id="detail-badges"></div>
+      <div class="detail-price" id="detail-price"></div>
+      <div class="detail-title" id="detail-title"></div>
+      <div class="detail-car" id="detail-car"></div>
+      <div class="detail-desc" id="detail-desc"></div>
+      <div class="detail-shop-box" id="detail-shop"></div>
+      <div class="detail-actions">
+        <a class="btn-call" id="detail-call-btn" href="#">📞 Залгах</a>
+        <a class="btn-whatsapp" id="detail-wa-btn" href="#" target="_blank">💬 WhatsApp</a>
+      </div>
+      <div class="detail-meta-footer">
+        <span id="detail-date"></span>
+        <span id="detail-views"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════════════════ -->
+<main>
+
+  <!-- ──────────────────────────────────────────────────────
+       HOME PAGE
+  ────────────────────────────────────────────────────── -->
+  <section id="page-home" class="page active">
+    <!-- Hero -->
+    <div class="hero">
+      <h1>АВТО СЭЛБЭГИЙН <span>ЗАХ</span></h1>
+      <p>Монголын хамгийн том авто сэлбэгийн зах зээл</p>
       <div class="hero-stats">
-        <div><div class="stat-num">2,400+</div><div class="stat-label">Сэлбэгийн зар</div></div>
-        <div><div class="stat-num">38</div><div class="stat-label">Дэлгүүр</div></div>
-        <div><div class="stat-num">12</div><div class="stat-label">Машины марк</div></div>
+        <div class="hero-stat"><strong id="stat-listings">2,400+</strong><span>Зар</span></div>
+        <div class="hero-stat"><strong id="stat-shops">38+</strong><span>Дэлгүүр</span></div>
+        <div class="hero-stat"><strong id="stat-brands">60+</strong><span>Марк</span></div>
+      </div>
+      <div class="hero-search-bar">
+        <select id="hero-mark" data-dropdown="mark"><option value="">Машины марк</option></select>
+        <input type="text" id="hero-model" placeholder="Загвар (жш: Camry)">
+        <select id="hero-cat" data-dropdown="category"><option value="">Ангилал</option></select>
+        <input type="text" id="hero-keyword" placeholder="Сэлбэгийн нэр...">
+        <button class="btn-search" onclick="doHeroSearch()">🔍 Хайх</button>
       </div>
     </div>
-    <div class="search-box">
-      <label>Сэлбэг хайх</label>
-      <div class="search-row">
-        <select class="form-input"><option>Машины марк</option><option>Toyota</option><option>Hyundai</option><option>Nissan</option><option>BMW</option><option>Mercedes</option><option>Lexus</option><option>Kia</option></select>
-        <select class="form-input"><option>Загвар</option><option>Prius</option><option>Camry</option><option>RAV4</option><option>Land Cruiser</option><option>Sonata</option></select>
+
+    <div class="container">
+      <!-- Categories -->
+      <div class="section-header">
+        <div class="section-title">Ангилал</div>
       </div>
-      <div class="search-row">
-        <select class="form-input"><option>Он</option><option>2020-2025</option><option>2015-2019</option><option>2010-2014</option><option>2005-2009</option></select>
-        <select class="form-input"><option>Ангилал</option><option>Хөдөлгүүр</option><option>Тоормос</option><option>Түдгэлзүүр</option><option>Цахилгаан</option><option>Гадна</option></select>
+      <!-- Populated dynamically by data-manager.js -->
+      <div class="cat-grid" id="home-cat-grid"></div>
+
+      <!-- VIP listings -->
+      <div class="section-header" id="vip-section-header" style="display:none">
+        <div class="section-title">⭐ VIP Зарууд</div>
       </div>
-      <input class="form-input" placeholder="Сэлбэгийн нэр эсвэл код...">
-      <button class="search-btn">Хайх</button>
-    </div>
-  </div>
+      <div class="vip-grid" id="vip-grid"></div>
 
-  <div class="divider"></div>
-
-  <div class="section">
-    <div class="section-head"><div class="section-title">АНГИЛАЛ<span>УУД</span></div></div>
-    <div class="cats">
-      <div class="cat-card"><div class="cat-icon">⚙️</div><div class="cat-name">Хөдөлгүүр</div><div class="cat-count">420 зар</div></div>
-      <div class="cat-card"><div class="cat-icon">🛞</div><div class="cat-name">Дугуй & Диск</div><div class="cat-count">310 зар</div></div>
-      <div class="cat-card"><div class="cat-icon">🔧</div><div class="cat-name">Тоормос</div><div class="cat-count">280 зар</div></div>
-      <div class="cat-card"><div class="cat-icon">💡</div><div class="cat-name">Цахилгаан</div><div class="cat-count">195 зар</div></div>
-      <div class="cat-card"><div class="cat-icon">🪟</div><div class="cat-name">Гадна хэсэг</div><div class="cat-count">340 зар</div></div>
-      <div class="cat-card"><div class="cat-icon">🪑</div><div class="cat-name">Дотор Салон</div><div class="cat-count">220 зар</div></div>
-      <div class="cat-card"><div class="cat-icon">❄️</div><div class="cat-name">Агаарын систем</div><div class="cat-count">160 зар</div></div>
-      <div class="cat-card"><div class="cat-icon">🔩</div><div class="cat-name">Бусад</div><div class="cat-count">475 зар</div></div>
+      <!-- New listings -->
+      <div class="section-header">
+        <div class="section-title">Шинэ зарууд</div>
+        <span class="section-link" onclick="showPage('search')">Бүгдийг харах →</span>
+      </div>
+      <div id="home-listings-container">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+      <div class="load-more-wrap" id="home-load-more" style="display:none">
+        <button class="btn-load-more" onclick="loadMoreHome()">Дэлгэрэнгүй харах</button>
+      </div>
     </div>
+  </section>
 
-    <div class="section-head">
-      <div class="section-title">ШИНЭ <span>ЗАРУУД</span></div>
-      <span class="see-all" onclick="showPage('shops')">Дэлгүүрүүд харах →</span>
-    </div>
-    <div class="parts-grid">
-      <div class="part-card">
-        <div class="part-img">⚙️</div>
-        <div class="part-body">
-          <span class="part-badge badge-orig">Оригинал</span>
-          <div class="part-name">Toyota Prius 30 тоормосны дэвсгэр</div>
-          <div class="part-sub">2009–2015 он тохирно</div>
-          <div class="part-foot"><div><div class="part-price">₮45,000</div><div class="part-shop">Да Хүрээ дэлгүүр</div></div><button class="cart-btn">Холбоо барих</button></div>
+  <!-- ──────────────────────────────────────────────────────
+       SEARCH PAGE
+  ────────────────────────────────────────────────────── -->
+  <section id="page-search" class="page">
+    <div class="container">
+      <div class="search-layout">
+        <!-- Sidebar filters -->
+        <aside class="filter-sidebar">
+          <div class="filter-title">🔍 Шүүлт</div>
+
+          <div class="filter-group">
+            <label class="filter-label">Ангилал</label>
+            <select class="filter-select" id="f-category" data-dropdown="category"><option value="">Бүгд</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Машины марк</label>
+            <select class="filter-select" id="f-make" data-dropdown="mark"><option value="">Бүгд</option></select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Загвар</label>
+            <input class="filter-input" id="f-model" type="text" placeholder="жш: Camry, X5...">
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Он (хугацаа)</label>
+            <div class="filter-range">
+              <input class="filter-input" id="f-year-from" type="number" placeholder="2010" min="1990" max="2025">
+              <input class="filter-input" id="f-year-to"   type="number" placeholder="2024" min="1990" max="2025">
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Үнэ (₮)</label>
+            <div class="filter-range">
+              <input class="filter-input" id="f-price-min" type="number" placeholder="Доод">
+              <input class="filter-input" id="f-price-max" type="number" placeholder="Дээд">
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Сэлбэгийн төрөл</label>
+            <div class="filter-radio">
+              <label class="filter-radio-item"><input type="radio" name="f-type" value=""> Бүгд</label>
+              <label class="filter-radio-item"><input type="radio" name="f-type" value="original"> Оригинал</label>
+              <label class="filter-radio-item"><input type="radio" name="f-type" value="substitute"> Орлуулах</label>
+            </div>
+          </div>
+
+          <button class="filter-btn-apply" onclick="applyFilters()">Шүүлт хийх</button>
+          <button class="filter-btn-reset" onclick="resetFilters()">Цэвэрлэх</button>
+        </aside>
+
+        <!-- Results -->
+        <div class="search-main">
+          <div class="results-header">
+            <div class="results-count" id="results-count">Хайж байна...</div>
+            <select class="sort-select" id="sort-select" onchange="applyFilters()">
+              <option value="newest">Шинэ эхэндээ</option>
+              <option value="price_asc">Үнэ: Бага → Их</option>
+              <option value="price_desc">Үнэ: Их → Бага</option>
+            </select>
+          </div>
+          <div id="search-listings-container">
+            <div class="loading-center"><div class="spinner"></div></div>
+          </div>
+          <div class="load-more-wrap" id="search-load-more" style="display:none">
+            <button class="btn-load-more" onclick="loadMoreSearch()">Дэлгэрэнгүй харах</button>
+          </div>
         </div>
       </div>
-      <div class="part-card">
-        <div class="part-img">💡</div>
-        <div class="part-body">
-          <span class="part-badge badge-sub">Орлуулах</span>
-          <div class="part-name">Hyundai Sonata урд гэрлийн бүлэг</div>
-          <div class="part-sub">2015–2020 он тохирно</div>
-          <div class="part-foot"><div><div class="part-price">₮120,000</div><div class="part-shop">Солонгос сэлбэг</div></div><button class="cart-btn">Холбоо барих</button></div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────
+       POST LISTING PAGE
+  ────────────────────────────────────────────────────── -->
+  <section id="page-post" class="page">
+    <div class="post-layout">
+      <div class="post-page-title">Зар нийтлэх</div>
+
+      <div id="post-form-wrap">
+        <!-- Photos -->
+        <div class="post-card">
+          <div class="post-card-title">📷 Зурагнууд (хамгийн ихдээ 8)</div>
+          <div class="upload-zone" id="upload-zone">
+            <input type="file" accept="image/*" multiple style="display:none">
+            <div class="upload-icon">📁</div>
+            <div class="upload-hint"><strong>Зураг оруулах</strong><br>Дарах эсвэл чирж оруулна уу</div>
+          </div>
+          <div class="upload-preview" id="upload-preview"></div>
+        </div>
+
+        <!-- Part info -->
+        <div class="post-card">
+          <div class="post-card-title">🔩 Сэлбэгийн мэдээлэл</div>
+          <div class="post-grid">
+            <div class="form-group post-full">
+              <label class="form-label">Сэлбэгийн нэр *</label>
+              <input class="form-input" id="p-title" type="text" placeholder="жш: Тоормосны дэвсгэр">
+              <div class="form-error" id="p-title-err"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ангилал *</label>
+              <select class="form-input" id="p-category" data-dropdown="category-req"><option value="">Сонгоно уу</option></select>
+              <div class="form-error" id="p-cat-err"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Сэлбэгийн төрөл *</label>
+              <div class="type-toggle">
+                <div class="type-btn active" id="type-original" onclick="selectType('original')">✅ Оригинал</div>
+                <div class="type-btn" id="type-substitute" onclick="selectType('substitute')">🔄 Орлуулах</div>
+              </div>
+              <input type="hidden" id="p-type" value="original">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Машины марк *</label>
+              <select class="form-input" id="p-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
+              <div class="form-error" id="p-make-err"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Загвар</label>
+              <input class="form-input" id="p-model" type="text" placeholder="жш: Camry, X5...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Таарах он (эхлэл)</label>
+              <input class="form-input" id="p-year-from" type="number" placeholder="2010" min="1990" max="2026">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Таарах он (дуусгавар)</label>
+              <input class="form-input" id="p-year-to" type="number" placeholder="2024" min="1990" max="2026">
+            </div>
+            <div class="form-group post-full">
+              <label class="form-label">Тайлбар</label>
+              <textarea class="form-input" id="p-desc" rows="4" placeholder="Сэлбэгийн тухай дэлгэрэнгүй..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price & contact -->
+        <div class="post-card">
+          <div class="post-card-title">💰 Үнэ & Холбоо барих</div>
+          <div class="post-grid">
+            <div class="form-group">
+              <label class="form-label">Үнэ (₮) *</label>
+              <input class="form-input" id="p-price" type="number" placeholder="150000">
+              <div class="form-error" id="p-price-err"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Утас *</label>
+              <input class="form-input" id="p-phone" type="tel" placeholder="99xxxxxx" maxlength="8">
+              <div class="form-error" id="p-phone-err"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Дэлгүүрийн нэр</label>
+              <input class="form-input" id="p-shop" type="text" placeholder="Таны дэлгүүрийн нэр">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Байршил</label>
+              <input class="form-input" id="p-location" type="text" placeholder="жш: УБ, Сүхбаатар дүүрэг">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-post-submit" id="post-submit-btn" onclick="submitListing()">Зар нийтлэх</button>
+      </div>
+
+      <!-- Success screen -->
+      <div class="post-success" id="post-success">
+        <div class="success-icon">🎉</div>
+        <h2>Зар амжилттай нийтлэгдлээ!</h2>
+        <p>Таны зар шалгагдаж удахгүй харагдах болно.</p>
+        <button onclick="showPage('home')">Нүүр хуудас руу</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────
+       PROFILE PAGE
+  ────────────────────────────────────────────────────── -->
+  <section id="page-profile" class="page">
+    <!-- Logged out state -->
+    <div class="login-prompt" id="profile-login-prompt" style="display:none">
+      <div class="lock-icon">🔒</div>
+      <h2>Нэвтрэх шаардлагатай</h2>
+      <p>Миний хэсгийг харахын тулд нэвтэрнэ үү.</p>
+      <button class="btn-go-login" onclick="openAuthModal('login')">Нэвтрэх</button>
+    </div>
+
+    <!-- Logged in state -->
+    <div class="profile-layout" id="profile-content" style="display:none">
+      <div class="profile-header-card">
+        <div class="profile-avatar" id="profile-avatar-char">U</div>
+        <div class="profile-info">
+          <div class="profile-name" id="profile-name-text">Хэрэглэгч</div>
+          <div class="profile-phone" id="profile-phone-text"></div>
+          <div class="profile-type-badge" id="profile-type-text">Худалдан авагч</div>
         </div>
       </div>
-      <div class="part-card">
-        <div class="part-img">🔧</div>
-        <div class="part-body">
-          <span class="part-badge badge-orig">Оригинал</span>
-          <div class="part-name">Nissan X-Trail амортизатор</div>
-          <div class="part-sub">T31 / 2008–2013</div>
-          <div class="part-foot"><div><div class="part-price">₮280,000</div><div class="part-shop">Авто Плаза</div></div><button class="cart-btn">Холбоо барих</button></div>
+      <div class="profile-section-title">Миний зарууд</div>
+      <div id="my-listings-container">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────
+       ADMIN PAGE
+  ────────────────────────────────────────────────────── -->
+  <section id="page-admin" class="page">
+    <!-- Blocked (not admin) -->
+    <div class="admin-blocked" id="admin-blocked" style="display:none">
+      <div class="lock-icon">🔒</div>
+      <h2>Хандах эрх байхгүй</h2>
+      <p>Энэ хэсэг зөвхөн системийн администраторт зориулагдсан.</p>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="admin-layout" id="admin-content" style="display:none">
+      <div class="admin-header">
+        <div class="admin-page-title">⚙️ Удирдлага</div>
+        <div class="admin-stats">
+          <div class="admin-stat-card">
+            <strong id="admin-stat-cats">0</strong>
+            <span>Ангилал</span>
+          </div>
+          <div class="admin-stat-card">
+            <strong id="admin-stat-marks">0</strong>
+            <span>Марк</span>
+          </div>
         </div>
       </div>
+
+      <!-- Tabs -->
+      <div class="admin-tabs">
+        <div class="admin-tab active" data-tab="categories" onclick="adminSwitchTab('categories')">📂 Ангилал</div>
+        <div class="admin-tab" data-tab="marks" onclick="adminSwitchTab('marks')">🚗 Машины марк</div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="admin-toolbar">
+        <div class="admin-toolbar-left">
+          <button class="btn-admin-add" id="admin-add-btn" onclick="adminAddNew()">+ Нэмэх</button>
+          <button class="btn-admin-secondary" id="admin-bulk-btn" onclick="openBulkAddMarks()" style="display:none">📋 Олноор нэмэх</button>
+        </div>
+        <button class="btn-admin-reset" onclick="adminResetDefaults()">↩️ Анхны байдалд буцах</button>
+      </div>
+
+      <!-- Table / grid area -->
+      <div id="admin-table-wrap"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ════════════════════════════════════════════════════════
+     ADMIN MODAL (add/edit category or mark)
+════════════════════════════════════════════════════════ -->
+<div id="admin-modal">
+  <div class="modal-overlay" onclick="closeAdminModal()"></div>
+  <div class="admin-modal-panel">
+    <div class="admin-modal-title" id="admin-modal-title">Нэмэх</div>
+
+    <!-- Category form -->
+    <div class="admin-modal-body" id="modal-cat" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Ангилалын нэр *</label>
+        <input class="form-input" id="adm-cat-name" type="text" placeholder="жш: Хөдөлгүүр">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Дүрс (emoji) *</label>
+        <input class="form-input" id="adm-cat-icon" type="text" placeholder="жш: ⚙️" maxlength="4">
+        <div class="icon-picker-wrap">
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;margin-bottom:4px">Хурдан сонгох:</div>
+          <div class="icon-picker" id="icon-picker"></div>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button class="btn-admin-cancel" onclick="closeAdminModal()">Цуцлах</button>
+        <button class="btn-admin-save" onclick="saveCat()">Хадгалах</button>
+      </div>
+    </div>
+
+    <!-- Mark form -->
+    <div class="admin-modal-body" id="modal-mark" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Маркийн нэр *</label>
+        <input class="form-input" id="adm-mark-name" type="text" placeholder="жш: Toyota">
+      </div>
+      <div class="admin-modal-footer">
+        <button class="btn-admin-cancel" onclick="closeAdminModal()">Цуцлах</button>
+        <button class="btn-admin-save" onclick="saveMark()">Хадгалах</button>
+      </div>
+    </div>
+
+    <!-- Bulk marks form -->
+    <div class="admin-modal-body" id="modal-bulk" style="display:none">
+      <p class="bulk-hint">Олон марк нэгэн зэрэг нэмэх боломжтой.<br>Мөр бүрт эсвэл таслалаар тусгаарлан бичнэ үү.</p>
+      <textarea class="bulk-textarea" id="adm-bulk-marks" placeholder="BYD&#10;Xpeng&#10;Chery&#10;Geely"></textarea>
+      <div class="admin-modal-footer">
+        <button class="btn-admin-cancel" onclick="closeAdminModal()">Цуцлах</button>
+        <button class="btn-admin-save" onclick="saveBulkMarks()">Нэмэх</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ДЭЛГҮҮРИЙН ХУУДАС -->
-<div class="page" id="page-shops">
-  <div class="section">
-    <div class="section-head"><div class="section-title">ДЭЛГҮҮР<span>ҮҮД</span></div></div>
-    <div class="shops-grid">
-      <div class="shop-card">
-        <div class="shop-header"><div class="shop-avatar">🔧</div><div><div class="shop-badge">Баталгаат</div><div class="shop-name">Да Хүрээ Авто</div><div class="shop-loc">Да Хүрээ худалдааны төв</div></div></div>
-        <div class="shop-tags"><span class="shop-tag">Toyota</span><span class="shop-tag">Lexus</span><span class="shop-tag">Оригинал</span></div>
-        <div class="shop-stats"><div><div class="shop-stat-num">124</div><div class="shop-stat-label">Нийт зар</div></div><div><div class="shop-stat-num">4.8</div><div class="shop-stat-label">Үнэлгээ</div></div><div><div class="shop-stat-num">3ж</div><div class="shop-stat-label">Туршлага</div></div></div>
+<!-- ════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">CELBEG.MN</div>
+      <div class="footer-desc">Монголын хамгийн том авто сэлбэгийн онлайн зах зээл. Оригинал болон орлуулах сэлбэгийг шуурхай олоорой.</div>
+    </div>
+    <div>
+      <div class="footer-col-title">Холбоос</div>
+      <div class="footer-links">
+        <a onclick="showPage('home')">Нүүр</a>
+        <a onclick="showPage('search')">Зарууд</a>
+        <a onclick="showPage('post')">Зар нийтлэх</a>
+        <a onclick="showPage('profile')">Миний хэсэг</a>
       </div>
-      <div class="shop-card">
-        <div class="shop-header"><div class="shop-avatar">💡</div><div><div class="shop-badge">Баталгаат</div><div class="shop-name">Солонгос Сэлбэг</div><div class="shop-loc">Сутайн Буянт зах</div></div></div>
-        <div class="shop-tags"><span class="shop-tag">Hyundai</span><span class="shop-tag">Kia</span><span class="shop-tag">Genesis</span></div>
-        <div class="shop-stats"><div><div class="shop-stat-num">89</div><div class="shop-stat-label">Нийт зар</div></div><div><div class="shop-stat-num">4.6</div><div class="shop-stat-label">Үнэлгээ</div></div><div><div class="shop-stat-num">5ж</div><div class="shop-stat-label">Туршлага</div></div></div>
-      </div>
-      <div class="shop-card">
-        <div class="shop-header"><div class="shop-avatar">⚙️</div><div><div class="shop-badge">Баталгаат</div><div class="shop-name">Авто Плаза</div><div class="shop-loc">Монгол 3р сургуулийн урд</div></div></div>
-        <div class="shop-tags"><span class="shop-tag">Nissan</span><span class="shop-tag">Mitsubishi</span><span class="shop-tag">Mazda</span></div>
-        <div class="shop-stats"><div><div class="shop-stat-num">210</div><div class="shop-stat-label">Нийт зар</div></div><div><div class="shop-stat-num">4.9</div><div class="shop-stat-label">Үнэлгээ</div></div><div><div class="shop-stat-num">7ж</div><div class="shop-stat-label">Туршлага</div></div></div>
-      </div>
-      <div class="shop-card">
-        <div class="shop-header"><div class="shop-avatar">🛞</div><div><div class="shop-name">Герман Авто</div><div class="shop-loc">Авто Экспо зах</div></div></div>
-        <div class="shop-tags"><span class="shop-tag">BMW</span><span class="shop-tag">Mercedes</span><span class="shop-tag">Audi</span></div>
-        <div class="shop-stats"><div><div class="shop-stat-num">67</div><div class="shop-stat-label">Нийт зар</div></div><div><div class="shop-stat-num">4.5</div><div class="shop-stat-label">Үнэлгээ</div></div><div><div class="shop-stat-num">4ж</div><div class="shop-stat-label">Туршлага</div></div></div>
-      </div>
-      <div class="shop-card">
-        <div class="shop-header"><div class="shop-avatar">🔩</div><div><div class="shop-name">Прайус Центр</div><div class="shop-loc">70006787</div></div></div>
-        <div class="shop-tags"><span class="shop-tag">Prius 10</span><span class="shop-tag">Prius 20</span><span class="shop-tag">Prius 30</span></div>
-        <div class="shop-stats"><div><div class="shop-stat-num">145</div><div class="shop-stat-label">Нийт зар</div></div><div><div class="shop-stat-num">4.7</div><div class="shop-stat-label">Үнэлгээ</div></div><div><div class="shop-stat-num">6ж</div><div class="shop-stat-label">Туршлага</div></div></div>
-      </div>
-      <div class="shop-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;min-height:200px">
-        <div style="font-size:32px">+</div>
-        <div style="font-weight:600">Дэлгүүрээ бүртгүүлэх</div>
-        <div style="font-size:13px;color:var(--muted)">Сарын ₮50,000-аас</div>
-        <button class="nav-btn" onclick="openModal('register')">Бүртгүүлэх</button>
+    </div>
+    <div>
+      <div class="footer-col-title">Холбоо барих</div>
+      <div class="footer-links">
+        <a>📧 info@celbeg.mn</a>
+        <a>📞 7700-xxxx</a>
+        <a>📍 Улаанбаатар, Монгол</a>
       </div>
     </div>
   </div>
-</div>
+  <div class="footer-bottom">© 2025 CELBEG.MN — Бүх эрх хуулиар хамгаалагдсан</div>
+</footer>
 
-<!-- ЗАР НИЙТЛЭХ -->
-<div class="page" id="page-zar">
-  <div class="form-page">
-    <h2>ЗАР <span style="color:var(--red)">НИЙТЛЭХ</span></h2>
-    <p>Мэдээллийг бөглөж илгээнэ үү. Бид 24 цагт холбогдоно.</p>
-    <div class="form-section">СЭЛБЭГИЙН МЭДЭЭЛЭЛ</div>
-    <div class="form-group"><label>Сэлбэгийн нэр *</label><input class="form-input" id="f-name" placeholder="жнь: Toyota Prius 30 тоормосны дэвсгэр"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Машины марк *</label><select class="form-input" id="f-mark"><option value="">Сонгоно уу</option><option>Toyota</option><option>Hyundai</option><option>Nissan</option><option>BMW</option><option>Mercedes</option><option>Lexus</option><option>Kia</option><option>Бусад</option></select></div>
-      <div class="form-group"><label>Загвар</label><input class="form-input" id="f-model" placeholder="жнь: Prius 30"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Тохирох он</label><input class="form-input" id="f-year" placeholder="жнь: 2009-2015"></div>
-      <div class="form-group"><label>Ангилал *</label><select class="form-input" id="f-cat"><option value="">Сонгоно уу</option><option>Хөдөлгүүр</option><option>Тоормос</option><option>Түдгэлзүүр</option><option>Цахилгаан</option><option>Гадна хэсэг</option><option>Дотор тавилга</option><option>Дугуй & Диск</option><option>Бусад</option></select></div>
-    </div>
-    <div class="form-group">
-      <label>Сэлбэгийн төрөл *</label>
-      <div class="badge-row">
-        <button class="badge-pick" id="pick-orig" onclick="pickBadge('orig')">Оригинал</button>
-        <button class="badge-pick" id="pick-sub" onclick="pickBadge('sub')">Орлуулах</button>
-      </div>
-    </div>
-    <div class="form-group"><label>Дэлгэрэнгүй тайлбар</label><textarea class="form-input" id="f-desc" placeholder="Сэлбэгийн байдал, онцлог, код дугаар..."></textarea></div>
-    <div class="form-section">ҮНЭ БА ХОЛБОО БАРИХ</div>
-    <div class="form-row">
-      <div class="form-group"><label>Үнэ (₮) *</label><input class="form-input" id="f-price" type="number" placeholder="жнь: 45000"></div>
-      <div class="form-group"><label>Утасны дугаар *</label><input class="form-input" id="f-phone" type="tel" placeholder="жнь: 9911-2233"></div>
-    </div>
-    <div class="form-group"><label>Дэлгүүрийн нэр / Байршил</label><input class="form-input" id="f-shop" placeholder="жнь: Да Хүрээ 205 тоот"></div>
-    <button class="submit-btn" onclick="submitZar()">Зар илгээх</button>
-    <div class="success-msg" id="success-msg">Таны зар амжилттай илгээгдлээ! Бид удахгүй холбогдоно.</div>
-  </div>
-</div>
-
-<div class="footer">
-  <strong style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px">CELBEG<span>.MN</span></strong>
-  <p style="margin-top:8px">Монголын машины сэлбэгийн анхны мэргэжлийн платформ &copy; 2025</p>
-</div>
-
+<!-- ════════════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/data-manager.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/listings.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/admin.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
