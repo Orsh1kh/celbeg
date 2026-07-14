@@ -26,6 +26,7 @@ function showPage(id) {
   if (id === 'post')    initPostPage();
   if (id === 'admin')   initAdminPage();
   if (id === 'shop')    initShopPage();
+  if (id === 'shops')   initShopsPage();
 }
 
 // ── Mobile nav ─────────────────────────────────────────────
@@ -1187,6 +1188,87 @@ async function loadShopProfile(userId) {
 
   // ── Rating + reviews (async, doesn't block listings) ───
   loadShopRatingAndReviews(userId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHOPS BROWSE PAGE
+// ═══════════════════════════════════════════════════════════
+let _allShops = [];
+
+async function initShopsPage() {
+  document.getElementById('shops-container').innerHTML =
+    '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    _allShops = await fetchShops();
+    applyShopsFilter();
+  } catch(e) {
+    document.getElementById('shops-container').innerHTML = renderEmptyState('error');
+  }
+}
+
+function applyShopsFilter() {
+  const search = (document.getElementById('shops-search-input')?.value || '').trim().toLowerCase();
+  const verifiedOnly = document.getElementById('shops-verified-only')?.checked || false;
+  const sort = document.getElementById('shops-sort')?.value || 'rating';
+
+  let list = [..._allShops];
+  if (verifiedOnly) list = list.filter(s => s.is_verified);
+  if (search) list = list.filter(s =>
+    (s.shop_name || '').toLowerCase().includes(search) ||
+    (s.name || '').toLowerCase().includes(search)
+  );
+
+  list.sort((a, b) => {
+    if (sort === 'rating') {
+      if ((b.rating_avg || 0) !== (a.rating_avg || 0)) return (b.rating_avg || 0) - (a.rating_avg || 0);
+      return (b.rating_count || 0) - (a.rating_count || 0);
+    }
+    if (sort === 'listings') return (b.active_listings || 0) - (a.active_listings || 0);
+    if (sort === 'newest')   return new Date(b.created_at) - new Date(a.created_at);
+    if (sort === 'name')     return (a.shop_name || '').localeCompare(b.shop_name || '');
+    return 0;
+  });
+
+  // Verified prioritized within same category (still sortable by chosen)
+  if (sort === 'rating' || sort === 'listings') {
+    list.sort((a, b) => {
+      if (a.is_verified === b.is_verified) return 0;
+      return a.is_verified ? -1 : 1;
+    });
+  }
+
+  renderShopsGrid(list);
+}
+
+function renderShopsGrid(shops) {
+  const line = document.getElementById('shops-count-line');
+  const container = document.getElementById('shops-container');
+  if (line) line.innerHTML = `<strong>${shops.length}</strong> дэлгүүр олдлоо`;
+
+  if (!shops.length) {
+    container.innerHTML = `<div class="no-results"><div class="no-icon">🏪</div><h3>Дэлгүүр олдсонгүй</h3><p>Шүүлтээ өөрчилж дахин үзнэ үү.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = '<div class="shops-grid">' + shops.map(s => {
+    const initial = (s.shop_name || 'S').charAt(0).toUpperCase();
+    const verifiedTag = s.is_verified ? '<span class="verified-badge" title="Баталгаажсан"></span>' : '';
+    const ratingHtml = (s.rating_count > 0)
+      ? `<div class="shop-card-rating">${renderStars(s.rating_avg, 'sm')}<span class="rating-num">${Number(s.rating_avg).toFixed(1)}</span><span>(${s.rating_count})</span></div>`
+      : `<div class="shop-card-rating empty">Үнэлгээ байхгүй</div>`;
+    const metaParts = [];
+    metaParts.push(`<span class="meta-item">📦 ${s.active_listings || 0} зар</span>`);
+    if (s.location) metaParts.push(`<span class="meta-item">📍 ${escapeHtml(s.location)}</span>`);
+    return `
+      <div class="shop-card${s.is_verified ? ' verified' : ''}" onclick="openShop('${s.id}')">
+        <div class="shop-card-avatar">${initial}</div>
+        <div class="shop-card-body">
+          <div class="shop-card-name">${escapeHtml(s.shop_name || 'Дэлгүүр')}${verifiedTag}</div>
+          ${ratingHtml}
+          <div class="shop-card-meta">${metaParts.join('')}</div>
+        </div>
+      </div>`;
+  }).join('') + '</div>';
 }
 
 // ═══════════════════════════════════════════════════════════

@@ -33,7 +33,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=7">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -71,6 +71,7 @@
   </div>
   <div class="mobile-nav-link" onclick="showPage('home');closeMobileNav()">🏠 Нүүр</div>
   <div class="mobile-nav-link" onclick="showPage('search');closeMobileNav()">🔍 Зарууд харах</div>
+  <div class="mobile-nav-link" onclick="showPage('shops');closeMobileNav()">🏪 Дэлгүүрүүд</div>
   <div class="mobile-nav-link" onclick="showPage('post');closeMobileNav()">➕ Зар нийтлэх</div>
   <div class="mobile-nav-link" onclick="showPage('profile');closeMobileNav()">👤 Миний хэсэг</div>
   <div class="mobile-nav-link admin-nav-link" id="mob-admin-link" onclick="showPage('admin');closeMobileNav()">⚙️ Удирдлага</div>
@@ -531,6 +532,40 @@
   </section>
 
   <!-- ──────────────────────────────────────────────────────
+       SHOPS BROWSE PAGE
+  ────────────────────────────────────────────────────── -->
+  <section id="page-shops" class="page">
+    <div class="container shops-page">
+      <div class="shops-header">
+        <h1 class="shops-title">🏪 Дэлгүүрүүд</h1>
+        <p class="shops-subtitle">Монголын авто сэлбэгийн итгэмжлэгдсэн дэлгүүрүүд</p>
+      </div>
+
+      <div class="shops-toolbar">
+        <div class="shops-search">
+          <input type="text" id="shops-search-input" placeholder="Дэлгүүрийн нэрээр хайх..." oninput="applyShopsFilter()">
+        </div>
+        <label class="shops-verified-toggle">
+          <input type="checkbox" id="shops-verified-only" onchange="applyShopsFilter()">
+          <span>Зөвхөн баталгаажсан</span>
+        </label>
+        <select class="shops-sort" id="shops-sort" onchange="applyShopsFilter()">
+          <option value="rating">⭐ Үнэлгээгээр</option>
+          <option value="listings">📦 Зарын тоогоор</option>
+          <option value="newest">🆕 Шинэ эхэндээ</option>
+          <option value="name">🔤 Нэрээр</option>
+        </select>
+      </div>
+
+      <div class="shops-count-line" id="shops-count-line"></div>
+
+      <div id="shops-container">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────
        SHOP PROFILE PAGE
   ────────────────────────────────────────────────────── -->
   <section id="page-shop" class="page">
@@ -725,6 +760,7 @@
       <div class="footer-links">
         <a onclick="showPage('home')">Нүүр</a>
         <a onclick="showPage('search')">Зарууд</a>
+        <a onclick="showPage('shops')">Дэлгүүрүүд</a>
         <a onclick="showPage('post')">Зар нийтлэх</a>
         <a onclick="showPage('profile')">Миний хэсэг</a>
       </div>
@@ -745,12 +781,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=6"></script>
-<script src="js/data-manager.js?v=6"></script>
-<script src="js/auth.js?v=6"></script>
-<script src="js/listings.js?v=6"></script>
-<script src="js/upload.js?v=6"></script>
-<script src="js/admin.js?v=6"></script>
-<script src="js/main.js?v=6"></script>
+<script src="js/supabase-client.js?v=7"></script>
+<script src="js/data-manager.js?v=7"></script>
+<script src="js/auth.js?v=7"></script>
+<script src="js/listings.js?v=7"></script>
+<script src="js/upload.js?v=7"></script>
+<script src="js/admin.js?v=7"></script>
+<script src="js/main.js?v=7"></script>
 </body>
 </html>

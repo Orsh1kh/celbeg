@@ -111,6 +111,41 @@ async function extendListing(id) {
 // ═══════════════════════════════════════════════════════════
 // REVIEWS / RATINGS
 // ═══════════════════════════════════════════════════════════
+async function fetchShops() {
+  if (DEMO_MODE || !sb) {
+    // Demo: infer from DEMO_LISTINGS
+    const byShop = {};
+    DEMO_LISTINGS.forEach(l => {
+      if (!l.shop_name) return;
+      const key = l.shop_name;
+      if (!byShop[key]) {
+        byShop[key] = {
+          id: 'demo-shop-' + key,
+          shop_name: l.shop_name,
+          name: l.shop_name,
+          phone: l.phone || '',
+          is_verified: false,
+          created_at: l.created_at,
+          rating_avg: 0,
+          rating_count: 0,
+          active_listings: 0,
+          total_listings: 0,
+          location: l.location || ''
+        };
+      }
+      byShop[key].active_listings++;
+      byShop[key].total_listings++;
+      if (l.location && !byShop[key].location) byShop[key].location = l.location;
+    });
+    return Object.values(byShop);
+  }
+  try {
+    const { data, error } = await sb.from('shops_with_stats').select('*');
+    if (error) throw error;
+    return data || [];
+  } catch(e) { console.warn('Shops fetch failed:', e.message); return []; }
+}
+
 async function fetchProfileRating(userId) {
   if (DEMO_MODE || !sb || !userId) return { rating_avg: 0, rating_count: 0 };
   try {

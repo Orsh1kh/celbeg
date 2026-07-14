@@ -714,6 +714,90 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 }
 
 /* ═══════════════════════════════════════════════════════════
+   SHOPS BROWSE PAGE
+═══════════════════════════════════════════════════════════ */
+.shops-page { padding-top: 24px; padding-bottom: 48px; }
+.shops-header { margin-bottom: 20px; }
+.shops-title { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.shops-subtitle { color: var(--muted); font-size: 14px; }
+
+.shops-toolbar {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+  margin-bottom: 16px; align-items: center;
+}
+.shops-search input {
+  width: 100%; padding: 10px 14px;
+  background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 14px; outline: none;
+  transition: border-color .15s;
+}
+.shops-search input:focus { border-color: var(--red); }
+.shops-verified-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 14px; background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 13px; cursor: pointer;
+  transition: border-color .15s, color .15s;
+  user-select: none;
+}
+.shops-verified-toggle:hover { border-color: var(--red); }
+.shops-verified-toggle input { cursor: pointer; accent-color: #1d9bf0; }
+.shops-sort {
+  padding: 10px 14px; background: var(--bg2);
+  border: 1.5px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 13px; outline: none; cursor: pointer;
+}
+.shops-sort:focus { border-color: var(--red); }
+.shops-count-line { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.shops-count-line strong { color: var(--text); }
+
+.shops-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.shop-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 18px; cursor: pointer;
+  display: grid; grid-template-columns: 64px 1fr; gap: 14px;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.shop-card:hover {
+  transform: translateY(-2px); border-color: var(--red);
+  box-shadow: 0 8px 20px var(--shadow);
+}
+.shop-card.verified { border-left: 3px solid #1d9bf0; }
+.shop-card-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), var(--red2));
+  color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+.shop-card-body { min-width: 0; }
+.shop-card-name {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 15px; font-weight: 700; color: var(--text);
+  margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.shop-card-rating {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--muted); margin-bottom: 8px;
+}
+.shop-card-rating .rating-num { color: var(--gold); font-weight: 700; font-size: 13px; }
+.shop-card-rating.empty { font-style: italic; }
+.shop-card-meta {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  font-size: 12px; color: var(--muted);
+}
+.shop-card-meta .meta-item {
+  display: inline-flex; align-items: center; gap: 3px;
+}
+
+@media (max-width: 700px) {
+  .shops-toolbar { grid-template-columns: 1fr; }
+  .shops-title { font-size: 22px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
    RATING / REVIEWS
 ═══════════════════════════════════════════════════════════ */
 
