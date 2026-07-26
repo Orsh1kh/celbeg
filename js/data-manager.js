@@ -117,11 +117,28 @@ async function loadDataFromSupabase() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Sub-categories (parent_id set)
+// ═══════════════════════════════════════════════════════════
+function getMainCategories() {
+  return getCategories()
+    .filter(c => !c.parent_id)
+    .sort((a,b) => (a.order || 0) - (b.order || 0));
+}
+
+function getSubcategoriesFor(parentName) {
+  const parent = getCategories().find(c => c.name === parentName && !c.parent_id);
+  if (!parent) return [];
+  return getCategories()
+    .filter(c => c.parent_id === parent.id)
+    .sort((a,b) => (a.order || 0) - (b.order || 0));
+}
+
+// ═══════════════════════════════════════════════════════════
 // POPULATE ALL DROPDOWNS + DYNAMIC UI ELEMENTS
 // Call this after any change to categories or marks
 // ═══════════════════════════════════════════════════════════
 function populateAllDropdowns() {
-  const cats  = getCategories().sort((a,b) => a.order - b.order);
+  const cats  = getMainCategories();
   const marks = getMarks();
 
   // ── Category selects ──────────────────────────────────────

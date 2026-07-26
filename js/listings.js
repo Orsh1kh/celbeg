@@ -67,10 +67,10 @@ function _buildLocationOr(locKeys) {
   return { parts, knownPatterns, hasOther };
 }
 
-async function fetchListings({ category='', car_makes=[], car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', exchange_policy='', locations=[], keyword='', sort='newest', page=0, withCount=false } = {}) {
+async function fetchListings({ category='', subcategory='', car_makes=[], car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', condition='', exchange_policy='', locations=[], keyword='', sort='newest', page=0, withCount=false } = {}) {
   if (DEMO_MODE) {
-    const data = _filterDemo({ category, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, locations, keyword, sort, page });
-    if (withCount) return { data, count: _countDemo({ category, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, locations, keyword }) };
+    const data = _filterDemo({ category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword, sort, page });
+    if (withCount) return { data, count: _countDemo({ category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword }) };
     return data;
   }
 
@@ -78,6 +78,7 @@ async function fetchListings({ category='', car_makes=[], car_model='', year_fro
   let q = sb.from('listings').select('*', selectOpts).eq('is_active', true).or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
   if (category)               q = q.eq('category', category);
+  if (subcategory)            q = q.eq('subcategory', subcategory);
   if (car_makes && car_makes.length) q = q.in('car_make', car_makes);
   if (car_model)              q = q.ilike('car_model', `%${car_model}%`);
   if (year_from)              q = q.gte('year_to', parseInt(year_from));
@@ -85,6 +86,7 @@ async function fetchListings({ category='', car_makes=[], car_model='', year_fro
   if (price_min)              q = q.gte('price', parseInt(price_min));
   if (price_max)              q = q.lte('price', parseInt(price_max));
   if (part_type)              q = q.eq('part_type', part_type);
+  if (condition)              q = q.eq('condition', condition);
   if (exchange_policy)        q = q.eq('exchange_policy', exchange_policy);
   if (keyword)                q = q.ilike('title', `%${keyword}%`);
 
@@ -109,9 +111,10 @@ function _countDemo(f) {
   return _filterDemoAll(f).length;
 }
 
-function _filterDemoAll({ category, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, locations, keyword }) {
+function _filterDemoAll({ category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword }) {
   let list = [...DEMO_LISTINGS];
-  if (category)  list = list.filter(l => l.category === category);
+  if (category)    list = list.filter(l => l.category === category);
+  if (subcategory) list = list.filter(l => l.subcategory === subcategory);
   if (car_makes && car_makes.length) list = list.filter(l => car_makes.includes(l.car_make));
   if (car_model) list = list.filter(l => l.car_model.toLowerCase().includes(car_model.toLowerCase()));
   if (year_from) list = list.filter(l => l.year_to >= parseInt(year_from));
@@ -119,6 +122,7 @@ function _filterDemoAll({ category, car_makes, car_model, year_from, year_to, pr
   if (price_min) list = list.filter(l => l.price >= parseInt(price_min));
   if (price_max) list = list.filter(l => l.price <= parseInt(price_max));
   if (part_type) list = list.filter(l => l.part_type === part_type);
+  if (condition) list = list.filter(l => l.condition === condition);
   if (exchange_policy) list = list.filter(l => l.exchange_policy === exchange_policy);
   if (locations && locations.length) {
     list = list.filter(l => {

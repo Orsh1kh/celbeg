@@ -270,6 +270,8 @@ function buildListingCard(l) {
   const yearTxt = (l.year_from && l.year_to)
     ? (l.year_from === l.year_to ? `${l.year_from}` : `${l.year_from}–${l.year_to}`)
     : (l.year_from ? `${l.year_from}` : '');
+  const cond = conditionMeta(l.condition);
+  const condBadge = cond ? `<span class="condition-badge ${l.condition}">${cond.short}</span>` : '';
   const carMeta = [l.car_make, l.car_model, yearTxt].filter(Boolean).join(' ');
 
   const shopClickable = l.user_id && l.shop_name
@@ -288,13 +290,24 @@ function buildListingCard(l) {
       <div class="card-body">
         <div class="card-price">${formatPrice(l.price)}</div>
         <div class="card-title">${l.title}</div>
-        <div class="card-meta">${carMeta || l.category || ''}</div>
+        <div class="card-meta">${carMeta || l.category || ''}${condBadge}</div>
         <div class="card-footer">
           <span ${shopClickable}>🏪 ${l.shop_name || 'Хувь хүн'}${verified}</span>
           <span class="card-date">${formatDate(l.created_at)}</span>
         </div>
       </div>
     </div>`;
+}
+
+// ── Condition metadata ───────────────────────────────────
+function conditionMeta(cond) {
+  const map = {
+    new:          { short: '✨ Шинэ',          cls: 'cond_new' },
+    used:         { short: '👌 Ашиглагдсан',   cls: 'cond_used' },
+    refurbished:  { short: '🔧 Засварласан',   cls: 'cond_refurbished' },
+    damaged:      { short: '⚠️ Гэмтэлтэй',     cls: 'cond_damaged' },
+  };
+  return map[cond] || null;
 }
 
 // ── Policy metadata ───────────────────────────────────────
@@ -405,15 +418,17 @@ function updateFilterCountBadge() {
   if (!badge) return;
   const f = getFilters();
   let count = 0;
-  if (f.category)                     count++;
+  if (f.category)                        count++;
+  if (f.subcategory)                     count++;
   if (f.car_makes && f.car_makes.length) count += f.car_makes.length;
-  if (f.car_model)                    count++;
-  if (f.year_from)                    count++;
-  if (f.year_to)                      count++;
-  if (f.price_min)                    count++;
-  if (f.price_max)                    count++;
-  if (f.part_type)                    count++;
-  if (f.exchange_policy)              count++;
+  if (f.car_model)                       count++;
+  if (f.year_from)                       count++;
+  if (f.year_to)                         count++;
+  if (f.price_min)                       count++;
+  if (f.price_max)                       count++;
+  if (f.part_type)                       count++;
+  if (f.condition)                       count++;
+  if (f.exchange_policy)                 count++;
   if (f.locations && f.locations.length) count += f.locations.length;
   badge.textContent = count;
   badge.classList.toggle('visible', count > 0);
@@ -532,6 +547,7 @@ function getFilters() {
   const locs  = Array.from(document.querySelectorAll('input[name="f-loc-cb"]:checked')).map(i => i.value);
   return {
     category:        document.getElementById('f-category').value,
+    subcategory:     document.getElementById('f-subcategory')?.value || '',
     car_makes:       makes,
     car_model:       document.getElementById('f-model').value.trim(),
     year_from:       document.getElementById('f-year-from').value,
@@ -539,6 +555,7 @@ function getFilters() {
     price_min:       document.getElementById('f-price-min').value,
     price_max:       document.getElementById('f-price-max').value,
     part_type:       document.querySelector('input[name="f-type"]:checked')?.value || '',
+    condition:       document.querySelector('input[name="f-condition"]:checked')?.value || '',
     exchange_policy: document.querySelector('input[name="f-policy"]:checked')?.value || '',
     locations:       locs,
     sort:            document.getElementById('sort-select').value,
@@ -599,6 +616,11 @@ function resetFilters() {
   document.querySelector('input[name="f-type"]').checked = true;
   const firstPolicy = document.querySelector('input[name="f-policy"]');
   if (firstPolicy) firstPolicy.checked = true;
+  const firstCond = document.querySelector('input[name="f-condition"]');
+  if (firstCond) firstCond.checked = true;
+  const subEl = document.getElementById('f-subcategory');
+  if (subEl) subEl.value = '';
+  document.getElementById('f-subcategory-group').style.display = 'none';
   document.querySelectorAll('input[name="f-make-cb"]').forEach(cb => cb.checked = false);
   document.querySelectorAll('input[name="f-loc-cb"]').forEach(cb => cb.checked = false);
   document.getElementById('sort-select').value = 'newest';
@@ -670,10 +692,12 @@ async function openDetail(id) {
     const badgeClass = l.part_type === 'original' ? 'original' : 'substitute';
     const badgeText  = l.part_type === 'original' ? 'Оригинал' : 'Орлуулах';
     const policy     = policyMeta(l.exchange_policy);
+    const cond = conditionMeta(l.condition);
     document.getElementById('detail-badges').innerHTML =
       `<span class="detail-badge ${badgeClass}">${badgeText}</span>` +
-      `<span class="detail-badge category">${l.category || ''}</span>` +
+      `<span class="detail-badge category">${l.category || ''}${l.subcategory ? ' / ' + l.subcategory : ''}</span>` +
       (l.is_vip ? '<span class="detail-badge vip">⭐ VIP</span>' : '') +
+      (cond ? `<span class="detail-badge ${cond.cls}">${cond.short}</span>` : '') +
       (policy ? `<span class="detail-badge ${policy.cls}">${policy.short}</span>` : '');
 
     document.getElementById('detail-price').textContent = formatPrice(l.price);
@@ -799,6 +823,32 @@ function selectType(type) {
   document.getElementById('type-substitute').classList.toggle('active', type === 'substitute');
 }
 
+// ── Sub-category: post form ───────────────────────────────
+function onPostCategoryChange() {
+  const cat = document.getElementById('p-category').value;
+  const wrap = document.getElementById('p-subcategory-group');
+  const sel  = document.getElementById('p-subcategory');
+  if (!cat) { wrap.style.display = 'none'; sel.value = ''; return; }
+  const subs = getSubcategoriesFor(cat);
+  if (!subs.length) { wrap.style.display = 'none'; sel.value = ''; return; }
+  sel.innerHTML = '<option value="">Сонгоно уу</option>' +
+    subs.map(s => `<option value="${s.name}">${s.icon || ''} ${s.name}</option>`).join('');
+  wrap.style.display = 'block';
+}
+
+// ── Sub-category: search filter ───────────────────────────
+function onSearchCategoryChange() {
+  const cat = document.getElementById('f-category').value;
+  const wrap = document.getElementById('f-subcategory-group');
+  const sel  = document.getElementById('f-subcategory');
+  if (!cat) { wrap.style.display = 'none'; sel.value = ''; return; }
+  const subs = getSubcategoriesFor(cat);
+  if (!subs.length) { wrap.style.display = 'none'; sel.value = ''; return; }
+  sel.innerHTML = '<option value="">Бүгд</option>' +
+    subs.map(s => `<option value="${s.name}">${s.icon || ''} ${s.name}</option>`).join('');
+  wrap.style.display = 'block';
+}
+
 async function submitListing() {
   const user = authGetUser();
   if (!user) { openAuthModal('login'); showToast('Эхлээд нэвтэрнэ үү', 'info'); return; }
@@ -828,10 +878,12 @@ async function submitListing() {
     await postListing({
       title,
       category,
+      subcategory: document.getElementById('p-subcategory')?.value || null,
+      condition:   document.getElementById('p-condition')?.value || 'used',
       car_make:  make,
       car_model: document.getElementById('p-model').value.trim(),
       year_from: yearVal,
-      year_to:   yearVal,   // ижил тохируулна: search range filter-т нийцэнэ
+      year_to:   yearVal,
       part_type: document.getElementById('p-type').value,
       exchange_policy: document.getElementById('p-policy')?.value || 'no_return',
       description: document.getElementById('p-desc').value.trim(),

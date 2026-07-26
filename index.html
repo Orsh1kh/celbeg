@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -360,7 +360,11 @@
 
           <div class="filter-group">
             <label class="filter-label">Ангилал</label>
-            <select class="filter-select" id="f-category" data-dropdown="category"><option value="">Бүгд</option></select>
+            <select class="filter-select" id="f-category" data-dropdown="category" onchange="onSearchCategoryChange()"><option value="">Бүгд</option></select>
+          </div>
+          <div class="filter-group" id="f-subcategory-group" style="display:none">
+            <label class="filter-label">Дэд ангилал</label>
+            <select class="filter-select" id="f-subcategory"><option value="">Бүгд</option></select>
           </div>
           <div class="filter-group">
             <label class="filter-label">Машины марк</label>
@@ -401,6 +405,17 @@
               <label class="filter-radio-item"><input type="radio" name="f-type" value=""> Бүгд</label>
               <label class="filter-radio-item"><input type="radio" name="f-type" value="original"> Оригинал</label>
               <label class="filter-radio-item"><input type="radio" name="f-type" value="substitute"> Орлуулах</label>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Барааны нөхцөл</label>
+            <div class="filter-radio">
+              <label class="filter-radio-item"><input type="radio" name="f-condition" value="" checked> Бүгд</label>
+              <label class="filter-radio-item"><input type="radio" name="f-condition" value="new"> ✨ Шинэ</label>
+              <label class="filter-radio-item"><input type="radio" name="f-condition" value="used"> 👌 Ашиглагдсан</label>
+              <label class="filter-radio-item"><input type="radio" name="f-condition" value="refurbished"> 🔧 Засварласан</label>
+              <label class="filter-radio-item"><input type="radio" name="f-condition" value="damaged"> ⚠️ Гэмтэлтэй</label>
             </div>
           </div>
 
@@ -469,8 +484,21 @@
             </div>
             <div class="form-group">
               <label class="form-label">Ангилал *</label>
-              <select class="form-input" id="p-category" data-dropdown="category-req"><option value="">Сонгоно уу</option></select>
+              <select class="form-input" id="p-category" data-dropdown="category-req" onchange="onPostCategoryChange()"><option value="">Сонгоно уу</option></select>
               <div class="form-error" id="p-cat-err"></div>
+            </div>
+            <div class="form-group" id="p-subcategory-group" style="display:none">
+              <label class="form-label">Дэд ангилал <span style="color:var(--muted);font-weight:400">(сонголтоор)</span></label>
+              <select class="form-input" id="p-subcategory"><option value="">Сонгоно уу</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Барааны нөхцөл *</label>
+              <select class="form-input" id="p-condition">
+                <option value="new">✨ Шинэ</option>
+                <option value="used" selected>👌 Ашиглагдсан</option>
+                <option value="refurbished">🔧 Засварласан</option>
+                <option value="damaged">⚠️ Гэмтэлтэй</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label">Сэлбэгийн төрөл *</label>
@@ -804,12 +832,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=11"></script>
-<script src="js/data-manager.js?v=11"></script>
-<script src="js/auth.js?v=11"></script>
-<script src="js/listings.js?v=11"></script>
-<script src="js/upload.js?v=11"></script>
-<script src="js/admin.js?v=11"></script>
-<script src="js/main.js?v=11"></script>
+<script src="js/supabase-client.js?v=12"></script>
+<script src="js/data-manager.js?v=12"></script>
+<script src="js/auth.js?v=12"></script>
+<script src="js/listings.js?v=12"></script>
+<script src="js/upload.js?v=12"></script>
+<script src="js/admin.js?v=12"></script>
+<script src="js/main.js?v=12"></script>
 </body>
 </html>
