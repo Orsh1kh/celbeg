@@ -5,20 +5,46 @@
 const PAGE_SIZE = 12;
 
 // ── Байршил жагсаалт (checkbox шүүлт + post-form dropdown) ─
+// УБ 9 дүүрэг + Монгол 21 аймгийн төв + Дархан/Эрдэнэт хот
 const LOCATIONS = [
+  // ── Улаанбаатар (9 дүүрэг) ─────────────────────────────
   { key: 'ub_bz',      label: 'УБ, Баянзүрх',       patterns: ['баянзүрх', 'bayanzurkh'] },
   { key: 'ub_bg',      label: 'УБ, Баянгол',        patterns: ['баянгол', 'bayangol'] },
-  { key: 'ub_sb',      label: 'УБ, Сүхбаатар',      patterns: ['сүхбаатар', 'sukhbaatar'] },
+  { key: 'ub_sb',      label: 'УБ, Сүхбаатар',      patterns: ['уб, сүхбаатар', 'уб сүхбаатар', 'ub sukhbaatar', 'ub, sukhbaatar'] },
   { key: 'ub_ch',      label: 'УБ, Чингэлтэй',      patterns: ['чингэлтэй', 'chingeltei'] },
-  { key: 'ub_hu',      label: 'УБ, Хан-Уул',        patterns: ['хан-уул', 'хан уул', 'khan uul'] },
+  { key: 'ub_hu',      label: 'УБ, Хан-Уул',        patterns: ['хан-уул', 'хан уул', 'khan uul', 'khan-uul'] },
   { key: 'ub_sn',      label: 'УБ, Сонгинохайрхан', patterns: ['сонгино', 'songino'] },
   { key: 'ub_nl',      label: 'УБ, Налайх',         patterns: ['налайх', 'nalaikh'] },
+  { key: 'ub_bn',      label: 'УБ, Багануур',       patterns: ['багануур', 'baganuur'] },
   { key: 'ub_bh',      label: 'УБ, Багахангай',     patterns: ['багахангай', 'bagakhangai'] },
+
+  // ── Гол хотууд ─────────────────────────────────────────
   { key: 'erdenet',    label: 'Эрдэнэт',            patterns: ['эрдэнэт', 'erdenet'] },
   { key: 'darkhan',    label: 'Дархан',             patterns: ['дархан', 'darkhan'] },
-  { key: 'choibalsan', label: 'Чойбалсан',          patterns: ['чойбалсан', 'choibalsan'] },
-  { key: 'moron',      label: 'Мөрөн',              patterns: ['мөрөн', 'moron'] },
-  { key: 'other',      label: 'Бусад',              patterns: null },
+
+  // ── Аймгийн төв (21) ───────────────────────────────────
+  { key: 'arvaikheer', label: 'Арвайхээр (Өвөрхангай)', patterns: ['арвайхээр', 'arvaikheer', 'өвөрхангай', 'ovorkhangai'] },
+  { key: 'altai',      label: 'Алтай (Говь-Алтай)',      patterns: ['алтай', 'altai', 'говь-алтай', 'gov-altai'] },
+  { key: 'baruun_urt', label: 'Баруун-Урт (Сүхбаатар)',  patterns: ['баруун-урт', 'баруун урт', 'baruun-urt', 'baruun urt'] },
+  { key: 'bayankhongor', label: 'Баянхонгор',            patterns: ['баянхонгор', 'bayankhongor'] },
+  { key: 'bulgan',     label: 'Булган',                  patterns: ['булган', 'bulgan'] },
+  { key: 'chinggis',   label: 'Чингис (Хэнтий)',         patterns: ['чингис', 'chinggis', 'ондөрхаан', 'ondorkhaan', 'хэнтий', 'khentii'] },
+  { key: 'choibalsan', label: 'Чойбалсан (Дорнод)',      patterns: ['чойбалсан', 'choibalsan', 'дорнод', 'dornod'] },
+  { key: 'choir',      label: 'Чойр (Говь-сүмбэр)',      patterns: ['чойр', 'choir', 'говь-сүмбэр', 'gov-sumber'] },
+  { key: 'dalanzadgad',label: 'Даланзадгад (Өмнөговь)',  patterns: ['даланзадгад', 'dalanzadgad', 'өмнөговь', 'omnogov'] },
+  { key: 'khovd',      label: 'Ховд',                    patterns: ['ховд', 'khovd'] },
+  { key: 'mandalgovi', label: 'Мандалговь (Дундговь)',   patterns: ['мандалговь', 'mandalgovi', 'дундговь', 'dundgov'] },
+  { key: 'moron',      label: 'Мөрөн (Хөвсгөл)',         patterns: ['мөрөн', 'moron', 'хөвсгөл', 'khovsgol'] },
+  { key: 'olgii',      label: 'Өлгий (Баян-Өлгий)',      patterns: ['өлгий', 'olgii', 'баян-өлгий', 'bayan-olgii'] },
+  { key: 'sainshand',  label: 'Сайншанд (Дорноговь)',    patterns: ['сайншанд', 'sainshand', 'дорноговь', 'dornogov'] },
+  { key: 'sukhbaatar_c',label:'Сүхбаатар хот (Сэлэнгэ)', patterns: ['сүхбаатар хот', 'sukhbaatar khot', 'сэлэнгэ', 'selenge'] },
+  { key: 'tsetserleg', label: 'Цэцэрлэг (Архангай)',     patterns: ['цэцэрлэг', 'tsetserleg', 'архангай', 'arkhangai'] },
+  { key: 'ulaangom',   label: 'Улаангом (Увс)',          patterns: ['улаангом', 'ulaangom', 'увс', 'uvs'] },
+  { key: 'uliastai',   label: 'Улиастай (Завхан)',       patterns: ['улиастай', 'uliastai', 'завхан', 'zavkhan'] },
+  { key: 'zuunmod',    label: 'Зуунмод (Төв)',           patterns: ['зуунмод', 'zuunmod', 'төв аймаг', 'tov aimag'] },
+
+  // ── Catchall ───────────────────────────────────────────
+  { key: 'other',      label: 'Бусад',                   patterns: null },
 ];
 
 function locationLabel(key) {

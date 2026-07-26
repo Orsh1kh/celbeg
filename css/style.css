@@ -721,7 +721,7 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
   max-height: 165px; overflow: hidden;
   transition: max-height .2s;
 }
-.filter-checklist.expanded { max-height: 600px; overflow-y: auto; padding-right: 4px; }
+.filter-checklist.expanded { max-height: 380px; overflow-y: auto; padding-right: 4px; }
 .filter-checklist::-webkit-scrollbar { width: 4px; }
 .filter-checklist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
