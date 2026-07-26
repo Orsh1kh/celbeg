@@ -267,7 +267,10 @@ function buildListingCard(l) {
     ? `<div class="card-photo-counter">1 / ${l.images.length}</div>`
     : '';
 
-  const carMeta = [l.car_make, l.car_model, l.year_from && l.year_to ? `${l.year_from}–${l.year_to}` : ''].filter(Boolean).join(' ');
+  const yearTxt = (l.year_from && l.year_to)
+    ? (l.year_from === l.year_to ? `${l.year_from}` : `${l.year_from}–${l.year_to}`)
+    : (l.year_from ? `${l.year_from}` : '');
+  const carMeta = [l.car_make, l.car_model, yearTxt].filter(Boolean).join(' ');
 
   const shopClickable = l.user_id && l.shop_name
     ? `class="card-shop clickable" onclick="event.stopPropagation();openShop('${l.user_id}')"`
@@ -680,7 +683,7 @@ async function openDetail(id) {
     const carRows = [
       l.car_make  ? ['Марк', l.car_make] : null,
       l.car_model ? ['Загвар', l.car_model] : null,
-      (l.year_from || l.year_to) ? ['Он', `${l.year_from||''}${l.year_to && l.year_to !== l.year_from ? '–'+l.year_to : ''}`] : null,
+      (l.year_from || l.year_to) ? ['Он', l.year_from && l.year_to && l.year_from !== l.year_to ? `${l.year_from}–${l.year_to}` : `${l.year_from || l.year_to}`] : null,
     ].filter(Boolean);
     document.getElementById('detail-car').innerHTML = carRows.map(([k,v]) =>
       `<div class="detail-car-row"><span>${k}</span><span>${v}</span></div>`
@@ -821,13 +824,14 @@ async function submitListing() {
     const imageUrls = await uploadAllFiles(user.id);
     btn.textContent = 'Зар нийтлэж байна...';
 
+    const yearVal = parseInt(document.getElementById('p-year-from').value) || null;
     await postListing({
       title,
       category,
       car_make:  make,
       car_model: document.getElementById('p-model').value.trim(),
-      year_from: parseInt(document.getElementById('p-year-from').value) || null,
-      year_to:   parseInt(document.getElementById('p-year-to').value)   || null,
+      year_from: yearVal,
+      year_to:   yearVal,   // ижил тохируулна: search range filter-т нийцэнэ
       part_type: document.getElementById('p-type').value,
       exchange_policy: document.getElementById('p-policy')?.value || 'no_return',
       description: document.getElementById('p-desc').value.trim(),
