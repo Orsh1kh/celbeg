@@ -4,31 +4,108 @@
 
 const PAGE_SIZE = 12;
 
-async function fetchListings({ category='', car_make='', car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', exchange_policy='', keyword='', sort='newest', page=0 } = {}) {
-  if (DEMO_MODE) return _filterDemo({ category, car_make, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, keyword, sort, page });
+// ── Байршил жагсаалт (checkbox шүүлт + post-form dropdown) ─
+const LOCATIONS = [
+  { key: 'ub_bz',      label: 'УБ, Баянзүрх',       patterns: ['баянзүрх', 'bayanzurkh'] },
+  { key: 'ub_bg',      label: 'УБ, Баянгол',        patterns: ['баянгол', 'bayangol'] },
+  { key: 'ub_sb',      label: 'УБ, Сүхбаатар',      patterns: ['сүхбаатар', 'sukhbaatar'] },
+  { key: 'ub_ch',      label: 'УБ, Чингэлтэй',      patterns: ['чингэлтэй', 'chingeltei'] },
+  { key: 'ub_hu',      label: 'УБ, Хан-Уул',        patterns: ['хан-уул', 'хан уул', 'khan uul'] },
+  { key: 'ub_sn',      label: 'УБ, Сонгинохайрхан', patterns: ['сонгино', 'songino'] },
+  { key: 'ub_nl',      label: 'УБ, Налайх',         patterns: ['налайх', 'nalaikh'] },
+  { key: 'ub_bh',      label: 'УБ, Багахангай',     patterns: ['багахангай', 'bagakhangai'] },
+  { key: 'erdenet',    label: 'Эрдэнэт',            patterns: ['эрдэнэт', 'erdenet'] },
+  { key: 'darkhan',    label: 'Дархан',             patterns: ['дархан', 'darkhan'] },
+  { key: 'choibalsan', label: 'Чойбалсан',          patterns: ['чойбалсан', 'choibalsan'] },
+  { key: 'moron',      label: 'Мөрөн',              patterns: ['мөрөн', 'moron'] },
+  { key: 'other',      label: 'Бусад',              patterns: null },
+];
 
-  let q = sb.from('listings').select('*').eq('is_active', true).or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+function locationLabel(key) {
+  return LOCATIONS.find(l => l.key === key)?.label || key;
+}
 
-  if (category)  q = q.eq('category', category);
-  if (car_make)  q = q.eq('car_make', car_make);
-  if (car_model) q = q.ilike('car_model', `%${car_model}%`);
-  if (year_from) q = q.gte('year_to', parseInt(year_from));
-  if (year_to)   q = q.lte('year_from', parseInt(year_to));
-  if (price_min) q = q.gte('price', parseInt(price_min));
-  if (price_max) q = q.lte('price', parseInt(price_max));
-  if (part_type) q = q.eq('part_type', part_type);
-  if (exchange_policy) q = q.eq('exchange_policy', exchange_policy);
-  if (keyword)   q = q.ilike('title', `%${keyword}%`);
+function _buildLocationOr(locKeys) {
+  const parts = [];
+  const knownPatterns = [];
+  let hasOther = false;
+  locKeys.forEach(k => {
+    const loc = LOCATIONS.find(l => l.key === k);
+    if (!loc) return;
+    if (loc.patterns === null) hasOther = true;
+    else loc.patterns.forEach(p => {
+      parts.push(`location.ilike.%${p}%`);
+      knownPatterns.push(p);
+    });
+  });
+  return { parts, knownPatterns, hasOther };
+}
 
-  if (sort === 'price_asc')  q = q.order('price', { ascending: true });
+async function fetchListings({ category='', car_makes=[], car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', exchange_policy='', locations=[], keyword='', sort='newest', page=0, withCount=false } = {}) {
+  if (DEMO_MODE) {
+    const data = _filterDemo({ category, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, locations, keyword, sort, page });
+    if (withCount) return { data, count: _countDemo({ category, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, locations, keyword }) };
+    return data;
+  }
+
+  const selectOpts = withCount ? { count: 'exact' } : undefined;
+  let q = sb.from('listings').select('*', selectOpts).eq('is_active', true).or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+
+  if (category)               q = q.eq('category', category);
+  if (car_makes && car_makes.length) q = q.in('car_make', car_makes);
+  if (car_model)              q = q.ilike('car_model', `%${car_model}%`);
+  if (year_from)              q = q.gte('year_to', parseInt(year_from));
+  if (year_to)                q = q.lte('year_from', parseInt(year_to));
+  if (price_min)              q = q.gte('price', parseInt(price_min));
+  if (price_max)              q = q.lte('price', parseInt(price_max));
+  if (part_type)              q = q.eq('part_type', part_type);
+  if (exchange_policy)        q = q.eq('exchange_policy', exchange_policy);
+  if (keyword)                q = q.ilike('title', `%${keyword}%`);
+
+  if (locations && locations.length) {
+    const { parts } = _buildLocationOr(locations);
+    if (parts.length) q = q.or(parts.join(','));
+  }
+
+  if (sort === 'price_asc')       q = q.order('price', { ascending: true });
   else if (sort === 'price_desc') q = q.order('price', { ascending: false });
-  else q = q.order('created_at', { ascending: false });
+  else                            q = q.order('created_at', { ascending: false });
 
   q = q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) throw error;
+  if (withCount) return { data: data || [], count: count || 0 };
   return data || [];
+}
+
+function _countDemo(f) {
+  return _filterDemoAll(f).length;
+}
+
+function _filterDemoAll({ category, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, locations, keyword }) {
+  let list = [...DEMO_LISTINGS];
+  if (category)  list = list.filter(l => l.category === category);
+  if (car_makes && car_makes.length) list = list.filter(l => car_makes.includes(l.car_make));
+  if (car_model) list = list.filter(l => l.car_model.toLowerCase().includes(car_model.toLowerCase()));
+  if (year_from) list = list.filter(l => l.year_to >= parseInt(year_from));
+  if (year_to)   list = list.filter(l => l.year_from <= parseInt(year_to));
+  if (price_min) list = list.filter(l => l.price >= parseInt(price_min));
+  if (price_max) list = list.filter(l => l.price <= parseInt(price_max));
+  if (part_type) list = list.filter(l => l.part_type === part_type);
+  if (exchange_policy) list = list.filter(l => l.exchange_policy === exchange_policy);
+  if (locations && locations.length) {
+    list = list.filter(l => {
+      const loc = (l.location || '').toLowerCase();
+      return locations.some(k => {
+        const def = LOCATIONS.find(x => x.key === k);
+        if (!def || def.patterns === null) return false;
+        return def.patterns.some(p => loc.includes(p.toLowerCase()));
+      });
+    });
+  }
+  if (keyword)   list = list.filter(l => l.title.toLowerCase().includes(keyword.toLowerCase()) || l.description?.toLowerCase().includes(keyword.toLowerCase()));
+  return list;
 }
 
 async function fetchVipListings() {
@@ -198,24 +275,12 @@ async function fetchMyQuota() {
 }
 
 // ── Demo filter helper ──────────────────────────────────────
-function _filterDemo({ category, car_make, car_model, year_from, year_to, price_min, price_max, part_type, exchange_policy, keyword, sort, page }) {
-  let list = [...DEMO_LISTINGS];
-  if (category)  list = list.filter(l => l.category === category);
-  if (car_make)  list = list.filter(l => l.car_make === car_make);
-  if (car_model) list = list.filter(l => l.car_model.toLowerCase().includes(car_model.toLowerCase()));
-  if (year_from) list = list.filter(l => l.year_to >= parseInt(year_from));
-  if (year_to)   list = list.filter(l => l.year_from <= parseInt(year_to));
-  if (price_min) list = list.filter(l => l.price >= parseInt(price_min));
-  if (price_max) list = list.filter(l => l.price <= parseInt(price_max));
-  if (part_type) list = list.filter(l => l.part_type === part_type);
-  if (exchange_policy) list = list.filter(l => l.exchange_policy === exchange_policy);
-  if (keyword)   list = list.filter(l => l.title.toLowerCase().includes(keyword.toLowerCase()) || l.description?.toLowerCase().includes(keyword.toLowerCase()));
-
-  if (sort === 'price_asc')  list.sort((a,b) => a.price - b.price);
-  else if (sort === 'price_desc') list.sort((a,b) => b.price - a.price);
-  else list.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-
-  return list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+function _filterDemo(f) {
+  let list = _filterDemoAll(f);
+  if (f.sort === 'price_asc')       list.sort((a,b) => a.price - b.price);
+  else if (f.sort === 'price_desc') list.sort((a,b) => b.price - a.price);
+  else                              list.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  return list.slice(f.page * PAGE_SIZE, (f.page + 1) * PAGE_SIZE);
 }
 
 // ── Helpers ─────────────────────────────────────────────────

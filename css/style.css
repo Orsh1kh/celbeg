@@ -714,6 +714,62 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 }
 
 /* ═══════════════════════════════════════════════════════════
+   FILTER CHECKLIST (multi-select mark, location)
+═══════════════════════════════════════════════════════════ */
+.filter-checklist {
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 165px; overflow: hidden;
+  transition: max-height .2s;
+}
+.filter-checklist.expanded { max-height: 600px; overflow-y: auto; padding-right: 4px; }
+.filter-checklist::-webkit-scrollbar { width: 4px; }
+.filter-checklist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.filter-check-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 2px;
+  font-size: 12px; color: var(--text); cursor: pointer;
+  user-select: none;
+}
+.filter-check-item:hover { color: var(--red); }
+.filter-check-item input {
+  cursor: pointer; accent-color: var(--red);
+  width: 14px; height: 14px; flex-shrink: 0;
+}
+.filter-check-item .check-label { flex: 1; }
+.filter-check-item .check-count {
+  font-size: 11px; color: var(--muted); flex-shrink: 0;
+}
+
+.filter-expand-btn {
+  align-self: flex-start; margin-top: 4px;
+  padding: 4px 0; font-size: 11px; color: var(--red); cursor: pointer;
+  background: none; border: none;
+}
+.filter-expand-btn:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════════════
+   PHOTO COUNTER on card
+═══════════════════════════════════════════════════════════ */
+.card-photo-counter {
+  position: absolute; top: 8px; left: 8px;
+  padding: 2px 8px; border-radius: 12px;
+  background: rgba(0,0,0,.6); color: #fff;
+  font-size: 10px; font-weight: 700;
+  backdrop-filter: blur(4px);
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.card-photo-counter::before { content: '📷'; font-size: 9px; }
+/* If policy tag also present at top-left, push photo counter under it */
+.card-img .card-badge + .card-photo-counter { top: 32px; }
+
+/* Load-more button count */
+.btn-load-more .lm-count {
+  display: inline-block; margin-left: 6px;
+  font-size: 12px; color: var(--muted); font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════
    PWA INSTALL BANNER
 ═══════════════════════════════════════════════════════════ */
 #pwa-install-banner {

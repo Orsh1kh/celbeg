@@ -9,6 +9,8 @@ let _searchFilters = {};
 let _currentListing = null;
 let _currentListingImages = [];
 let _currentShopId = null;
+let _homeTotalCount   = 0;
+let _searchTotalCount = 0;
 
 // ═══════════════════════════════════════════════════════════
 // NAVIGATION
@@ -261,6 +263,9 @@ function buildListingCard(l) {
   const policy     = policyMeta(l.exchange_policy);
   const policyTag  = policy ? `<div class="card-policy ${l.exchange_policy}">${policy.short}</div>` : '';
   const verified   = l.is_verified ? '<span class="verified-badge" title="Баталгаажсан дэлгүүр"></span>' : '';
+  const photoCount = (l.images?.length > 1)
+    ? `<div class="card-photo-counter">1 / ${l.images.length}</div>`
+    : '';
 
   const carMeta = [l.car_make, l.car_model, l.year_from && l.year_to ? `${l.year_from}–${l.year_to}` : ''].filter(Boolean).join(' ');
 
@@ -273,6 +278,7 @@ function buildListingCard(l) {
       <div class="card-img">
         ${img}
         <div class="card-badge ${badgeClass}">${badgeText}</div>
+        ${photoCount}
         ${vipTag}
         ${policyTag}
       </div>
@@ -396,15 +402,16 @@ function updateFilterCountBadge() {
   if (!badge) return;
   const f = getFilters();
   let count = 0;
-  if (f.category)        count++;
-  if (f.car_make)        count++;
-  if (f.car_model)       count++;
-  if (f.year_from)       count++;
-  if (f.year_to)         count++;
-  if (f.price_min)       count++;
-  if (f.price_max)       count++;
-  if (f.part_type)       count++;
-  if (f.exchange_policy) count++;
+  if (f.category)                     count++;
+  if (f.car_makes && f.car_makes.length) count += f.car_makes.length;
+  if (f.car_model)                    count++;
+  if (f.year_from)                    count++;
+  if (f.year_to)                      count++;
+  if (f.price_min)                    count++;
+  if (f.price_max)                    count++;
+  if (f.part_type)                    count++;
+  if (f.exchange_policy)              count++;
+  if (f.locations && f.locations.length) count += f.locations.length;
   badge.textContent = count;
   badge.classList.toggle('visible', count > 0);
 }
@@ -460,7 +467,10 @@ async function loadHomeListings(reset = false) {
     renderSkeletons('home-listings-container', 8);
   }
   try {
-    const listings = await fetchListings({ sort: 'newest', page: _homePage });
+    const res = await fetchListings({ sort: 'newest', page: _homePage, withCount: reset });
+    const listings = reset ? res.data : res;
+    if (reset && typeof res.count === 'number') _homeTotalCount = res.count;
+
     const container = document.getElementById('home-listings-container');
     if (reset) {
       renderGrid(listings, 'home-listings-container', { emptyType: 'home' });
@@ -469,9 +479,24 @@ async function loadHomeListings(reset = false) {
       if (grid) grid.insertAdjacentHTML('beforeend', listings.map(buildListingCard).join(''));
       else renderGrid(listings, 'home-listings-container', { emptyType: 'home' });
     }
-    document.getElementById('home-load-more').style.display = listings.length >= PAGE_SIZE ? 'block' : 'none';
+    updateLoadMoreButton('home-load-more', _homePage, _homeTotalCount, listings.length);
   } catch(e) {
     document.getElementById('home-listings-container').innerHTML = renderEmptyState('error');
+  }
+}
+
+function updateLoadMoreButton(wrapId, page, total, gotThisPage) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const shownSoFar = (page + 1) * PAGE_SIZE;
+  const remaining  = Math.max(0, total - shownSoFar);
+  const hasMore    = gotThisPage >= PAGE_SIZE && (total === 0 || remaining > 0);
+  wrap.style.display = hasMore ? 'block' : 'none';
+  const btn = wrap.querySelector('.btn-load-more');
+  if (btn && total > 0) {
+    const label = remaining > 0 ? `+${Math.min(remaining, PAGE_SIZE)} зар харах` : 'Дэлгэрэнгүй харах';
+    const suffix = remaining > 0 ? `<span class="lm-count">үлдсэн ${remaining}</span>` : '';
+    btn.innerHTML = `${label}${suffix}`;
   }
 }
 
@@ -500,9 +525,11 @@ async function initSearchPage() {
 }
 
 function getFilters() {
+  const makes = Array.from(document.querySelectorAll('input[name="f-make-cb"]:checked')).map(i => i.value);
+  const locs  = Array.from(document.querySelectorAll('input[name="f-loc-cb"]:checked')).map(i => i.value);
   return {
     category:        document.getElementById('f-category').value,
-    car_make:        document.getElementById('f-make').value,
+    car_makes:       makes,
     car_model:       document.getElementById('f-model').value.trim(),
     year_from:       document.getElementById('f-year-from').value,
     year_to:         document.getElementById('f-year-to').value,
@@ -510,8 +537,20 @@ function getFilters() {
     price_max:       document.getElementById('f-price-max').value,
     part_type:       document.querySelector('input[name="f-type"]:checked')?.value || '',
     exchange_policy: document.querySelector('input[name="f-policy"]:checked')?.value || '',
+    locations:       locs,
     sort:            document.getElementById('sort-select').value,
   };
+}
+
+function onFilterCheckboxChange() {
+  updateFilterCountBadge();
+}
+
+function toggleFilterExpand(wrapId, btn) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const expanded = wrap.classList.toggle('expanded');
+  btn.textContent = expanded ? 'Хураах ▴' : 'Бүгдийг харах ▾';
 }
 
 async function loadSearchResults(reset = false) {
@@ -522,18 +561,21 @@ async function loadSearchResults(reset = false) {
   }
   updateFilterCountBadge();
   try {
-    const filters = { ...getFilters(), ..._searchFilters, page: _searchPage };
-    const listings = await fetchListings(filters);
+    const filters = { ...getFilters(), ..._searchFilters, page: _searchPage, withCount: reset };
+    const res = await fetchListings(filters);
+    const listings = reset ? res.data : res;
+    if (reset && typeof res.count === 'number') _searchTotalCount = res.count;
+
     const container = document.getElementById('search-listings-container');
     if (reset) {
       renderGrid(listings, 'search-listings-container', { emptyType: 'search' });
       document.getElementById('results-count').innerHTML =
-        `<strong>${listings.length}</strong> зар олдлоо`;
+        `<strong>${_searchTotalCount || listings.length}</strong> зар олдлоо`;
     } else {
       const grid = container.querySelector('.listing-grid');
       if (grid) grid.insertAdjacentHTML('beforeend', listings.map(buildListingCard).join(''));
     }
-    document.getElementById('search-load-more').style.display = listings.length >= PAGE_SIZE ? 'block' : 'none';
+    updateLoadMoreButton('search-load-more', _searchPage, _searchTotalCount, listings.length);
   } catch(e) {
     document.getElementById('search-listings-container').innerHTML = renderEmptyState('error');
   }
@@ -546,7 +588,6 @@ function applyFilters() {
 
 function resetFilters() {
   document.getElementById('f-category').value = '';
-  document.getElementById('f-make').value = '';
   document.getElementById('f-model').value = '';
   document.getElementById('f-year-from').value = '';
   document.getElementById('f-year-to').value = '';
@@ -555,6 +596,8 @@ function resetFilters() {
   document.querySelector('input[name="f-type"]').checked = true;
   const firstPolicy = document.querySelector('input[name="f-policy"]');
   if (firstPolicy) firstPolicy.checked = true;
+  document.querySelectorAll('input[name="f-make-cb"]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('input[name="f-loc-cb"]').forEach(cb => cb.checked = false);
   document.getElementById('sort-select').value = 'newest';
   _searchFilters = {};
   loadSearchResults(true);
@@ -576,15 +619,19 @@ function doHeaderSearch() {
 
 // ── Hero search ─────────────────────────────────────────────
 function doHeroSearch() {
+  const heroMake = document.getElementById('hero-mark').value;
   _searchFilters = {
-    car_make:  document.getElementById('hero-mark').value,
+    car_makes: heroMake ? [heroMake] : [],
     car_model: document.getElementById('hero-model').value.trim(),
     category:  document.getElementById('hero-cat').value,
     keyword:   document.getElementById('hero-keyword').value.trim(),
   };
   showPage('search');
   // sync sidebar
-  if (_searchFilters.car_make)  document.getElementById('f-make').value     = _searchFilters.car_make;
+  if (heroMake) {
+    const cb = document.querySelector(`input[name="f-make-cb"][value="${heroMake}"]`);
+    if (cb) cb.checked = true;
+  }
   if (_searchFilters.car_model) document.getElementById('f-model').value    = _searchFilters.car_model;
   if (_searchFilters.category)  document.getElementById('f-category').value = _searchFilters.category;
   loadSearchResults(true);

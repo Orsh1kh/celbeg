@@ -156,6 +156,38 @@ function populateAllDropdowns() {
     if (cur) sel.value = cur;
   });
 
+  // ── Location select (post form) ───────────────────────────
+  if (typeof LOCATIONS !== 'undefined') {
+    document.querySelectorAll('[data-dropdown="location"]').forEach(sel => {
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Сонгоно уу</option>' +
+        LOCATIONS.map(l => `<option value="${l.label}">${l.label}</option>`).join('');
+      if (cur) sel.value = cur;
+    });
+  }
+
+  // ── Mark checkboxes (search sidebar, multi-select) ────────
+  const markWrap = document.getElementById('f-makes-wrap');
+  if (markWrap) {
+    const prev = new Set(Array.from(markWrap.querySelectorAll('input:checked')).map(i => i.value));
+    markWrap.innerHTML = marks.map(m => `
+      <label class="filter-check-item">
+        <input type="checkbox" name="f-make-cb" value="${m}"${prev.has(m) ? ' checked' : ''} onchange="onFilterCheckboxChange()">
+        <span class="check-label">${m}</span>
+      </label>`).join('');
+  }
+
+  // ── Location checkboxes (search sidebar) ──────────────────
+  const locWrap = document.getElementById('f-locations-wrap');
+  if (locWrap && typeof LOCATIONS !== 'undefined') {
+    const prev = new Set(Array.from(locWrap.querySelectorAll('input:checked')).map(i => i.value));
+    locWrap.innerHTML = LOCATIONS.map(l => `
+      <label class="filter-check-item">
+        <input type="checkbox" name="f-loc-cb" value="${l.key}"${prev.has(l.key) ? ' checked' : ''} onchange="onFilterCheckboxChange()">
+        <span class="check-label">${l.label}</span>
+      </label>`).join('');
+  }
+
   // ── Category nav bar ──────────────────────────────────────
   const catNav = document.getElementById('cat-nav-inner');
   if (catNav) {
