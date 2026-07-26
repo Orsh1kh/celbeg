@@ -238,7 +238,7 @@ insert into public.categories (id, name, icon, "order") values
   ('cat-4', 'Цахилгаан',         '⚡', 4),
   ('cat-5', 'Гадна',             '🚗', 5),
   ('cat-6', 'Дугуй & Диск',     '🛞', 6),
-  ('cat-7', 'Дотор',             '💺', 7),
+  ('cat-7', 'Салон',             '💺', 7),
   ('cat-8', 'Агаарын систем',   '❄️', 8)
 on conflict (id) do nothing;
 

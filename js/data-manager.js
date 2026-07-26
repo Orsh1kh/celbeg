@@ -12,7 +12,7 @@ const DEFAULT_CATEGORIES = [
   { id:'cat-4', name:'Цахилгаан',       icon:'⚡',  order:4 },
   { id:'cat-5', name:'Гадна',           icon:'🚗',  order:5 },
   { id:'cat-6', name:'Дугуй & Диск',   icon:'🛞',  order:6 },
-  { id:'cat-7', name:'Дотор',           icon:'💺',  order:7 },
+  { id:'cat-7', name:'Салон',           icon:'💺',  order:7 },
   { id:'cat-8', name:'Агаарын систем', icon:'❄️',  order:8 },
 ];
 
