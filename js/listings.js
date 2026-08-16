@@ -67,16 +67,17 @@ function _buildLocationOr(locKeys) {
   return { parts, knownPatterns, hasOther };
 }
 
-async function fetchListings({ category='', subcategory='', car_makes=[], car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', condition='', exchange_policy='', locations=[], keyword='', sort='newest', page=0, withCount=false } = {}) {
+async function fetchListings({ listing_type='part', category='', subcategory='', car_makes=[], car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', condition='', exchange_policy='', locations=[], keyword='', sort='newest', page=0, withCount=false } = {}) {
   if (DEMO_MODE) {
-    const data = _filterDemo({ category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword, sort, page });
-    if (withCount) return { data, count: _countDemo({ category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword }) };
+    const data = _filterDemo({ listing_type, category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword, sort, page });
+    if (withCount) return { data, count: _countDemo({ listing_type, category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword }) };
     return data;
   }
 
   const selectOpts = withCount ? { count: 'exact' } : undefined;
   let q = sb.from('listings').select('*', selectOpts).eq('is_active', true).or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
+  if (listing_type)           q = q.eq('listing_type', listing_type);
   if (category)               q = q.eq('category', category);
   if (subcategory)            q = q.eq('subcategory', subcategory);
   if (car_makes && car_makes.length) q = q.in('car_make', car_makes);
@@ -111,8 +112,9 @@ function _countDemo(f) {
   return _filterDemoAll(f).length;
 }
 
-function _filterDemoAll({ category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword }) {
+function _filterDemoAll({ listing_type, category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword }) {
   let list = [...DEMO_LISTINGS];
+  if (listing_type) list = list.filter(l => (l.listing_type || 'part') === listing_type);
   if (category)    list = list.filter(l => l.category === category);
   if (subcategory) list = list.filter(l => l.subcategory === subcategory);
   if (car_makes && car_makes.length) list = list.filter(l => car_makes.includes(l.car_make));
@@ -156,19 +158,42 @@ async function incrementView(id) {
   await sb.rpc('increment_view', { listing_id: id });
 }
 
-async function postListing(data) {
+async function postListing(data, vehicleData = null) {
   const user = authGetUser();
   if (!user) throw new Error('Нэвтэрнэ үү');
 
   if (DEMO_MODE) {
     const newListing = { ...data, id: 'demo-' + Date.now(), user_id: user.id, created_at: new Date().toISOString(), is_vip: false, view_count: 0, is_active: true };
+    if (vehicleData) Object.assign(newListing, { vehicle: vehicleData });
     DEMO_LISTINGS.unshift(newListing);
     return newListing;
   }
 
   const { data: result, error } = await sb.from('listings').insert({ ...data, user_id: user.id }).select().single();
   if (error) throw error;
+
+  // Vehicle listing бол vehicle_details мөр нэмнэ
+  if (vehicleData && result?.id) {
+    const { error: vErr } = await sb.from('vehicle_details').insert({ ...vehicleData, listing_id: result.id });
+    if (vErr) {
+      // Rollback: vehicle_details insert алдаа гарвал listings-с устгана
+      await sb.from('listings').delete().eq('id', result.id);
+      throw vErr;
+    }
+  }
+
   return result;
+}
+
+async function fetchVehicleDetails(listingId) {
+  if (DEMO_MODE) {
+    const l = DEMO_LISTINGS.find(x => x.id === listingId);
+    return l?.vehicle || null;
+  }
+  try {
+    const { data } = await sb.from('vehicle_details').select('*').eq('listing_id', listingId).single();
+    return data;
+  } catch { return null; }
 }
 
 async function myListings() {

@@ -11,6 +11,7 @@ let _currentListingImages = [];
 let _currentShopId = null;
 let _homeTotalCount   = 0;
 let _searchTotalCount = 0;
+let _listingTypeNav   = 'part';  // 'part' | 'vehicle'
 
 // ═══════════════════════════════════════════════════════════
 // NAVIGATION
@@ -46,6 +47,19 @@ function selectCatNav(btn, cat) {
   document.querySelectorAll('.cat-nav-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   goSearchCat(cat);
+}
+
+// ── Listing type nav (Part / Vehicle) ─────────────────────
+function selectListingTypeNav(t) {
+  _listingTypeNav = t;
+  document.querySelectorAll('.type-nav-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.lt === t)
+  );
+  // Home page-т байвал шинэчилнэ, эсрэг тохиолдолд Search руу
+  const activePage = document.querySelector('.page.active')?.id;
+  if (activePage === 'page-home')       initHomePage();
+  else if (activePage === 'page-search') { _searchPage = 0; loadSearchResults(true); }
+  else showPage('home');
 }
 
 function goSearchCat(cat) {
@@ -272,6 +286,8 @@ function buildListingCard(l) {
     : (l.year_from ? `${l.year_from}` : '');
   const cond = conditionMeta(l.condition);
   const condBadge = cond ? `<span class="condition-badge ${l.condition}">${cond.short}</span>` : '';
+  const isVehicle = l.listing_type === 'vehicle';
+  const vehicleTag = isVehicle ? '<div class="card-vehicle-tag">🚗 Машин</div>' : '';
   const carMeta = [l.car_make, l.car_model, yearTxt].filter(Boolean).join(' ');
 
   const shopClickable = l.user_id && l.shop_name
@@ -279,20 +295,20 @@ function buildListingCard(l) {
     : 'class="card-shop"';
 
   return `
-    <div class="listing-card${l.is_vip ? ' vip-card' : ''}" onclick="openDetail('${l.id}')">
+    <div class="listing-card${l.is_vip ? ' vip-card' : ''}${isVehicle ? ' vehicle-card' : ''}" onclick="openDetail('${l.id}')">
       <div class="card-img">
         ${img}
-        <div class="card-badge ${badgeClass}">${badgeText}</div>
+        ${isVehicle ? vehicleTag : `<div class="card-badge ${badgeClass}">${badgeText}</div>`}
         ${photoCount}
         ${vipTag}
-        ${policyTag}
+        ${isVehicle ? '' : policyTag}
       </div>
       <div class="card-body">
         <div class="card-price">${formatPrice(l.price)}</div>
         <div class="card-title">${l.title}</div>
-        <div class="card-meta">${carMeta || l.category || ''}${condBadge}</div>
+        <div class="card-meta">${carMeta || l.category || ''}${isVehicle ? '' : condBadge}</div>
         <div class="card-footer">
-          <span ${shopClickable}>🏪 ${l.shop_name || 'Хувь хүн'}${verified}</span>
+          <span ${shopClickable}>${isVehicle ? '👤' : '🏪'} ${l.shop_name || 'Хувь хүн'}${verified}</span>
           <span class="card-date">${formatDate(l.created_at)}</span>
         </div>
       </div>
@@ -485,7 +501,7 @@ async function loadHomeListings(reset = false) {
     renderSkeletons('home-listings-container', 8);
   }
   try {
-    const res = await fetchListings({ sort: 'newest', page: _homePage, withCount: reset });
+    const res = await fetchListings({ sort: 'newest', page: _homePage, withCount: reset, listing_type: _listingTypeNav });
     const listings = reset ? res.data : res;
     if (reset && typeof res.count === 'number') _homeTotalCount = res.count;
 
@@ -581,7 +597,7 @@ async function loadSearchResults(reset = false) {
   }
   updateFilterCountBadge();
   try {
-    const filters = { ...getFilters(), ..._searchFilters, page: _searchPage, withCount: reset };
+    const filters = { ...getFilters(), ..._searchFilters, page: _searchPage, withCount: reset, listing_type: _listingTypeNav };
     const res = await fetchListings(filters);
     const listings = reset ? res.data : res;
     if (reset && typeof res.count === 'number') _searchTotalCount = res.count;
@@ -703,7 +719,7 @@ async function openDetail(id) {
     document.getElementById('detail-price').textContent = formatPrice(l.price);
     document.getElementById('detail-title').textContent = l.title;
 
-    // Car info
+    // Car info (extended for vehicles)
     const carRows = [
       l.car_make  ? ['Марк', l.car_make] : null,
       l.car_model ? ['Загвар', l.car_model] : null,
@@ -712,6 +728,32 @@ async function openDetail(id) {
     document.getElementById('detail-car').innerHTML = carRows.map(([k,v]) =>
       `<div class="detail-car-row"><span>${k}</span><span>${v}</span></div>`
     ).join('');
+
+    // Vehicle-specific extra spec
+    if (l.listing_type === 'vehicle') {
+      const vd = await fetchVehicleDetails(l.id);
+      if (vd) {
+        const fuelLabels = { petrol:'Бензин', diesel:'Дизель', hybrid:'Хайбрид', electric:'Цахилгаан', gas:'Хий', other:'Бусад' };
+        const transLabels = { auto:'Автомат', manual:'Механик', auto_manual:'Автомат (+/-)', cvt:'CVT', other:'Бусад' };
+        const driveLabels = { fwd:'Урдаа (FWD)', rwd:'Хойдоо (RWD)', awd:'Бүх дугуй (AWD)', '4wd':'Full 4WD', other:'Бусад' };
+        const extra = [
+          vd.imported_year ? ['Орж ирсэн он', vd.imported_year] : null,
+          vd.mileage_km ? ['Явсан км', Number(vd.mileage_km).toLocaleString('mn-MN') + ' км'] : null,
+          vd.engine_cc ? ['Хөдөлгүүр', vd.engine_cc + 'л'] : null,
+          vd.fuel_type ? ['Шатахуун', fuelLabels[vd.fuel_type] || vd.fuel_type] : null,
+          vd.transmission ? ['Хурдны хайрцаг', transLabels[vd.transmission] || vd.transmission] : null,
+          vd.drive ? ['Хөтлөгч', driveLabels[vd.drive] || vd.drive] : null,
+          vd.steering ? ['Хурд', vd.steering === 'left' ? 'Зөв гар' : 'Буруу гар'] : null,
+          vd.color ? ['Өнгө', vd.color] : null,
+          vd.color_interior ? ['Дотор өнгө', vd.color_interior] : null,
+          vd.plate_region ? ['Улсын дугаар', vd.plate_region] : null,
+          typeof vd.customs_cleared === 'boolean' ? ['Гаальд орсон', vd.customs_cleared ? 'Тийм' : 'Үгүй'] : null,
+        ].filter(Boolean);
+        document.getElementById('detail-car').innerHTML += extra.map(([k,v]) =>
+          `<div class="detail-car-row"><span>${k}</span><span>${v}</span></div>`
+        ).join('');
+      }
+    }
 
     document.getElementById('detail-desc').textContent = l.description || 'Тайлбар байхгүй';
 
@@ -823,6 +865,16 @@ function selectType(type) {
   document.getElementById('type-substitute').classList.toggle('active', type === 'substitute');
 }
 
+// ── Listing type toggle (Part / Vehicle) ─────────────────
+function selectListingType(t) {
+  const el = document.getElementById('p-listing-type');
+  if (el) el.value = t;
+  document.getElementById('lt-part').classList.toggle('active',    t === 'part');
+  document.getElementById('lt-vehicle').classList.toggle('active', t === 'vehicle');
+  document.getElementById('part-fields-wrap').style.display    = t === 'part'    ? 'block' : 'none';
+  document.getElementById('vehicle-fields-wrap').style.display = t === 'vehicle' ? 'block' : 'none';
+}
+
 // ── Sub-category: post form ───────────────────────────────
 function onPostCategoryChange() {
   const cat = document.getElementById('p-category').value;
@@ -853,31 +905,29 @@ async function submitListing() {
   const user = authGetUser();
   if (!user) { openAuthModal('login'); showToast('Эхлээд нэвтэрнэ үү', 'info'); return; }
 
-  const title    = document.getElementById('p-title').value.trim();
-  const category = document.getElementById('p-category').value;
-  const make     = document.getElementById('p-make').value;
-  const price    = document.getElementById('p-price').value;
-  const phone    = document.getElementById('p-phone').value.trim();
+  const listingType = document.getElementById('p-listing-type')?.value || 'part';
+  const price       = document.getElementById('p-price').value;
+  const phone       = document.getElementById('p-phone').value.trim();
   let valid = true;
 
-  if (!title)    { showFieldError('p-title-err', 'Сэлбэгийн нэр оруулна уу'); valid=false; }
-  if (!category) { showFieldError('p-cat-err',   'Ангилал сонгоно уу'); valid=false; }
-  if (!make)     { showFieldError('p-make-err',  'Машины марк сонгоно уу'); valid=false; }
-  if (!price)    { showFieldError('p-price-err', 'Үнэ оруулна уу'); valid=false; }
-  if (!phone)    { showFieldError('p-phone-err', 'Утасны дугаар оруулна уу'); valid=false; }
-  if (!valid) return;
+  // Common validation
+  if (!price) { showFieldError('p-price-err', 'Үнэ оруулна уу'); valid=false; }
+  if (!phone) { showFieldError('p-phone-err', 'Утасны дугаар оруулна уу'); valid=false; }
 
-  const btn = document.getElementById('post-submit-btn');
-  btn.disabled = true; btn.textContent = 'Зураг upload хийж байна...';
+  let payload = null, vehiclePayload = null;
 
-  try {
-    const imageUrls = await uploadAllFiles(user.id);
-    btn.textContent = 'Зар нийтлэж байна...';
-
+  if (listingType === 'part') {
+    const title    = document.getElementById('p-title').value.trim();
+    const category = document.getElementById('p-category').value;
+    const make     = document.getElementById('p-make').value;
+    if (!title)    { showFieldError('p-title-err', 'Сэлбэгийн нэр оруулна уу'); valid=false; }
+    if (!category) { showFieldError('p-cat-err',   'Ангилал сонгоно уу'); valid=false; }
+    if (!make)     { showFieldError('p-make-err',  'Машины марк сонгоно уу'); valid=false; }
+    if (!valid) return;
     const yearVal = parseInt(document.getElementById('p-year-from').value) || null;
-    await postListing({
-      title,
-      category,
+    payload = {
+      listing_type: 'part',
+      title, category,
       subcategory: document.getElementById('p-subcategory')?.value || null,
       condition:   document.getElementById('p-condition')?.value || 'used',
       car_make:  make,
@@ -887,12 +937,60 @@ async function submitListing() {
       part_type: document.getElementById('p-type').value,
       exchange_policy: document.getElementById('p-policy')?.value || 'no_return',
       description: document.getElementById('p-desc').value.trim(),
+    };
+  } else {
+    // Vehicle
+    const vtitle = document.getElementById('v-title').value.trim();
+    const vmake  = document.getElementById('v-make').value;
+    const vmodel = document.getElementById('v-model').value.trim();
+    const vyear  = parseInt(document.getElementById('v-year').value);
+    if (!vtitle) { showFieldError('v-title-err', 'Гарчиг оруулна уу'); valid=false; }
+    if (!vmake)  { showFieldError('v-make-err',  'Марк сонгоно уу');   valid=false; }
+    if (!vmodel) { showFieldError('v-model-err', 'Загвар оруулна уу'); valid=false; }
+    if (!vyear)  { showFieldError('v-year-err',  'Үйлдвэрлэсэн он оруулна уу'); valid=false; }
+    if (!valid) return;
+    payload = {
+      listing_type: 'vehicle',
+      title: vtitle,
+      car_make: vmake,
+      car_model: vmodel,
+      year_from: vyear,
+      year_to:   vyear,
+      description: document.getElementById('v-desc').value.trim(),
+    };
+    vehiclePayload = {
+      make: vmake,
+      model: vmodel,
+      year:  vyear,
+      imported_year: parseInt(document.getElementById('v-imported-year').value) || null,
+      mileage_km:    parseInt(document.getElementById('v-mileage').value) || null,
+      engine_cc:     parseFloat(document.getElementById('v-engine').value) || null,
+      fuel_type:     document.getElementById('v-fuel').value    || null,
+      transmission:  document.getElementById('v-transmission').value || null,
+      drive:         document.getElementById('v-drive').value   || null,
+      steering:      document.getElementById('v-steering').value || 'left',
+      color:         document.getElementById('v-color').value.trim() || null,
+      color_interior:document.getElementById('v-color-interior').value.trim() || null,
+      plate_region:  document.getElementById('v-plate-region').value.trim() || null,
+      customs_cleared: document.getElementById('v-customs').value === 'true',
+    };
+  }
+
+  const btn = document.getElementById('post-submit-btn');
+  btn.disabled = true; btn.textContent = 'Зураг upload хийж байна...';
+
+  try {
+    const imageUrls = await uploadAllFiles(user.id);
+    btn.textContent = 'Зар нийтлэж байна...';
+
+    await postListing({
+      ...payload,
       price:     parseInt(price),
       phone,
       shop_name: document.getElementById('p-shop').value.trim(),
       location:  document.getElementById('p-location').value.trim(),
       images:    imageUrls,
-    });
+    }, vehiclePayload);
 
     resetUpload();
     document.getElementById('post-form-wrap').style.display = 'none';
