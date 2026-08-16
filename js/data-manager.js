@@ -16,6 +16,23 @@ const DEFAULT_CATEGORIES = [
   { id:'cat-8', name:'Агаарын систем', icon:'❄️',  order:8 },
 ];
 
+// ── Vehicle body-type ангилал (хатуу тодорхойлсон, DB-с уншдаггүй) ──
+const VEHICLE_CATEGORIES = [
+  { id:'vc-1', name:'Суудлын машин',   icon:'🚗', order:1 },
+  { id:'vc-2', name:'SUV / Джийп',      icon:'🚙', order:2 },
+  { id:'vc-3', name:'Пикап',            icon:'🛻', order:3 },
+  { id:'vc-4', name:'Микроавтобус',    icon:'🚐', order:4 },
+  { id:'vc-5', name:'Ачааны машин',    icon:'🚛', order:5 },
+  { id:'vc-6', name:'Автобус',          icon:'🚌', order:6 },
+  { id:'vc-7', name:'Хүнд механизм',   icon:'🚜', order:7 },
+  { id:'vc-8', name:'Мотоцикл',         icon:'🏍️', order:8 },
+  { id:'vc-9', name:'Дугуй / Бусад',   icon:'🚲', order:9 },
+];
+
+function getVehicleCategories() {
+  return [...VEHICLE_CATEGORIES];
+}
+
 const DEFAULT_MARKS = [
   'Acura','Audi','Baic','BAW','Bentley','Bestune','BMW','BYD',
   'Cadillac','Changan','Chery','Chevrolet','Daewoo','Daihatsu',
@@ -205,24 +222,50 @@ function populateAllDropdowns() {
       </label>`).join('');
   }
 
-  // ── Category nav bar ──────────────────────────────────────
+  // ── Category nav bar + grid (listing_type-с хамаарна) ───
+  populateCategoryNavAndGrid();
+
+  // ── Vehicle body-type select on post form ─────────────────
+  const vBody = document.getElementById('v-body-type');
+  if (vBody) {
+    const cur = vBody.value;
+    vBody.innerHTML = '<option value="">Сонгоно уу</option>' +
+      VEHICLE_CATEGORIES.map(c => `<option value="${c.name}">${c.icon} ${c.name}</option>`).join('');
+    if (cur) vBody.value = cur;
+  }
+}
+
+function populateCategoryNavAndGrid() {
+  const isVehicle = (typeof _listingTypeNav !== 'undefined' && _listingTypeNav === 'vehicle');
+  const source = isVehicle
+    ? getVehicleCategories()
+    : getMainCategories();
+
   const catNav = document.getElementById('cat-nav-inner');
   if (catNav) {
     catNav.innerHTML =
       `<button class="cat-nav-btn active" data-cat="" onclick="selectCatNav(this,'')">Бүгд</button>` +
-      cats.map(c =>
+      source.map(c =>
         `<button class="cat-nav-btn" data-cat="${c.name}" onclick="selectCatNav(this,'${c.name}')">${c.icon} ${c.name}</button>`
       ).join('');
   }
 
-  // ── Category grid (home page) ────────────────────────────
   const catGrid = document.getElementById('home-cat-grid');
   if (catGrid) {
-    catGrid.innerHTML = cats.map(c =>
+    catGrid.innerHTML = source.map(c =>
       `<div class="cat-card" onclick="goSearchCat('${c.name}')">
         <div class="cat-icon">${c.icon}</div>
         <div class="cat-name">${c.name}</div>
       </div>`
     ).join('');
   }
+
+  // Also swap the search sidebar category dropdown
+  document.querySelectorAll('[data-dropdown="category"]').forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Бүгд ангилал</option>' +
+      source.map(c => `<option value="${c.name}">${c.icon} ${c.name}</option>`).join('');
+    if (cur && source.some(s => s.name === cur)) sel.value = cur;
+    else sel.value = '';
+  });
 }

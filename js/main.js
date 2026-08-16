@@ -55,6 +55,8 @@ function selectListingTypeNav(t) {
   document.querySelectorAll('.type-nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.lt === t)
   );
+  // Category nav + grid + sidebar dropdown-г source-оор нь сольж бөглөнө
+  populateCategoryNavAndGrid();
   // Home page-т байвал шинэчилнэ, эсрэг тохиолдолд Search руу
   const activePage = document.querySelector('.page.active')?.id;
   if (activePage === 'page-home')       initHomePage();
@@ -941,10 +943,12 @@ async function submitListing() {
   } else {
     // Vehicle
     const vtitle = document.getElementById('v-title').value.trim();
+    const vbody  = document.getElementById('v-body-type').value;
     const vmake  = document.getElementById('v-make').value;
     const vmodel = document.getElementById('v-model').value.trim();
     const vyear  = parseInt(document.getElementById('v-year').value);
     if (!vtitle) { showFieldError('v-title-err', 'Гарчиг оруулна уу'); valid=false; }
+    if (!vbody)  { showFieldError('v-body-type-err', 'Ангилал сонгоно уу'); valid=false; }
     if (!vmake)  { showFieldError('v-make-err',  'Марк сонгоно уу');   valid=false; }
     if (!vmodel) { showFieldError('v-model-err', 'Загвар оруулна уу'); valid=false; }
     if (!vyear)  { showFieldError('v-year-err',  'Үйлдвэрлэсэн он оруулна уу'); valid=false; }
@@ -952,6 +956,7 @@ async function submitListing() {
     payload = {
       listing_type: 'vehicle',
       title: vtitle,
+      category: vbody,            // body_type-г category болгож нэгтгэсэн filter-т ашиглана
       car_make: vmake,
       car_model: vmodel,
       year_from: vyear,
@@ -962,6 +967,7 @@ async function submitListing() {
       make: vmake,
       model: vmodel,
       year:  vyear,
+      body_type: vbody,
       imported_year: parseInt(document.getElementById('v-imported-year').value) || null,
       mileage_km:    parseInt(document.getElementById('v-mileage').value) || null,
       engine_cc:     parseFloat(document.getElementById('v-engine').value) || null,
