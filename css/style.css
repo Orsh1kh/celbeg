@@ -757,6 +757,30 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 }
 .listing-card.vehicle-card { border-left: 3px solid var(--blue); }
 
+/* Vehicle post form: blue accent theme */
+.post-layout.vehicle-mode .post-page-title { color: var(--blue); }
+.post-layout.vehicle-mode .post-page-title::before { content: '🚗 '; }
+.post-card.v-card { border-left: 3px solid var(--blue); }
+.post-card.v-card .post-card-title { color: var(--blue); }
+.post-layout.vehicle-mode .listing-type-toggle .type-btn.active {
+  background: var(--blue); border-color: var(--blue);
+}
+.post-layout.vehicle-mode .btn-post-submit {
+  background: var(--blue);
+}
+.post-layout.vehicle-mode .btn-post-submit:hover { background: #2472a4; }
+
+.v-check-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.v-check-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+  cursor: pointer; user-select: none; font-size: 13px;
+  transition: border-color .15s, background .15s;
+}
+.v-check-item:hover { border-color: var(--blue); }
+.v-check-item input { accent-color: var(--blue); cursor: pointer; }
+.v-check-item:has(input:checked) { border-color: var(--blue); background: rgba(41,128,185,.08); }
+
 /* ═══════════════════════════════════════════════════════════
    FILTER CHECKLIST (multi-select mark, location)
 ═══════════════════════════════════════════════════════════ */

@@ -824,6 +824,8 @@ async function initPostPage() {
   document.getElementById('post-form-wrap').style.display = 'block';
   document.getElementById('post-success').style.display   = 'none';
   initUploadZone('upload-zone', 'upload-preview');
+  // Header type nav-с автоматаар default type-г сонгоно
+  selectListingType(_listingTypeNav || 'part');
   await refreshQuotaInfo();
 }
 
@@ -875,6 +877,12 @@ function selectListingType(t) {
   document.getElementById('lt-vehicle').classList.toggle('active', t === 'vehicle');
   document.getElementById('part-fields-wrap').style.display    = t === 'part'    ? 'block' : 'none';
   document.getElementById('vehicle-fields-wrap').style.display = t === 'vehicle' ? 'block' : 'none';
+
+  // Layout accent + page title
+  const layout = document.getElementById('post-layout');
+  const title  = document.getElementById('post-page-title');
+  if (layout) layout.classList.toggle('vehicle-mode', t === 'vehicle');
+  if (title)  title.textContent = t === 'vehicle' ? 'Машины зар нийтлэх' : 'Сэлбэгийн зар нийтлэх';
 }
 
 // ── Sub-category: post form ───────────────────────────────
@@ -979,6 +987,8 @@ async function submitListing() {
       color_interior:document.getElementById('v-color-interior').value.trim() || null,
       plate_region:  document.getElementById('v-plate-region').value.trim() || null,
       customs_cleared: document.getElementById('v-customs').value === 'true',
+      is_barter:     document.getElementById('v-barter')?.checked || false,
+      is_leasing:    document.getElementById('v-leasing')?.checked || false,
     };
   }
 

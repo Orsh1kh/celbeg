@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=18">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -464,8 +464,8 @@
        POST LISTING PAGE
   ────────────────────────────────────────────────────── -->
   <section id="page-post" class="page">
-    <div class="post-layout">
-      <div class="post-page-title">Зар нийтлэх</div>
+    <div class="post-layout" id="post-layout">
+      <div class="post-page-title" id="post-page-title">Зар нийтлэх</div>
 
       <div id="post-form-wrap">
         <!-- Listing type toggle -->
@@ -552,112 +552,158 @@
           </div>
         </div>
 
-        <!-- Vehicle info (hidden by default) -->
-        <div class="post-card" id="vehicle-fields-wrap" style="display:none">
-          <div class="post-card-title">🚗 Машины мэдээлэл</div>
-          <div class="post-grid">
-            <div class="form-group post-full">
-              <label class="form-label">Гарчиг *</label>
-              <input class="form-input" id="v-title" type="text" placeholder="жш: Toyota Camry 2018 худалдана">
-              <div class="form-error" id="v-title-err"></div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Машины ангилал *</label>
-              <select class="form-input" id="v-body-type"><option value="">Сонгоно уу</option></select>
-              <div class="form-error" id="v-body-type-err"></div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Марк *</label>
-              <select class="form-input" id="v-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
-              <div class="form-error" id="v-make-err"></div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Загвар *</label>
-              <input class="form-input" id="v-model" type="text" placeholder="жш: Camry, RAV4, X5">
-              <div class="form-error" id="v-model-err"></div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Үйлдвэрлэсэн он *</label>
-              <input class="form-input" id="v-year" type="number" placeholder="Жш: 2018" min="1950" max="2030">
-              <div class="form-error" id="v-year-err"></div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Орж ирсэн он</label>
-              <input class="form-input" id="v-imported-year" type="number" placeholder="Жш: 2020" min="1990" max="2030">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Явсан км</label>
-              <input class="form-input" id="v-mileage" type="number" placeholder="Жш: 120000" min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Хөдөлгүүрийн багтаамж (л)</label>
-              <input class="form-input" id="v-engine" type="number" step="0.1" placeholder="Жш: 2.4" min="0.1" max="20">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Шатахуун</label>
-              <select class="form-input" id="v-fuel">
-                <option value="">Сонгоно уу</option>
-                <option value="petrol">Бензин</option>
-                <option value="diesel">Дизель</option>
-                <option value="hybrid">Хайбрид</option>
-                <option value="electric">Цахилгаан</option>
-                <option value="gas">Хий</option>
-                <option value="other">Бусад</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Хурдны хайрцаг</label>
-              <select class="form-input" id="v-transmission">
-                <option value="">Сонгоно уу</option>
-                <option value="auto">Автомат</option>
-                <option value="manual">Механик</option>
-                <option value="auto_manual">Автомат (+/-)</option>
-                <option value="cvt">CVT</option>
-                <option value="other">Бусад</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Хөтлөгч</label>
-              <select class="form-input" id="v-drive">
-                <option value="">Сонгоно уу</option>
-                <option value="fwd">Урдаа (FWD)</option>
-                <option value="rwd">Хойдоо (RWD)</option>
-                <option value="awd">Бүх дугуй (AWD)</option>
-                <option value="4wd">Full 4WD</option>
-                <option value="other">Бусад</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Хурд</label>
-              <select class="form-input" id="v-steering">
-                <option value="left">Зөв гар</option>
-                <option value="right">Буруу гар</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Өнгө</label>
-              <input class="form-input" id="v-color" type="text" placeholder="Жш: Цагаан">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Дотор өнгө</label>
-              <input class="form-input" id="v-color-interior" type="text" placeholder="Жш: Хар">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Улсын дугаар</label>
-              <input class="form-input" id="v-plate-region" type="text" placeholder="Жш: УБ, Дархан">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Гаальд орсон эсэх</label>
-              <select class="form-input" id="v-customs">
-                <option value="true">Тийм</option>
-                <option value="false">Үгүй</option>
-              </select>
-            </div>
-            <div class="form-group post-full">
-              <label class="form-label">Тайлбар</label>
-              <textarea class="form-input" id="v-desc" rows="4" placeholder="Машины талаархи дэлгэрэнгүй мэдээлэл..."></textarea>
+        <!-- Vehicle sections (hidden by default) -->
+        <div id="vehicle-fields-wrap" style="display:none">
+
+          <!-- 1) Үндсэн мэдээлэл -->
+          <div class="post-card v-card">
+            <div class="post-card-title">🚗 Үндсэн мэдээлэл</div>
+            <div class="post-grid">
+              <div class="form-group post-full">
+                <label class="form-label">Гарчиг *</label>
+                <input class="form-input" id="v-title" type="text" placeholder="жш: Toyota Camry 2018 худалдана">
+                <div class="form-error" id="v-title-err"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Машины ангилал *</label>
+                <select class="form-input" id="v-body-type"><option value="">Сонгоно уу</option></select>
+                <div class="form-error" id="v-body-type-err"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Марк *</label>
+                <select class="form-input" id="v-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
+                <div class="form-error" id="v-make-err"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Загвар *</label>
+                <input class="form-input" id="v-model" type="text" placeholder="жш: Camry, RAV4, X5">
+                <div class="form-error" id="v-model-err"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Үйлдвэрлэсэн он *</label>
+                <input class="form-input" id="v-year" type="number" placeholder="Жш: 2018" min="1950" max="2030">
+                <div class="form-error" id="v-year-err"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Орж ирсэн он</label>
+                <input class="form-input" id="v-imported-year" type="number" placeholder="Жш: 2020" min="1990" max="2030">
+              </div>
             </div>
           </div>
+
+          <!-- 2) Техникийн үзүүлэлт -->
+          <div class="post-card v-card">
+            <div class="post-card-title">⚙️ Техникийн үзүүлэлт</div>
+            <div class="post-grid">
+              <div class="form-group">
+                <label class="form-label">Явсан км</label>
+                <input class="form-input" id="v-mileage" type="number" placeholder="Жш: 120000" min="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Хөдөлгүүр (л)</label>
+                <input class="form-input" id="v-engine" type="number" step="0.1" placeholder="Жш: 2.4" min="0.1" max="20">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Шатахуун</label>
+                <select class="form-input" id="v-fuel">
+                  <option value="">Сонгоно уу</option>
+                  <option value="petrol">Бензин</option>
+                  <option value="diesel">Дизель</option>
+                  <option value="hybrid">Хайбрид</option>
+                  <option value="electric">Цахилгаан</option>
+                  <option value="gas">Хий</option>
+                  <option value="other">Бусад</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Хурдны хайрцаг</label>
+                <select class="form-input" id="v-transmission">
+                  <option value="">Сонгоно уу</option>
+                  <option value="auto">Автомат</option>
+                  <option value="manual">Механик</option>
+                  <option value="auto_manual">Автомат (+/-)</option>
+                  <option value="cvt">CVT</option>
+                  <option value="other">Бусад</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Хөтлөгч</label>
+                <select class="form-input" id="v-drive">
+                  <option value="">Сонгоно уу</option>
+                  <option value="fwd">Урдаа (FWD)</option>
+                  <option value="rwd">Хойдоо (RWD)</option>
+                  <option value="awd">Бүх дугуй (AWD)</option>
+                  <option value="4wd">Full 4WD</option>
+                  <option value="other">Бусад</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Хурд</label>
+                <select class="form-input" id="v-steering">
+                  <option value="left">Зөв гар</option>
+                  <option value="right">Буруу гар</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3) Дизайн -->
+          <div class="post-card v-card">
+            <div class="post-card-title">🎨 Дизайн</div>
+            <div class="post-grid">
+              <div class="form-group">
+                <label class="form-label">Гадна өнгө</label>
+                <input class="form-input" id="v-color" type="text" placeholder="Жш: Цагаан">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Дотор өнгө</label>
+                <input class="form-input" id="v-color-interior" type="text" placeholder="Жш: Хар">
+              </div>
+            </div>
+          </div>
+
+          <!-- 4) Бүртгэлийн мэдээлэл -->
+          <div class="post-card v-card">
+            <div class="post-card-title">📋 Бүртгэл, нөхцөл</div>
+            <div class="post-grid">
+              <div class="form-group">
+                <label class="form-label">Улсын дугаар</label>
+                <input class="form-input" id="v-plate-region" type="text" placeholder="Жш: УБ, Дархан">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Гаальд орсон эсэх</label>
+                <select class="form-input" id="v-customs">
+                  <option value="true">Тийм</option>
+                  <option value="false">Үгүй</option>
+                </select>
+              </div>
+              <div class="form-group post-full">
+                <label class="form-label">Бартер, лизинг</label>
+                <div class="v-check-row">
+                  <label class="v-check-item">
+                    <input type="checkbox" id="v-barter">
+                    <span>🔄 Бартер / солилцоо сонирхоно</span>
+                  </label>
+                  <label class="v-check-item">
+                    <input type="checkbox" id="v-leasing">
+                    <span>🏦 Лизингтэй</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5) Тайлбар -->
+          <div class="post-card v-card">
+            <div class="post-card-title">📝 Тайлбар</div>
+            <div class="post-grid">
+              <div class="form-group post-full">
+                <label class="form-label">Машины талаархи дэлгэрэнгүй</label>
+                <textarea class="form-input" id="v-desc" rows="5" placeholder="Хэдэн эзэнтэй байсан, засвар, гэмтэл, онцгой боломж..."></textarea>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- Quota info -->
@@ -956,12 +1002,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=17"></script>
-<script src="js/data-manager.js?v=17"></script>
-<script src="js/auth.js?v=17"></script>
-<script src="js/listings.js?v=17"></script>
-<script src="js/upload.js?v=17"></script>
-<script src="js/admin.js?v=17"></script>
-<script src="js/main.js?v=17"></script>
+<script src="js/supabase-client.js?v=18"></script>
+<script src="js/data-manager.js?v=18"></script>
+<script src="js/auth.js?v=18"></script>
+<script src="js/listings.js?v=18"></script>
+<script src="js/upload.js?v=18"></script>
+<script src="js/admin.js?v=18"></script>
+<script src="js/main.js?v=18"></script>
 </body>
 </html>
