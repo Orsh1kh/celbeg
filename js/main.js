@@ -127,7 +127,7 @@ function switchAuthTab(tab) {
   document.getElementById('form-' + tab).classList.add('active');
 }
 function resetAuthForms() {
-  ['login-phone','login-otp','reg-name','reg-phone','reg-otp','reg-shop'].forEach(id => {
+  ['login-email','login-otp','reg-name','reg-email','reg-otp','reg-shop'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -156,30 +156,32 @@ function showFieldError(id, msg) {
 }
 
 // ── OTP send ───────────────────────────────────────────────
+function _isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
 async function sendLoginOTP() {
-  const phone = document.getElementById('login-phone').value.trim();
-  if (phone.length < 8) { showFieldError('login-phone-err', 'Утасны дугаар оруулна уу'); return; }
-  showFieldError('login-phone-err', '');
-  await authSendOTP(phone, 'login');
+  const email = document.getElementById('login-email').value.trim();
+  if (!_isEmail(email)) { showFieldError('login-email-err', 'Зөв email хаяг оруулна уу'); return; }
+  showFieldError('login-email-err', '');
+  await authSendOTP(email, 'login');
 }
 async function sendRegOTP() {
-  const phone = document.getElementById('reg-phone').value.trim();
-  if (phone.length < 8) { showFieldError('reg-phone-err', 'Утасны дугаар оруулна уу'); return; }
-  showFieldError('reg-phone-err', '');
-  await authSendOTP(phone, 'register');
+  const email = document.getElementById('reg-email').value.trim();
+  if (!_isEmail(email)) { showFieldError('reg-email-err', 'Зөв email хаяг оруулна уу'); return; }
+  showFieldError('reg-email-err', '');
+  await authSendOTP(email, 'register');
 }
 
 // ── Submit login ────────────────────────────────────────────
 async function submitLogin() {
-  const phone = document.getElementById('login-phone').value.trim();
+  const email = document.getElementById('login-email').value.trim();
   const otp   = document.getElementById('login-otp').value.trim();
-  if (!phone) { showFieldError('login-phone-err', 'Утасны дугаар оруулна уу'); return; }
+  if (!email) { showFieldError('login-email-err', 'Email оруулна уу'); return; }
   if (!otp)   { showFieldError('login-otp-err', 'OTP код оруулна уу'); return; }
 
   const btn = document.getElementById('login-submit-btn');
   btn.disabled = true; btn.textContent = 'Шалгаж байна...';
   try {
-    const user = await authVerifyOTP(phone, otp, 'login');
+    const user = await authVerifyOTP(email, otp, 'login');
     updateAuthUI(user);
     closeAuthModal();
     showToast('Амжилттай нэвтэрлээ!', 'success');
@@ -193,18 +195,18 @@ async function submitLogin() {
 // ── Submit register ─────────────────────────────────────────
 async function submitRegister() {
   const name  = document.getElementById('reg-name').value.trim();
-  const phone = document.getElementById('reg-phone').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
   const otp   = document.getElementById('reg-otp').value.trim();
   let valid = true;
   if (!name)  { showFieldError('reg-name-err', 'Нэр оруулна уу'); valid=false; }
-  if (!phone) { showFieldError('reg-phone-err', 'Утасны дугаар оруулна уу'); valid=false; }
+  if (!email) { showFieldError('reg-email-err', 'Email оруулна уу'); valid=false; }
   if (!otp)   { showFieldError('reg-otp-err', 'OTP код оруулна уу'); valid=false; }
   if (!valid) return;
 
   const btn = document.getElementById('reg-submit-btn');
   btn.disabled = true; btn.textContent = 'Бүртгэж байна...';
   try {
-    const user = await authVerifyOTP(phone, otp, 'register');
+    const user = await authVerifyOTP(email, otp, 'register');
     updateAuthUI(user);
     closeAuthModal();
     showToast('Амжилттай бүртгүүллээ!', 'success');
@@ -223,8 +225,8 @@ function updateAuthUI(user) {
   const mobUser   = document.getElementById('mob-user-area');
 
   if (user) {
-    const initial = (user.name || user.phone || 'U').charAt(0).toUpperCase();
-    const displayName = user.name || user.phone || 'Хэрэглэгч';
+    const initial = (user.name || user.email || 'U').charAt(0).toUpperCase();
+    const displayName = user.name || user.email || 'Хэрэглэгч';
 
     guestBtns.style.display = 'none';
     userBtns.style.display  = 'flex';
@@ -1035,10 +1037,10 @@ async function initProfilePage() {
   prompt.style.display  = 'none';
   content.style.display = 'block';
 
-  const initial = (user.name || user.phone || 'U').charAt(0).toUpperCase();
+  const initial = (user.name || user.email || 'U').charAt(0).toUpperCase();
   document.getElementById('profile-avatar-char').textContent = initial;
   document.getElementById('profile-name-text').textContent   = user.name || 'Хэрэглэгч';
-  document.getElementById('profile-phone-text').textContent  = user.phone || '';
+  document.getElementById('profile-phone-text').textContent  = user.email || user.phone || '';
   document.getElementById('profile-type-text').textContent   = user.user_type === 'shop' ? '🏪 Дэлгүүр' : '🛒 Худалдан авагч';
 
   await loadMyListings();

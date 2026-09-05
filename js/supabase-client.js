@@ -12,11 +12,11 @@ const SUPABASE_URL = 'https://ocgufpfbicgjoxguawiq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_I1WGTZAv4eY79Z5qxrMxHA_rhpuTi6X'; // ← anon key энд
 
 // ───────────────────────────────────────────────────────────
-// ADMIN PHONES — 8 оронтой (+976 гүй) утасны дугаарууд.
-// Эдгээр дугаараар нэвтэрсэн бүртгэлд is_admin=true оноогдоно.
+// ADMIN EMAILS — эдгээр email-ээр нэвтэрсэн бүртгэлд
+// is_admin=true оноогдоно.
 // ───────────────────────────────────────────────────────────
-const ADMIN_PHONES = [
-  '95113973',
+const ADMIN_EMAILS = [
+  'orshih31@gmail.com',
 ];
 
 // ───────────────────────────────────────────────────────────

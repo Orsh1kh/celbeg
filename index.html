@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=18">
+<link rel="stylesheet" href="css/style.css?v=19">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -172,12 +172,12 @@
     <!-- Login form -->
     <div class="auth-form active" id="form-login">
       <div class="form-group">
-        <label class="form-label">Утасны дугаар</label>
+        <label class="form-label">Email хаяг</label>
         <div class="otp-row">
-          <input class="form-input" id="login-phone" type="tel" placeholder="99xxxxxx" maxlength="8">
+          <input class="form-input" id="login-email" type="email" placeholder="user@example.com">
           <button id="login-otp-btn" onclick="sendLoginOTP()">OTP илгээх</button>
         </div>
-        <div class="form-error" id="login-phone-err"></div>
+        <div class="form-error" id="login-email-err"></div>
       </div>
       <div class="otp-code-wrap" id="login-otp-wrap">
         <div class="form-group">
@@ -212,12 +212,12 @@
         <input class="form-input" id="reg-shop" type="text" placeholder="Заавал биш">
       </div>
       <div class="form-group">
-        <label class="form-label">Утасны дугаар</label>
+        <label class="form-label">Email хаяг</label>
         <div class="otp-row">
-          <input class="form-input" id="reg-phone" type="tel" placeholder="99xxxxxx" maxlength="8">
+          <input class="form-input" id="reg-email" type="email" placeholder="user@example.com">
           <button id="reg-otp-btn" onclick="sendRegOTP()">OTP илгээх</button>
         </div>
-        <div class="form-error" id="reg-phone-err"></div>
+        <div class="form-error" id="reg-email-err"></div>
       </div>
       <div class="otp-code-wrap" id="reg-otp-wrap">
         <div class="form-group">
@@ -1002,12 +1002,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=18"></script>
-<script src="js/data-manager.js?v=18"></script>
-<script src="js/auth.js?v=18"></script>
-<script src="js/listings.js?v=18"></script>
-<script src="js/upload.js?v=18"></script>
-<script src="js/admin.js?v=18"></script>
-<script src="js/main.js?v=18"></script>
+<script src="js/supabase-client.js?v=19"></script>
+<script src="js/data-manager.js?v=19"></script>
+<script src="js/auth.js?v=19"></script>
+<script src="js/listings.js?v=19"></script>
+<script src="js/upload.js?v=19"></script>
+<script src="js/admin.js?v=19"></script>
+<script src="js/main.js?v=19"></script>
 </body>
 </html>

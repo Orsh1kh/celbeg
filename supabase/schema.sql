@@ -13,15 +13,18 @@ create extension if not exists "pgcrypto";
 -- ═══════════════════════════════════════════════════════════
 create table if not exists public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
-  phone       text unique not null,
+  email       text,
+  phone       text,
   name        text default '',
   user_type   text default 'buyer' check (user_type in ('buyer', 'shop')),
   shop_name   text default '',
   is_admin    boolean default false,
-  created_at  timestamptz default now()
+  created_at  timestamptz default now(),
+  check (email is not null or phone is not null)
 );
 
-create index if not exists profiles_phone_idx on public.profiles (phone);
+create unique index if not exists profiles_email_uniq on public.profiles (email) where email is not null;
+create unique index if not exists profiles_phone_uniq on public.profiles (phone) where phone is not null;
 
 -- ═══════════════════════════════════════════════════════════
 -- TABLE: categories

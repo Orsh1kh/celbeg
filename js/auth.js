@@ -1,13 +1,11 @@
 // ────────────────────────────────────────────────────────────
-// AUTH — Supabase Phone OTP
+// AUTH — Supabase Email OTP
 // ────────────────────────────────────────────────────────────
 
 let _otpTimer = null;
 
-async function authSendOTP(phone, formType) {
-  const fullPhone = phone.startsWith('+') ? phone : '+976' + phone;
+async function authSendOTP(email, formType) {
   const btn = document.getElementById(formType === 'login' ? 'login-otp-btn' : 'reg-otp-btn');
-
   btn.disabled = true;
 
   if (DEMO_MODE) {
@@ -18,9 +16,12 @@ async function authSendOTP(phone, formType) {
   }
 
   try {
-    const { error } = await sb.auth.signInWithOtp({ phone: fullPhone });
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true }
+    });
     if (error) throw error;
-    showToast('OTP код илгээгдлээ', 'success');
+    showToast('OTP код email-ээр илгээгдлээ', 'success');
     _startOTPTimer(btn);
     document.getElementById(formType === 'login' ? 'login-otp-wrap' : 'reg-otp-wrap').style.display = 'block';
   } catch (e) {
@@ -29,12 +30,10 @@ async function authSendOTP(phone, formType) {
   }
 }
 
-async function authVerifyOTP(phone, token, formType) {
-  const fullPhone = phone.startsWith('+') ? phone : '+976' + phone;
-
+async function authVerifyOTP(email, token, formType) {
   if (DEMO_MODE) {
     if (token === '123456') {
-      const demoUser = { id: 'demo-user', phone: fullPhone };
+      const demoUser = { id: 'demo-user', email };
       await _ensureProfile(demoUser, formType);
       return demoUser;
     } else {
@@ -42,20 +41,20 @@ async function authVerifyOTP(phone, token, formType) {
     }
   }
 
-  const { data, error } = await sb.auth.verifyOtp({ phone: fullPhone, token, type: 'sms' });
+  const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
   if (error) throw error;
   await _ensureProfile(data.user, formType);
   return data.user;
 }
 
-function _isAdminPhone(phone) {
-  // Strip +976 prefix for comparison
-  const clean = phone.replace(/^\+976/, '').replace(/\s/g, '');
-  return ADMIN_PHONES.includes(clean);
+function _isAdminEmail(email) {
+  if (!email) return false;
+  return ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase());
 }
 
 async function _ensureProfile(user, formType) {
-  const isAdmin = _isAdminPhone(user.phone || '');
+  const email   = user.email || '';
+  const isAdmin = _isAdminEmail(email);
 
   if (DEMO_MODE) {
     const name = formType === 'register'
@@ -63,7 +62,7 @@ async function _ensureProfile(user, formType) {
       : (JSON.parse(localStorage.getItem('cb_user') || '{}').name || 'Хэрэглэгч');
     const type = document.querySelector('input[name="reg-type"]:checked')?.value || 'buyer';
     const shopName = document.getElementById('reg-shop')?.value || '';
-    const profile = { id: user.id, phone: user.phone, name, user_type: type, shop_name: shopName, is_admin: isAdmin };
+    const profile = { id: user.id, email, name, user_type: type, shop_name: shopName, is_admin: isAdmin };
     localStorage.setItem('cb_user', JSON.stringify(profile));
     return profile;
   }
@@ -73,10 +72,12 @@ async function _ensureProfile(user, formType) {
     const name = document.getElementById('reg-name')?.value || '';
     const type = document.querySelector('input[name="reg-type"]:checked')?.value || 'buyer';
     const shopName = document.getElementById('reg-shop')?.value || '';
-    await sb.from('profiles').insert({ id: user.id, phone: user.phone, name, user_type: type, shop_name: shopName, is_admin: isAdmin });
-  } else if (existing.is_admin !== isAdmin) {
-    // Sync admin status if phone list changed
-    await sb.from('profiles').update({ is_admin: isAdmin }).eq('id', user.id);
+    await sb.from('profiles').insert({
+      id: user.id, email, name, user_type: type, shop_name: shopName, is_admin: isAdmin
+    });
+  } else if (existing.is_admin !== isAdmin || existing.email !== email) {
+    // Sync admin status and email if changed
+    await sb.from('profiles').update({ email, is_admin: isAdmin }).eq('id', user.id);
   }
   const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
   localStorage.setItem('cb_user', JSON.stringify(profile));
