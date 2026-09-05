@@ -96,7 +96,9 @@ create policy vd_admin_all on public.vehicle_details
 -- ═══════════════════════════════════════════════════════════
 -- 4) available_listings view-г шинэчилнэ (listing_type-тай хамт)
 -- ═══════════════════════════════════════════════════════════
-create or replace view public.available_listings as
+create or replace view public.available_listings
+  with (security_invoker = true)
+as
   select * from public.listings
    where is_active = true
      and (expires_at is null or expires_at > now());

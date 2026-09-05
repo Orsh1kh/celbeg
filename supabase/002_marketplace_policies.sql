@@ -166,7 +166,9 @@ create trigger trg_enforce_limits
 -- 6) VIEW: available_listings (хугацаа дуусаагүй зар)
 --    Client талд филтэрлэхээс хамгаалж view үүсгэнэ
 -- ═══════════════════════════════════════════════════════════
-create or replace view public.available_listings as
+create or replace view public.available_listings
+  with (security_invoker = true)
+as
   select * from public.listings
    where is_active = true
      and (expires_at is null or expires_at > now());

@@ -75,7 +75,9 @@ create policy reviews_delete_admin on public.reviews
 -- ═══════════════════════════════════════════════════════════
 -- 4) VIEW: profile_ratings — дундаж rating + тоо
 -- ═══════════════════════════════════════════════════════════
-create or replace view public.profile_ratings as
+create or replace view public.profile_ratings
+  with (security_invoker = true)
+as
   select
     p.id as user_id,
     coalesce(round(avg(r.rating)::numeric, 1), 0) as rating_avg,
