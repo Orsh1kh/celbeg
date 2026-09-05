@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=19">
+<link rel="stylesheet" href="css/style.css?v=20">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -466,6 +466,7 @@
   <section id="page-post" class="page">
     <div class="post-layout" id="post-layout">
       <div class="post-page-title" id="post-page-title">Зар нийтлэх</div>
+      <div class="post-page-hint" id="post-page-hint">Хурдан, хялбар. Гол мэдээллийг л бөглөнө үү.</div>
 
       <div id="post-form-wrap">
         <!-- Listing type toggle -->
@@ -489,26 +490,38 @@
           <div class="upload-preview" id="upload-preview"></div>
         </div>
 
-        <!-- Part info -->
+        <!-- Part info: essentials only -->
         <div class="post-card" id="part-fields-wrap">
-          <div class="post-card-title">🔩 Сэлбэгийн мэдээлэл</div>
+          <div class="post-card-title">🔩 Юуг зарах вэ?</div>
           <div class="post-grid">
             <div class="form-group post-full">
-              <label class="form-label">Сэлбэгийн нэр *</label>
-              <input class="form-input" id="p-title" type="text" placeholder="жш: Тоормосны дэвсгэр">
+              <label class="form-label big">Сэлбэгийн нэр *</label>
+              <input class="form-input big" id="p-title" type="text" placeholder="жш: Тоормосны дэвсгэр">
               <div class="form-error" id="p-title-err"></div>
             </div>
             <div class="form-group">
-              <label class="form-label">Ангилал *</label>
-              <select class="form-input" id="p-category" data-dropdown="category-req" onchange="onPostCategoryChange()"><option value="">Сонгоно уу</option></select>
+              <label class="form-label big">Ангилал *</label>
+              <select class="form-input big" id="p-category" data-dropdown="category-req" onchange="onPostCategoryChange()"><option value="">Сонгоно уу</option></select>
               <div class="form-error" id="p-cat-err"></div>
             </div>
+            <div class="form-group">
+              <label class="form-label big">Машины марк *</label>
+              <select class="form-input big" id="p-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
+              <div class="form-error" id="p-make-err"></div>
+            </div>
+          </div>
+
+          <!-- Advanced (collapsible) -->
+          <button type="button" class="advanced-toggle" id="p-advanced-toggle" onclick="togglePartAdvanced()">
+            <span>➕ Дэлгэрэнгүй мэдээлэл нэмэх (сонголтоор)</span>
+          </button>
+          <div class="post-grid advanced-fields" id="p-advanced-fields" style="display:none">
             <div class="form-group" id="p-subcategory-group" style="display:none">
-              <label class="form-label">Дэд ангилал <span style="color:var(--muted);font-weight:400">(сонголтоор)</span></label>
+              <label class="form-label">Дэд ангилал</label>
               <select class="form-input" id="p-subcategory"><option value="">Сонгоно уу</option></select>
             </div>
             <div class="form-group">
-              <label class="form-label">Барааны нөхцөл *</label>
+              <label class="form-label">Барааны нөхцөл</label>
               <select class="form-input" id="p-condition">
                 <option value="new">✨ Шинэ</option>
                 <option value="used" selected>👌 Ашиглагдсан</option>
@@ -517,7 +530,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Сэлбэгийн төрөл *</label>
+              <label class="form-label">Сэлбэгийн төрөл</label>
               <div class="type-toggle">
                 <div class="type-btn active" id="type-original" onclick="selectType('original')">✅ Оригинал</div>
                 <div class="type-btn" id="type-substitute" onclick="selectType('substitute')">🔄 Орлуулах</div>
@@ -525,20 +538,15 @@
               <input type="hidden" id="p-type" value="original">
             </div>
             <div class="form-group">
-              <label class="form-label">Машины марк *</label>
-              <select class="form-input" id="p-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
-              <div class="form-error" id="p-make-err"></div>
-            </div>
-            <div class="form-group">
               <label class="form-label">Загвар</label>
               <input class="form-input" id="p-model" type="text" placeholder="жш: Camry, X5...">
             </div>
             <div class="form-group">
-              <label class="form-label">Таарах он <span style="color:var(--muted);font-weight:400">(сонголтоор)</span></label>
+              <label class="form-label">Таарах он</label>
               <input class="form-input" id="p-year-from" type="number" placeholder="Жш: 2018" min="1990" max="2030">
             </div>
             <div class="form-group">
-              <label class="form-label">Буцаан авах бодлого *</label>
+              <label class="form-label">Буцаан авах бодлого</label>
               <select class="form-input" id="p-policy">
                 <option value="no_return">🔴 Буцаахгүй</option>
                 <option value="defect_only">🟡 Гэмтэлтэй бол буцаана</option>
@@ -547,7 +555,7 @@
             </div>
             <div class="form-group post-full">
               <label class="form-label">Тайлбар</label>
-              <textarea class="form-input" id="p-desc" rows="4" placeholder="Сэлбэгийн тухай дэлгэрэнгүй..."></textarea>
+              <textarea class="form-input" id="p-desc" rows="3" placeholder="Сэлбэгийн тухай дэлгэрэнгүй..."></textarea>
             </div>
           </div>
         </div>
@@ -555,33 +563,33 @@
         <!-- Vehicle sections (hidden by default) -->
         <div id="vehicle-fields-wrap" style="display:none">
 
-          <!-- 1) Үндсэн мэдээлэл -->
+          <!-- 1) Үндсэн мэдээлэл (essentials only) -->
           <div class="post-card v-card">
-            <div class="post-card-title">🚗 Үндсэн мэдээлэл</div>
+            <div class="post-card-title">🚗 Ямар машин зарах вэ?</div>
             <div class="post-grid">
               <div class="form-group post-full">
-                <label class="form-label">Гарчиг *</label>
-                <input class="form-input" id="v-title" type="text" placeholder="жш: Toyota Camry 2018 худалдана">
+                <label class="form-label big">Гарчиг *</label>
+                <input class="form-input big" id="v-title" type="text" placeholder="жш: Toyota Camry 2018 худалдана">
                 <div class="form-error" id="v-title-err"></div>
               </div>
               <div class="form-group">
-                <label class="form-label">Машины ангилал *</label>
-                <select class="form-input" id="v-body-type"><option value="">Сонгоно уу</option></select>
+                <label class="form-label big">Машины ангилал *</label>
+                <select class="form-input big" id="v-body-type"><option value="">Сонгоно уу</option></select>
                 <div class="form-error" id="v-body-type-err"></div>
               </div>
               <div class="form-group">
-                <label class="form-label">Марк *</label>
-                <select class="form-input" id="v-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
+                <label class="form-label big">Марк *</label>
+                <select class="form-input big" id="v-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
                 <div class="form-error" id="v-make-err"></div>
               </div>
               <div class="form-group">
-                <label class="form-label">Загвар *</label>
-                <input class="form-input" id="v-model" type="text" placeholder="жш: Camry, RAV4, X5">
+                <label class="form-label big">Загвар *</label>
+                <input class="form-input big" id="v-model" type="text" placeholder="жш: Camry, RAV4, X5">
                 <div class="form-error" id="v-model-err"></div>
               </div>
               <div class="form-group">
-                <label class="form-label">Үйлдвэрлэсэн он *</label>
-                <input class="form-input" id="v-year" type="number" placeholder="Жш: 2018" min="1950" max="2030">
+                <label class="form-label big">Үйлдвэрлэсэн он *</label>
+                <input class="form-input big" id="v-year" type="number" placeholder="Жш: 2018" min="1950" max="2030">
                 <div class="form-error" id="v-year-err"></div>
               </div>
               <div class="form-group">
@@ -589,7 +597,15 @@
                 <input class="form-input" id="v-imported-year" type="number" placeholder="Жш: 2020" min="1990" max="2030">
               </div>
             </div>
+
+            <!-- Advanced toggle for vehicle -->
+            <button type="button" class="advanced-toggle blue" id="v-advanced-toggle" onclick="toggleVehicleAdvanced()">
+              <span>➕ Дэлгэрэнгүй мэдээлэл нэмэх (сонголтоор)</span>
+            </button>
           </div>
+
+          <!-- Advanced vehicle sections (hidden by default) -->
+          <div id="v-advanced-fields" style="display:none">
 
           <!-- 2) Техникийн үзүүлэлт -->
           <div class="post-card v-card">
@@ -703,6 +719,8 @@
               </div>
             </div>
           </div>
+
+          </div><!-- /v-advanced-fields -->
 
         </div>
 
@@ -1002,12 +1020,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=19"></script>
-<script src="js/data-manager.js?v=19"></script>
-<script src="js/auth.js?v=19"></script>
-<script src="js/listings.js?v=19"></script>
-<script src="js/upload.js?v=19"></script>
-<script src="js/admin.js?v=19"></script>
-<script src="js/main.js?v=19"></script>
+<script src="js/supabase-client.js?v=20"></script>
+<script src="js/data-manager.js?v=20"></script>
+<script src="js/auth.js?v=20"></script>
+<script src="js/listings.js?v=20"></script>
+<script src="js/upload.js?v=20"></script>
+<script src="js/admin.js?v=20"></script>
+<script src="js/main.js?v=20"></script>
 </body>
 </html>

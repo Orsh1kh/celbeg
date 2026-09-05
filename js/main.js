@@ -871,6 +871,28 @@ function selectType(type) {
   document.getElementById('type-substitute').classList.toggle('active', type === 'substitute');
 }
 
+// ── Advanced toggle (Part / Vehicle) ─────────────────────
+function togglePartAdvanced() {
+  const wrap = document.getElementById('p-advanced-fields');
+  const btn  = document.getElementById('p-advanced-toggle');
+  const isOpen = wrap.style.display !== 'none';
+  wrap.style.display = isOpen ? 'none' : 'grid';
+  btn.querySelector('span').textContent = isOpen
+    ? '➕ Дэлгэрэнгүй мэдээлэл нэмэх (сонголтоор)'
+    : '➖ Дэлгэрэнгүйг хураах';
+  btn.classList.toggle('expanded', !isOpen);
+}
+function toggleVehicleAdvanced() {
+  const wrap = document.getElementById('v-advanced-fields');
+  const btn  = document.getElementById('v-advanced-toggle');
+  const isOpen = wrap.style.display !== 'none';
+  wrap.style.display = isOpen ? 'none' : 'block';
+  btn.querySelector('span').textContent = isOpen
+    ? '➕ Дэлгэрэнгүй мэдээлэл нэмэх (сонголтоор)'
+    : '➖ Дэлгэрэнгүйг хураах';
+  btn.classList.toggle('expanded', !isOpen);
+}
+
 // ── Listing type toggle (Part / Vehicle) ─────────────────
 function selectListingType(t) {
   const el = document.getElementById('p-listing-type');
@@ -885,6 +907,10 @@ function selectListingType(t) {
   const title  = document.getElementById('post-page-title');
   if (layout) layout.classList.toggle('vehicle-mode', t === 'vehicle');
   if (title)  title.textContent = t === 'vehicle' ? 'Машины зар нийтлэх' : 'Сэлбэгийн зар нийтлэх';
+  const hint = document.getElementById('post-page-hint');
+  if (hint) hint.textContent = t === 'vehicle'
+    ? 'Зураг оруулаад машины үндсэн мэдээллийг л бөглөнө үү.'
+    : 'Зураг оруулаад сэлбэгийн нэр, ангилал, маркыг л бөглөнө үү.';
 }
 
 // ── Sub-category: post form ───────────────────────────────

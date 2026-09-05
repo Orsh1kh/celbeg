@@ -782,6 +782,62 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 .v-check-item:has(input:checked) { border-color: var(--blue); background: rgba(41,128,185,.08); }
 
 /* ═══════════════════════════════════════════════════════════
+   SIMPLE POST FORM (big inputs, collapsible advanced)
+═══════════════════════════════════════════════════════════ */
+.form-label.big { font-size: 15px; margin-bottom: 8px; font-weight: 600; }
+.form-input.big {
+  font-size: 16px; padding: 14px 16px; min-height: 48px;
+}
+.form-input.big:focus { border-color: var(--red); }
+
+.advanced-toggle {
+  display: block; width: 100%;
+  margin-top: 14px; padding: 12px 16px;
+  background: var(--bg3); border: 1.5px dashed var(--border); border-radius: 10px;
+  color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.advanced-toggle:hover { border-color: var(--red); background: rgba(192,57,43,.05); }
+.advanced-toggle.blue:hover { border-color: var(--blue); background: rgba(41,128,185,.05); }
+.advanced-toggle.expanded { border-style: solid; border-color: var(--muted); }
+.advanced-fields {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+/* Post page title (bigger for old users) */
+.post-page-title {
+  font-size: 26px !important;
+  margin-bottom: 6px !important;
+}
+.post-page-hint {
+  color: var(--muted); font-size: 13px; margin-bottom: 20px;
+}
+
+/* Submit button large */
+.btn-post-submit {
+  font-size: 16px !important;
+  padding: 16px !important;
+  min-height: 56px;
+}
+
+/* Type toggle (Part/Vehicle) larger */
+.listing-type-toggle .type-btn { padding: 14px 20px; font-size: 15px; }
+
+/* Post card title bigger */
+.post-card-title {
+  font-size: 17px !important;
+  margin-bottom: 14px !important;
+}
+
+/* Upload zone more prominent */
+.upload-zone {
+  min-height: 160px; padding: 30px 20px;
+}
+.upload-hint strong { font-size: 15px; }
+.upload-icon { font-size: 42px; }
+
+/* ═══════════════════════════════════════════════════════════
    FILTER CHECKLIST (multi-select mark, location)
 ═══════════════════════════════════════════════════════════ */
 .filter-checklist {
