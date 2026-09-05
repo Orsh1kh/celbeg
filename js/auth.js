@@ -1,49 +1,49 @@
 // ────────────────────────────────────────────────────────────
-// AUTH — Supabase Email OTP
+// AUTH — Supabase Email + Password
+// ────────────────────────────────────────────────────────────
+// Note: Supabase Dashboard → Authentication → Providers → Email
+// шинэ хэрэглэгчийг email confirmation-гүйгээр зөвшөөрсөн байх ёстой.
+// (Enable Email provider = ON, Confirm email = OFF нь MVP-д тохиромжтой.)
 // ────────────────────────────────────────────────────────────
 
-let _otpTimer = null;
-
-async function authSendOTP(email, formType) {
-  const btn = document.getElementById(formType === 'login' ? 'login-otp-btn' : 'reg-otp-btn');
-  btn.disabled = true;
-
+async function authRegister(email, password, name, userType, shopName) {
   if (DEMO_MODE) {
-    showToast('Demo горим: OTP код — 123456', 'info');
-    _startOTPTimer(btn);
-    document.getElementById(formType === 'login' ? 'login-otp-wrap' : 'reg-otp-wrap').style.display = 'block';
-    return;
+    const isAdmin = _isAdminEmail(email);
+    const profile = { id: 'demo-' + Date.now(), email, name, user_type: userType, shop_name: shopName, is_admin: isAdmin };
+    localStorage.setItem('cb_user', JSON.stringify(profile));
+    return profile;
   }
 
-  try {
-    const { error } = await sb.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true }
-    });
-    if (error) throw error;
-    showToast('OTP код email-ээр илгээгдлээ', 'success');
-    _startOTPTimer(btn);
-    document.getElementById(formType === 'login' ? 'login-otp-wrap' : 'reg-otp-wrap').style.display = 'block';
-  } catch (e) {
-    showToast('Алдаа: ' + e.message, 'error');
-    btn.disabled = false;
+  // 1) Auth хэрэглэгч үүсгэх
+  const { data, error } = await sb.auth.signUp({ email, password });
+  if (error) throw error;
+
+  const user = data.user;
+  if (!user) throw new Error('Бүртгэл үүссэн, email-ийг шалгаад баталгаажуулна уу');
+
+  // Хэрэв Supabase-т email confirmation ON хэвээр бол session байхгүй.
+  // Тэр үед _ensureProfile-г шууд дуудаж чадахгүй (RLS-т auth.uid() хэрэгтэй).
+  // Гэхдээ баталгаажаагүй ч auth.users-т мөр үүссэн байна. Дараа login хийхэд шинэ ensure явна.
+  const isAdmin = _isAdminEmail(email);
+  if (data.session) {
+    await _ensureProfile(user, { name, userType, shopName, isAdmin });
   }
+  return user;
 }
 
-async function authVerifyOTP(email, token, formType) {
+async function authLogin(email, password) {
   if (DEMO_MODE) {
-    if (token === '123456') {
-      const demoUser = { id: 'demo-user', email };
-      await _ensureProfile(demoUser, formType);
-      return demoUser;
-    } else {
-      throw new Error('Буруу OTP код (demo: 123456)');
-    }
+    const isAdmin = _isAdminEmail(email);
+    const profile = { id: 'demo-' + email, email, name: 'Хэрэглэгч', user_type: 'buyer', is_admin: isAdmin };
+    localStorage.setItem('cb_user', JSON.stringify(profile));
+    return profile;
   }
 
-  const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
-  await _ensureProfile(data.user, formType);
+
+  const isAdmin = _isAdminEmail(email);
+  await _ensureProfile(data.user, { name: '', userType: 'buyer', shopName: '', isAdmin });
   return data.user;
 }
 
@@ -52,31 +52,21 @@ function _isAdminEmail(email) {
   return ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase());
 }
 
-async function _ensureProfile(user, formType) {
+async function _ensureProfile(user, opts = {}) {
   const email   = user.email || '';
   const isAdmin = _isAdminEmail(email);
 
-  if (DEMO_MODE) {
-    const name = formType === 'register'
-      ? (document.getElementById('reg-name')?.value || 'Хэрэглэгч')
-      : (JSON.parse(localStorage.getItem('cb_user') || '{}').name || 'Хэрэглэгч');
-    const type = document.querySelector('input[name="reg-type"]:checked')?.value || 'buyer';
-    const shopName = document.getElementById('reg-shop')?.value || '';
-    const profile = { id: user.id, email, name, user_type: type, shop_name: shopName, is_admin: isAdmin };
-    localStorage.setItem('cb_user', JSON.stringify(profile));
-    return profile;
-  }
-
   const { data: existing } = await sb.from('profiles').select('*').eq('id', user.id).single();
   if (!existing) {
-    const name = document.getElementById('reg-name')?.value || '';
-    const type = document.querySelector('input[name="reg-type"]:checked')?.value || 'buyer';
-    const shopName = document.getElementById('reg-shop')?.value || '';
     await sb.from('profiles').insert({
-      id: user.id, email, name, user_type: type, shop_name: shopName, is_admin: isAdmin
+      id: user.id,
+      email,
+      name: opts.name || '',
+      user_type: opts.userType || 'buyer',
+      shop_name: opts.shopName || '',
+      is_admin: isAdmin,
     });
   } else if (existing.is_admin !== isAdmin || existing.email !== email) {
-    // Sync admin status and email if changed
     await sb.from('profiles').update({ email, is_admin: isAdmin }).eq('id', user.id);
   }
   const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
@@ -101,19 +91,4 @@ async function authLoadSession() {
   const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
   if (profile) localStorage.setItem('cb_user', JSON.stringify(profile));
   return profile;
-}
-
-function _startOTPTimer(btn) {
-  clearInterval(_otpTimer);
-  let secs = 60;
-  btn.textContent = `${secs}с дахин илгээх`;
-  _otpTimer = setInterval(() => {
-    secs--;
-    btn.textContent = `${secs}с дахин илгээх`;
-    if (secs <= 0) {
-      clearInterval(_otpTimer);
-      btn.textContent = 'OTP илгээх';
-      btn.disabled = false;
-    }
-  }, 1000);
 }

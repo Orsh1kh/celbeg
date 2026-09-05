@@ -127,13 +127,9 @@ function switchAuthTab(tab) {
   document.getElementById('form-' + tab).classList.add('active');
 }
 function resetAuthForms() {
-  ['login-email','login-otp','reg-name','reg-email','reg-otp','reg-shop'].forEach(id => {
+  ['login-email','login-password','reg-name','reg-email','reg-password','reg-shop'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
-  });
-  ['login-otp-wrap','reg-otp-wrap'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
   });
   document.querySelectorAll('.form-error').forEach(e => { e.textContent=''; e.classList.remove('show'); });
 }
@@ -155,38 +151,27 @@ function showFieldError(id, msg) {
   el.classList.toggle('show', !!msg);
 }
 
-// ── OTP send ───────────────────────────────────────────────
+// ── Email/password helpers ─────────────────────────────────
 function _isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-
-async function sendLoginOTP() {
-  const email = document.getElementById('login-email').value.trim();
-  if (!_isEmail(email)) { showFieldError('login-email-err', 'Зөв email хаяг оруулна уу'); return; }
-  showFieldError('login-email-err', '');
-  await authSendOTP(email, 'login');
-}
-async function sendRegOTP() {
-  const email = document.getElementById('reg-email').value.trim();
-  if (!_isEmail(email)) { showFieldError('reg-email-err', 'Зөв email хаяг оруулна уу'); return; }
-  showFieldError('reg-email-err', '');
-  await authSendOTP(email, 'register');
-}
 
 // ── Submit login ────────────────────────────────────────────
 async function submitLogin() {
   const email = document.getElementById('login-email').value.trim();
-  const otp   = document.getElementById('login-otp').value.trim();
-  if (!email) { showFieldError('login-email-err', 'Email оруулна уу'); return; }
-  if (!otp)   { showFieldError('login-otp-err', 'OTP код оруулна уу'); return; }
+  const pass  = document.getElementById('login-password').value;
+  let valid = true;
+  if (!_isEmail(email)) { showFieldError('login-email-err', 'Зөв email оруулна уу'); valid=false; }
+  if (!pass || pass.length < 6) { showFieldError('login-password-err', 'Нууц үг 6+ тэмдэгт'); valid=false; }
+  if (!valid) return;
 
   const btn = document.getElementById('login-submit-btn');
-  btn.disabled = true; btn.textContent = 'Шалгаж байна...';
+  btn.disabled = true; btn.textContent = 'Нэвтэрч байна...';
   try {
-    const user = await authVerifyOTP(email, otp, 'login');
-    updateAuthUI(user);
+    const user = await authLogin(email, pass);
+    updateAuthUI(authGetUser());
     closeAuthModal();
     showToast('Амжилттай нэвтэрлээ!', 'success');
   } catch(e) {
-    showFieldError('login-otp-err', e.message);
+    showFieldError('login-password-err', _friendlyAuthError(e.message));
   } finally {
     btn.disabled = false; btn.textContent = 'Нэвтрэх';
   }
@@ -196,25 +181,39 @@ async function submitLogin() {
 async function submitRegister() {
   const name  = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
-  const otp   = document.getElementById('reg-otp').value.trim();
+  const pass  = document.getElementById('reg-password').value;
+  const userType = document.querySelector('input[name="reg-type"]:checked')?.value || 'buyer';
+  const shopName = document.getElementById('reg-shop')?.value.trim() || '';
   let valid = true;
-  if (!name)  { showFieldError('reg-name-err', 'Нэр оруулна уу'); valid=false; }
-  if (!email) { showFieldError('reg-email-err', 'Email оруулна уу'); valid=false; }
-  if (!otp)   { showFieldError('reg-otp-err', 'OTP код оруулна уу'); valid=false; }
+  if (!name)             { showFieldError('reg-name-err',     'Нэр оруулна уу'); valid=false; }
+  if (!_isEmail(email))  { showFieldError('reg-email-err',    'Зөв email оруулна уу'); valid=false; }
+  if (!pass || pass.length < 6) { showFieldError('reg-password-err', 'Нууц үг 6+ тэмдэгт'); valid=false; }
   if (!valid) return;
 
   const btn = document.getElementById('reg-submit-btn');
   btn.disabled = true; btn.textContent = 'Бүртгэж байна...';
   try {
-    const user = await authVerifyOTP(email, otp, 'register');
-    updateAuthUI(user);
+    await authRegister(email, pass, name, userType, shopName);
+    // Signup дараа шууд нэвтэрсэн байдалтай авах гэж login дуудна
+    // (Email confirmation OFF үед session автоматаар үүсдэг ч найдвартай байхын тулд login хийнэ)
+    try { await authLogin(email, pass); } catch {}
+    updateAuthUI(authGetUser());
     closeAuthModal();
     showToast('Амжилттай бүртгүүллээ!', 'success');
   } catch(e) {
-    showFieldError('reg-otp-err', e.message);
+    showFieldError('reg-email-err', _friendlyAuthError(e.message));
   } finally {
     btn.disabled = false; btn.textContent = 'Бүртгүүлэх';
   }
+}
+
+function _friendlyAuthError(msg) {
+  const m = (msg || '').toLowerCase();
+  if (m.includes('invalid login')) return 'Email эсвэл нууц үг буруу байна';
+  if (m.includes('already registered') || m.includes('already exists')) return 'Энэ email аль хэдийн бүртгэгдсэн';
+  if (m.includes('email not confirmed')) return 'Email-ээ баталгаажуулна уу (эсвэл админ email confirm-г идэвхгүй болгосон эсэхийг шалгана)';
+  if (m.includes('password')) return 'Нууц үг: ' + msg;
+  return msg;
 }
 
 // ── Auth UI state ───────────────────────────────────────────
