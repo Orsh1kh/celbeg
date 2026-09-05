@@ -27,7 +27,8 @@ create unique index if not exists profiles_email_uniq
 alter table public.profiles alter column phone drop not null;
 
 -- Хуучин unique constraint-г nullable-т нийцтэй болгоно
-drop index if exists profiles_phone_key;
+alter table public.profiles
+  drop constraint if exists profiles_phone_key;
 
 create unique index if not exists profiles_phone_uniq
   on public.profiles (phone) where phone is not null;
