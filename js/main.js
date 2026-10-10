@@ -12,6 +12,7 @@ let _currentShopId = null;
 let _homeTotalCount   = 0;
 let _searchTotalCount = 0;
 let _listingTypeNav   = 'part';  // 'part' | 'vehicle'
+let _favoriteIds      = new Set();
 
 // ═══════════════════════════════════════════════════════════
 // NAVIGATION
@@ -283,6 +284,8 @@ function buildListingCard(l) {
   const photoCount = (l.images?.length > 1)
     ? `<div class="card-photo-counter">1 / ${l.images.length}</div>`
     : '';
+  const isFav = _favoriteIds.has(l.id);
+  const favBtn = `<button class="card-fav-btn${isFav ? ' active' : ''}" onclick="event.stopPropagation();doToggleFavorite('${l.id}', this)" title="Хадгалах" aria-label="Хадгалах">${isFav ? '❤' : '♡'}</button>`;
 
   const yearTxt = (l.year_from && l.year_to)
     ? (l.year_from === l.year_to ? `${l.year_from}` : `${l.year_from}–${l.year_to}`)
@@ -305,13 +308,14 @@ function buildListingCard(l) {
         ${photoCount}
         ${vipTag}
         ${isVehicle ? '' : policyTag}
+        ${favBtn}
       </div>
       <div class="card-body">
         <div class="card-price">${formatPrice(l.price)}</div>
-        <div class="card-title">${l.title}</div>
-        <div class="card-meta">${carMeta || l.category || ''}${isVehicle ? '' : condBadge}</div>
+        <div class="card-title">${escapeHtml(l.title)}</div>
+        <div class="card-meta">${escapeHtml(carMeta || l.category || '')}${isVehicle ? '' : condBadge}</div>
         <div class="card-footer">
-          <span ${shopClickable}>${isVehicle ? '👤' : '🏪'} ${l.shop_name || 'Хувь хүн'}${verified}</span>
+          <span ${shopClickable}>${isVehicle ? '👤' : '🏪'} ${escapeHtml(l.shop_name || 'Хувь хүн')}${verified}</span>
           <span class="card-date">${formatDate(l.created_at)}</span>
         </div>
       </div>
@@ -501,6 +505,12 @@ async function initHomePage() {
   _homePage = 0;
   await loadHomeListings(true);
   await loadVipListings();
+  loadRecentlyViewed();
+}
+
+function clearRecentlyViewed() {
+  try { localStorage.removeItem(RECENT_KEY); } catch {}
+  loadRecentlyViewed();
 }
 
 async function loadHomeListings(reset = false) {
@@ -764,6 +774,7 @@ async function openDetail(id) {
     if (!l) return;
     _currentListing = l;
     incrementView(id);
+    addToRecentlyViewed(l);
 
     // Images
     const mainWrap = document.getElementById('detail-main-img-wrap');
@@ -794,7 +805,7 @@ async function openDetail(id) {
       (policy ? `<span class="detail-badge ${policy.cls}">${policy.short}</span>` : '');
 
     document.getElementById('detail-price').textContent = formatPrice(l.price);
-    document.getElementById('detail-title').textContent = l.title;
+    document.getElementById('detail-title').textContent = l.title || '';
 
     // Car info (extended for vehicles)
     const carRows = [
@@ -841,10 +852,10 @@ async function openDetail(id) {
       ? `onclick="closeDetail();openShop('${l.user_id}')" class="detail-shop-info clickable"`
       : 'class="detail-shop-info"';
     document.getElementById('detail-shop').innerHTML = `
-      <div class="detail-shop-avatar">${shopInitial}</div>
+      <div class="detail-shop-avatar">${escapeHtml(shopInitial)}</div>
       <div ${shopClickHandler}>
-        <div class="detail-shop-name">${l.shop_name || 'Хувь хүн'}${verifiedIcon}</div>
-        <div class="detail-shop-loc">📍 ${l.location || 'Байршил тодорхойгүй'}</div>
+        <div class="detail-shop-name">${escapeHtml(l.shop_name || 'Хувь хүн')}${verifiedIcon}</div>
+        <div class="detail-shop-loc">📍 ${escapeHtml(l.location || 'Байршил тодорхойгүй')}</div>
         <div class="detail-shop-rating" id="detail-shop-rating" style="margin-top:4px"></div>
       </div>`;
 
@@ -1271,7 +1282,30 @@ async function initProfilePage() {
   document.getElementById('profile-phone-text').textContent  = user.email || user.phone || '';
   document.getElementById('profile-type-text').textContent   = user.user_type === 'shop' ? '🏪 Дэлгүүр' : '🛒 Худалдан авагч';
 
-  await loadMyListings();
+  switchProfileTab('listings');
+}
+
+function switchProfileTab(tab) {
+  document.querySelectorAll('.profile-tab').forEach(b => b.classList.toggle('active', b.dataset.ptab === tab));
+  document.getElementById('ptab-listings').style.display  = tab === 'listings'  ? 'block' : 'none';
+  document.getElementById('ptab-favorites').style.display = tab === 'favorites' ? 'block' : 'none';
+  if (tab === 'listings')  loadMyListings();
+  if (tab === 'favorites') loadMyFavorites();
+}
+
+async function loadMyFavorites() {
+  const container = document.getElementById('favorites-container');
+  renderSkeletons('favorites-container', 4);
+  try {
+    const list = await fetchMyFavorites();
+    if (!list.length) {
+      container.innerHTML = '<div class="no-results"><div class="no-icon">❤</div><h3>Хадгалсан зар байхгүй</h3><p>Таалагдсан зар дээр зүрх (❤) дарж хадгална уу.</p></div>';
+      return;
+    }
+    container.innerHTML = `<div class="listing-grid">${list.map(buildListingCard).join('')}</div>`;
+  } catch(e) {
+    container.innerHTML = renderEmptyState('error');
+  }
 }
 
 async function loadMyListings() {
@@ -1527,6 +1561,75 @@ function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
+}
+
+// ═══════════════════════════════════════════════════════════
+// FAVORITES
+// ═══════════════════════════════════════════════════════════
+async function initFavorites() {
+  _favoriteIds = await fetchFavoriteIds();
+}
+
+async function doToggleFavorite(listingId, btn) {
+  const user = authGetUser();
+  if (!user) {
+    openAuthModal('login');
+    showToast('Эхлээд нэвтэрнэ үү', 'info');
+    return;
+  }
+  const willBeOn = !_favoriteIds.has(listingId);
+  try {
+    await toggleFavorite(listingId, willBeOn);
+    if (willBeOn) _favoriteIds.add(listingId); else _favoriteIds.delete(listingId);
+    if (btn) {
+      btn.classList.toggle('active', willBeOn);
+      btn.textContent = willBeOn ? '❤' : '♡';
+    }
+    showToast(willBeOn ? '❤ Хадгалагдлаа' : 'Хадгалгаас хасагдлаа', 'success');
+  } catch(e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RECENTLY VIEWED (localStorage)
+// ═══════════════════════════════════════════════════════════
+const RECENT_KEY   = 'cb_recent_viewed_v1';
+const RECENT_LIMIT = 12;
+
+function addToRecentlyViewed(listing) {
+  if (!listing || !listing.id) return;
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch {}
+  list = list.filter(l => l.id !== listing.id);
+  const slim = {
+    id: listing.id, title: listing.title, price: listing.price,
+    images: (listing.images || []).slice(0,1),
+    car_make: listing.car_make, car_model: listing.car_model,
+    year_from: listing.year_from, year_to: listing.year_to,
+    category: listing.category, listing_type: listing.listing_type,
+    part_type: listing.part_type, exchange_policy: listing.exchange_policy,
+    condition: listing.condition, shop_name: listing.shop_name,
+    is_vip: listing.is_vip, is_verified: listing.is_verified,
+    created_at: listing.created_at,
+  };
+  list.unshift(slim);
+  list = list.slice(0, RECENT_LIMIT);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch {}
+}
+
+function getRecentlyViewed() {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch { return []; }
+}
+
+function loadRecentlyViewed() {
+  const list = getRecentlyViewed();
+  const section = document.getElementById('recent-section');
+  const grid    = document.getElementById('recent-grid');
+  if (!section || !grid) return;
+  if (!list.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  grid.innerHTML = list.map(buildListingCard).join('');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1807,7 +1910,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Restore session
   const user = await authLoadSession();
-  if (user) updateAuthUI(user);
+  if (user) {
+    updateAuthUI(user);
+    await initFavorites();
+  }
 
   // Render icon picker in admin modal
   renderIconPicker();

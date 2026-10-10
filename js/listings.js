@@ -243,6 +243,56 @@ async function extendListing(id) {
 // ═══════════════════════════════════════════════════════════
 // REVIEWS / RATINGS
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// FAVORITES
+// ═══════════════════════════════════════════════════════════
+async function fetchFavoriteIds() {
+  const user = authGetUser();
+  if (!user) return new Set();
+  if (DEMO_MODE || !sb) {
+    try { return new Set(JSON.parse(localStorage.getItem('cb_demo_favs') || '[]')); } catch { return new Set(); }
+  }
+  try {
+    const { data } = await sb.from('favorites').select('listing_id').eq('user_id', user.id);
+    return new Set((data || []).map(r => r.listing_id));
+  } catch { return new Set(); }
+}
+
+async function fetchMyFavorites() {
+  const user = authGetUser();
+  if (!user) return [];
+  if (DEMO_MODE || !sb) {
+    let ids = []; try { ids = JSON.parse(localStorage.getItem('cb_demo_favs') || '[]'); } catch {}
+    return DEMO_LISTINGS.filter(l => ids.includes(l.id));
+  }
+  try {
+    const { data } = await sb.from('favorites')
+      .select('listing_id, listings!inner(*)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    return (data || []).map(r => r.listings).filter(Boolean);
+  } catch { return []; }
+}
+
+async function toggleFavorite(listingId, nextOn) {
+  const user = authGetUser();
+  if (!user) throw new Error('Нэвтэрнэ үү');
+  if (DEMO_MODE || !sb) {
+    let ids = []; try { ids = JSON.parse(localStorage.getItem('cb_demo_favs') || '[]'); } catch {}
+    const set = new Set(ids);
+    if (nextOn) set.add(listingId); else set.delete(listingId);
+    localStorage.setItem('cb_demo_favs', JSON.stringify([...set]));
+    return;
+  }
+  if (nextOn) {
+    const { error } = await sb.from('favorites').insert({ user_id: user.id, listing_id: listingId });
+    if (error && !/duplicate/i.test(error.message)) throw error;
+  } else {
+    const { error } = await sb.from('favorites').delete().eq('user_id', user.id).eq('listing_id', listingId);
+    if (error) throw error;
+  }
+}
+
 async function fetchShops() {
   if (DEMO_MODE || !sb) {
     // Demo: infer from DEMO_LISTINGS

@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=23">
+<link rel="stylesheet" href="css/style.css?v=24">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -235,7 +235,7 @@
     </div>
     <div class="review-form-group">
       <label>Тайлбар (сонголтоор)</label>
-      <textarea id="review-comment" placeholder="Жш: Хугацаанд нь хүлээж авсан, тайлбар зөв байсан."></textarea>
+      <textarea id="review-comment" maxlength="1000" placeholder="Жш: Хугацаанд нь хүлээж авсан, тайлбар зөв байсан."></textarea>
     </div>
     <div class="review-footer">
       <button class="btn-cancel" onclick="closeReviewModal()">Цуцлах</button>
@@ -329,6 +329,15 @@
         <div class="section-title">⭐ VIP Зарууд</div>
       </div>
       <div class="vip-grid" id="vip-grid"></div>
+
+      <!-- Recently viewed -->
+      <div id="recent-section" style="display:none">
+        <div class="section-header">
+          <div class="section-title">🕐 Таны сүүлд үзсэн</div>
+          <span class="section-link" onclick="clearRecentlyViewed()">Арилгах</span>
+        </div>
+        <div class="listing-grid" id="recent-grid"></div>
+      </div>
 
       <!-- New listings -->
       <div class="section-header">
@@ -532,7 +541,7 @@
           <div class="post-grid">
             <div class="form-group post-full">
               <label class="form-label big">Сэлбэгийн нэр *</label>
-              <input class="form-input big" id="p-title" type="text" placeholder="жш: Тоормосны дэвсгэр">
+              <input class="form-input big" id="p-title" type="text" maxlength="150" placeholder="жш: Тоормосны дэвсгэр">
               <div class="form-error" id="p-title-err"></div>
             </div>
             <div class="form-group">
@@ -591,7 +600,7 @@
             </div>
             <div class="form-group post-full">
               <label class="form-label">Тайлбар</label>
-              <textarea class="form-input" id="p-desc" rows="3" placeholder="Сэлбэгийн тухай дэлгэрэнгүй..."></textarea>
+              <textarea class="form-input" id="p-desc" rows="3" maxlength="4000" placeholder="Сэлбэгийн тухай дэлгэрэнгүй..."></textarea>
             </div>
           </div>
         </div>
@@ -605,7 +614,7 @@
             <div class="post-grid">
               <div class="form-group post-full">
                 <label class="form-label big">Гарчиг *</label>
-                <input class="form-input big" id="v-title" type="text" placeholder="жш: Toyota Camry 2018 худалдана">
+                <input class="form-input big" id="v-title" type="text" maxlength="150" placeholder="жш: Toyota Camry 2018 худалдана">
                 <div class="form-error" id="v-title-err"></div>
               </div>
               <div class="form-group">
@@ -751,7 +760,7 @@
             <div class="post-grid">
               <div class="form-group post-full">
                 <label class="form-label">Машины талаархи дэлгэрэнгүй</label>
-                <textarea class="form-input" id="v-desc" rows="5" placeholder="Хэдэн эзэнтэй байсан, засвар, гэмтэл, онцгой боломж..."></textarea>
+                <textarea class="form-input" id="v-desc" rows="5" maxlength="4000" placeholder="Хэдэн эзэнтэй байсан, засвар, гэмтэл, онцгой боломж..."></textarea>
               </div>
             </div>
           </div>
@@ -916,9 +925,19 @@
           <div class="profile-type-badge" id="profile-type-text">Худалдан авагч</div>
         </div>
       </div>
-      <div class="profile-section-title">Миний зарууд</div>
-      <div id="my-listings-container">
-        <div class="loading-center"><div class="spinner"></div></div>
+      <div class="profile-tabs">
+        <button class="profile-tab active" data-ptab="listings" onclick="switchProfileTab('listings')">📦 Миний зарууд</button>
+        <button class="profile-tab" data-ptab="favorites" onclick="switchProfileTab('favorites')">❤ Хадгалсан</button>
+      </div>
+      <div class="profile-tab-content" id="ptab-listings">
+        <div id="my-listings-container">
+          <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+      </div>
+      <div class="profile-tab-content" id="ptab-favorites" style="display:none">
+        <div id="favorites-container">
+          <div class="loading-center"><div class="spinner"></div></div>
+        </div>
       </div>
     </div>
   </section>
@@ -1060,12 +1079,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=23"></script>
-<script src="js/data-manager.js?v=23"></script>
-<script src="js/auth.js?v=23"></script>
-<script src="js/listings.js?v=23"></script>
-<script src="js/upload.js?v=23"></script>
-<script src="js/admin.js?v=23"></script>
-<script src="js/main.js?v=23"></script>
+<script src="js/supabase-client.js?v=24"></script>
+<script src="js/data-manager.js?v=24"></script>
+<script src="js/auth.js?v=24"></script>
+<script src="js/listings.js?v=24"></script>
+<script src="js/upload.js?v=24"></script>
+<script src="js/admin.js?v=24"></script>
+<script src="js/main.js?v=24"></script>
 </body>
 </html>

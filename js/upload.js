@@ -49,8 +49,21 @@ function pickFromGallery() {
   input.click();
 }
 
+const MAX_FILE_SIZE_MB = 8;
+const ALLOWED_MIME = new Set(['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']);
+
 function _addFiles(files, preview) {
-  const allowed = files.filter(f => f.type.startsWith('image/'));
+  // Хамгаалалт: зөвхөн image, хэмжээ 8MB-с хэтрэхгүй
+  const invalid = files.filter(f => !ALLOWED_MIME.has(f.type) || !f.type.startsWith('image/'));
+  if (invalid.length) showToast('Зөвхөн JPG, PNG, WebP зураг оруулна уу', 'error');
+  const oversized = files.filter(f => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+  if (oversized.length) showToast(`Зураг ${MAX_FILE_SIZE_MB}MB-с бага байх ёстой`, 'error');
+
+  const allowed = files.filter(f =>
+    ALLOWED_MIME.has(f.type) &&
+    f.type.startsWith('image/') &&
+    f.size <= MAX_FILE_SIZE_MB * 1024 * 1024
+  );
   const remaining = MAX_PHOTOS - _uploadedFiles.length;
   const toAdd = allowed.slice(0, remaining);
 
