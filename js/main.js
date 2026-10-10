@@ -451,6 +451,11 @@ function updateFilterCountBadge() {
   if (f.locations && f.locations.length) count += f.locations.length;
   badge.textContent = count;
   badge.classList.toggle('visible', count > 0);
+  const mob = document.getElementById('mobile-filter-count');
+  if (mob) {
+    mob.textContent = count || '';
+    mob.setAttribute('data-count', count);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -592,6 +597,74 @@ function toggleFilterExpand(wrapId, btn) {
   btn.textContent = expanded ? 'Хураах ▴' : 'Бүгдийг харах ▾';
 }
 
+// ── Collapsible filter sections ──────────────────────────
+function toggleFilterSection(btn) {
+  const section = btn.closest('.filter-section');
+  if (!section) return;
+  // Үндсэн хэсгийг хураахыг хориглоно
+  if (section.dataset.section === 'essential') return;
+  section.classList.toggle('collapsed');
+}
+
+// ── Mobile drawer ────────────────────────────────────────
+function openMobileFilters() {
+  document.getElementById('filter-sidebar')?.classList.add('open');
+  document.querySelector('.filter-overlay')?.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileFilters() {
+  document.getElementById('filter-sidebar')?.classList.remove('open');
+  document.querySelector('.filter-overlay')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── Active filter chips ──────────────────────────────────
+function renderActiveChips() {
+  const el = document.getElementById('active-chips');
+  if (!el) return;
+  const f = getFilters();
+  const chips = [];
+
+  const addChip = (label, action) => chips.push({ label, action });
+
+  if (f.category)    addChip(`Ангилал: ${f.category}`, `document.getElementById('f-category').value='';onSearchCategoryChange();applyFilters();`);
+  if (f.subcategory) addChip(`Дэд: ${f.subcategory}`, `document.getElementById('f-subcategory').value='';applyFilters();`);
+  (f.car_makes || []).forEach(m => addChip(m, `document.querySelector('input[name="f-make-cb"][value="${m}"]').checked=false;applyFilters();`));
+  (f.locations || []).forEach(k => {
+    const label = (typeof locationLabel === 'function') ? locationLabel(k) : k;
+    addChip(label, `document.querySelector('input[name="f-loc-cb"][value="${k}"]').checked=false;applyFilters();`);
+  });
+  if (f.car_model) addChip(`Загвар: ${f.car_model}`, `document.getElementById('f-model').value='';applyFilters();`);
+  if (f.year_from || f.year_to) {
+    const txt = `Он: ${f.year_from || '…'}—${f.year_to || '…'}`;
+    addChip(txt, `document.getElementById('f-year-from').value='';document.getElementById('f-year-to').value='';applyFilters();`);
+  }
+  if (f.price_min || f.price_max) {
+    const txt = `Үнэ: ${f.price_min || '…'}—${f.price_max || '…'}₮`;
+    addChip(txt, `document.getElementById('f-price-min').value='';document.getElementById('f-price-max').value='';applyFilters();`);
+  }
+  if (f.part_type) {
+    const map = { original: 'Оригинал', substitute: 'Орлуулах' };
+    addChip(map[f.part_type] || f.part_type,
+      `document.querySelector('input[name="f-type"][value=""]').checked=true;applyFilters();`);
+  }
+  if (f.condition) {
+    const map = { new: '✨ Шинэ', used: '👌 Ашиглагдсан', refurbished: '🔧 Засварласан', damaged: '⚠️ Гэмтэлтэй' };
+    addChip(map[f.condition] || f.condition,
+      `document.querySelector('input[name="f-condition"][value=""]').checked=true;applyFilters();`);
+  }
+  if (f.exchange_policy) {
+    const map = { return_ok: '🟢 Буцаана', defect_only: '🟡 Гэмтэлтэй бол', no_return: '🔴 Буцаахгүй' };
+    addChip(map[f.exchange_policy] || f.exchange_policy,
+      `document.querySelector('input[name="f-policy"][value=""]').checked=true;applyFilters();`);
+  }
+
+  if (!chips.length) { el.innerHTML = ''; return; }
+  el.innerHTML = chips.map(c =>
+    `<span class="active-chip"><strong>${c.label}</strong><span class="chip-remove" onclick="${c.action}">✕</span></span>`
+  ).join('') + `<span class="active-chip chip-clear-all" onclick="resetFilters()">Бүгдийг арилгах</span>`;
+}
+
 async function loadSearchResults(reset = false) {
   if (reset) {
     _searchPage = 0;
@@ -599,6 +672,7 @@ async function loadSearchResults(reset = false) {
     document.getElementById('results-count').textContent = 'Хайж байна...';
   }
   updateFilterCountBadge();
+  renderActiveChips();
   try {
     const filters = { ...getFilters(), ..._searchFilters, page: _searchPage, withCount: reset, listing_type: _listingTypeNav };
     const res = await fetchListings(filters);

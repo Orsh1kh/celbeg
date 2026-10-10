@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=22">
+<link rel="stylesheet" href="css/style.css?v=23">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -349,84 +349,115 @@
   ────────────────────────────────────────────────────── -->
   <section id="page-search" class="page">
     <div class="container">
+      <!-- Mobile filter trigger -->
+      <button class="mobile-filter-btn" id="mobile-filter-btn" onclick="openMobileFilters()">
+        🔍 Шүүлт <span class="mobile-filter-count" id="mobile-filter-count">0</span>
+      </button>
+
       <div class="search-layout">
-        <!-- Sidebar filters -->
-        <aside class="filter-sidebar">
-          <div class="filter-title">🔍 Шүүлт</div>
+        <!-- Sidebar filters (acts as drawer on mobile) -->
+        <div class="filter-overlay" onclick="closeMobileFilters()"></div>
+        <aside class="filter-sidebar" id="filter-sidebar">
+          <div class="filter-sidebar-head">
+            <div class="filter-title">🔍 Шүүлт</div>
+            <button class="filter-close-btn" onclick="closeMobileFilters()" aria-label="Хаах">✕</button>
+          </div>
+          <div class="filter-sidebar-body">
 
-          <div class="filter-group">
-            <label class="filter-label">Ангилал</label>
-            <select class="filter-select" id="f-category" data-dropdown="category" onchange="onSearchCategoryChange()"><option value="">Бүгд</option></select>
-          </div>
-          <div class="filter-group" id="f-subcategory-group" style="display:none">
-            <label class="filter-label">Дэд ангилал</label>
-            <select class="filter-select" id="f-subcategory"><option value="">Бүгд</option></select>
-          </div>
-          <div class="filter-group">
-            <label class="filter-label">Машины марк</label>
-            <div class="filter-checklist collapsed" id="f-makes-wrap"></div>
-            <button type="button" class="filter-expand-btn" onclick="toggleFilterExpand('f-makes-wrap', this)">Бүгдийг харах ▾</button>
-          </div>
+          <!-- ═══ Үндсэн шүүлт (always open) ═══ -->
+          <div class="filter-section" data-section="essential">
+            <div class="filter-section-head">Үндсэн шүүлт</div>
 
-          <div class="filter-group">
-            <label class="filter-label">Байршил</label>
-            <div class="filter-checklist collapsed" id="f-locations-wrap"></div>
-            <button type="button" class="filter-expand-btn" onclick="toggleFilterExpand('f-locations-wrap', this)">Бүгдийг харах ▾</button>
-          </div>
-
-          <div class="filter-group">
-            <label class="filter-label">Загвар</label>
-            <input class="filter-input" id="f-model" type="text" placeholder="жш: Camry, X5...">
-          </div>
-
-          <div class="filter-group">
-            <label class="filter-label">Он (хугацаа)</label>
-            <div class="filter-range">
-              <input class="filter-input" id="f-year-from" type="number" placeholder="2010" min="1990" max="2025">
-              <input class="filter-input" id="f-year-to"   type="number" placeholder="2024" min="1990" max="2025">
+            <div class="filter-group">
+              <label class="filter-label">Ангилал</label>
+              <select class="filter-select" id="f-category" data-dropdown="category" onchange="onSearchCategoryChange()"><option value="">Бүгд</option></select>
+            </div>
+            <div class="filter-group" id="f-subcategory-group" style="display:none">
+              <label class="filter-label">Дэд ангилал</label>
+              <select class="filter-select" id="f-subcategory"><option value="">Бүгд</option></select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Машины марк</label>
+              <div class="filter-checklist collapsed" id="f-makes-wrap"></div>
+              <button type="button" class="filter-expand-btn" onclick="toggleFilterExpand('f-makes-wrap', this)">Бүгдийг харах ▾</button>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Үнэ (₮)</label>
+              <div class="filter-range">
+                <input class="filter-input" id="f-price-min" type="number" placeholder="Доод">
+                <input class="filter-input" id="f-price-max" type="number" placeholder="Дээд">
+              </div>
             </div>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">Үнэ (₮)</label>
-            <div class="filter-range">
-              <input class="filter-input" id="f-price-min" type="number" placeholder="Доод">
-              <input class="filter-input" id="f-price-max" type="number" placeholder="Дээд">
+          <!-- ═══ Байршил ═══ -->
+          <div class="filter-section collapsed" data-section="location">
+            <button type="button" class="filter-section-head" onclick="toggleFilterSection(this)">
+              <span>📍 Байршил</span>
+              <span class="section-chevron">▾</span>
+            </button>
+            <div class="filter-section-body">
+              <div class="filter-group">
+                <div class="filter-checklist collapsed" id="f-locations-wrap"></div>
+                <button type="button" class="filter-expand-btn" onclick="toggleFilterExpand('f-locations-wrap', this)">Бүгдийг харах ▾</button>
+              </div>
             </div>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">Сэлбэгийн төрөл</label>
-            <div class="filter-radio">
-              <label class="filter-radio-item"><input type="radio" name="f-type" value=""> Бүгд</label>
-              <label class="filter-radio-item"><input type="radio" name="f-type" value="original"> Оригинал</label>
-              <label class="filter-radio-item"><input type="radio" name="f-type" value="substitute"> Орлуулах</label>
+          <!-- ═══ Дэлгэрэнгүй ═══ -->
+          <div class="filter-section collapsed" data-section="advanced">
+            <button type="button" class="filter-section-head" onclick="toggleFilterSection(this)">
+              <span>🔧 Дэлгэрэнгүй</span>
+              <span class="section-chevron">▾</span>
+            </button>
+            <div class="filter-section-body">
+              <div class="filter-group">
+                <label class="filter-label">Загвар</label>
+                <input class="filter-input" id="f-model" type="text" placeholder="жш: Camry, X5...">
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Он (хугацаа)</label>
+                <div class="filter-range">
+                  <input class="filter-input" id="f-year-from" type="number" placeholder="2010" min="1990" max="2025">
+                  <input class="filter-input" id="f-year-to"   type="number" placeholder="2024" min="1990" max="2025">
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Сэлбэгийн төрөл</label>
+                <div class="filter-radio">
+                  <label class="filter-radio-item"><input type="radio" name="f-type" value=""> Бүгд</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-type" value="original"> Оригинал</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-type" value="substitute"> Орлуулах</label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Барааны нөхцөл</label>
+                <div class="filter-radio">
+                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="" checked> Бүгд</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="new"> ✨ Шинэ</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="used"> 👌 Ашиглагдсан</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="refurbished"> 🔧 Засварласан</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="damaged"> ⚠️ Гэмтэлтэй</label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Буцаан авах</label>
+                <div class="filter-radio">
+                  <label class="filter-radio-item"><input type="radio" name="f-policy" value="" checked> Бүгд</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-policy" value="return_ok"> 🟢 Буцаана</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-policy" value="defect_only"> 🟡 Гэмтэлтэй бол</label>
+                  <label class="filter-radio-item"><input type="radio" name="f-policy" value="no_return"> 🔴 Буцаахгүй</label>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">Барааны нөхцөл</label>
-            <div class="filter-radio">
-              <label class="filter-radio-item"><input type="radio" name="f-condition" value="" checked> Бүгд</label>
-              <label class="filter-radio-item"><input type="radio" name="f-condition" value="new"> ✨ Шинэ</label>
-              <label class="filter-radio-item"><input type="radio" name="f-condition" value="used"> 👌 Ашиглагдсан</label>
-              <label class="filter-radio-item"><input type="radio" name="f-condition" value="refurbished"> 🔧 Засварласан</label>
-              <label class="filter-radio-item"><input type="radio" name="f-condition" value="damaged"> ⚠️ Гэмтэлтэй</label>
-            </div>
           </div>
-
-          <div class="filter-group">
-            <label class="filter-label">Буцаан авах</label>
-            <div class="filter-radio">
-              <label class="filter-radio-item"><input type="radio" name="f-policy" value="" checked> Бүгд</label>
-              <label class="filter-radio-item"><input type="radio" name="f-policy" value="return_ok"> 🟢 Буцаана</label>
-              <label class="filter-radio-item"><input type="radio" name="f-policy" value="defect_only"> 🟡 Гэмтэлтэй бол</label>
-              <label class="filter-radio-item"><input type="radio" name="f-policy" value="no_return"> 🔴 Буцаахгүй</label>
-            </div>
+          <!-- Sticky bottom actions -->
+          <div class="filter-sidebar-foot">
+            <button class="filter-btn-apply" onclick="applyFilters();closeMobileFilters()">Шүүх<span class="filter-count-badge" id="filter-count-badge">0</span></button>
+            <button class="filter-btn-reset" onclick="resetFilters()">Цэвэрлэх</button>
           </div>
-
-          <button class="filter-btn-apply" onclick="applyFilters()">Шүүлт хийх<span class="filter-count-badge" id="filter-count-badge">0</span></button>
-          <button class="filter-btn-reset" onclick="resetFilters()">Цэвэрлэх</button>
         </aside>
 
         <!-- Results -->
@@ -439,6 +470,8 @@
               <option value="price_desc">Үнэ: Их → Бага</option>
             </select>
           </div>
+          <!-- Active filter chips -->
+          <div class="active-chips" id="active-chips"></div>
           <div id="search-listings-container">
             <div class="loading-center"><div class="spinner"></div></div>
           </div>
@@ -1027,12 +1060,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=22"></script>
-<script src="js/data-manager.js?v=22"></script>
-<script src="js/auth.js?v=22"></script>
-<script src="js/listings.js?v=22"></script>
-<script src="js/upload.js?v=22"></script>
-<script src="js/admin.js?v=22"></script>
-<script src="js/main.js?v=22"></script>
+<script src="js/supabase-client.js?v=23"></script>
+<script src="js/data-manager.js?v=23"></script>
+<script src="js/auth.js?v=23"></script>
+<script src="js/listings.js?v=23"></script>
+<script src="js/upload.js?v=23"></script>
+<script src="js/admin.js?v=23"></script>
+<script src="js/main.js?v=23"></script>
 </body>
 </html>
