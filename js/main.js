@@ -58,6 +58,12 @@ function selectListingTypeNav(t) {
   );
   // Category nav + grid + sidebar dropdown-г source-оор нь сольж бөглөнө
   populateCategoryNavAndGrid();
+  if (_searchFilters.category) delete _searchFilters.category;
+  const priceMin = document.getElementById('f-price-min');
+  const priceMax = document.getElementById('f-price-max');
+  if (priceMin) priceMin.value = '';
+  if (priceMax) priceMax.value = '';
+  syncSearchTypeUI();
   // Home page-т байвал шинэчилнэ, эсрэг тохиолдолд Search руу
   const activePage = document.querySelector('.page.active')?.id;
   if (activePage === 'page-home')       initHomePage();
@@ -295,6 +301,14 @@ function buildListingCard(l) {
   const isVehicle = l.listing_type === 'vehicle';
   const vehicleTag = isVehicle ? '<div class="card-vehicle-tag">🚗 Машин</div>' : '';
   const carMeta = [l.car_make, l.car_model, yearTxt].filter(Boolean).join(' ');
+  const v = l.vehicle;
+  const vMeta = (isVehicle && v)
+    ? [
+        v.fuel_type ? `⛽ ${FILTER_LABELS['f-fuel'][v.fuel_type] || v.fuel_type}` : '',
+        v.mileage_km ? `🛣 ${Number(v.mileage_km).toLocaleString('mn-MN')} км` : '',
+        v.transmission ? FILTER_LABELS['f-trans'][v.transmission] || '' : '',
+      ].filter(Boolean).map(s => `<span>${s}</span>`).join('')
+    : '';
 
   const shopClickable = l.user_id && l.shop_name
     ? `class="card-shop clickable" onclick="event.stopPropagation();openShop('${l.user_id}')"`
@@ -311,9 +325,10 @@ function buildListingCard(l) {
         ${favBtn}
       </div>
       <div class="card-body">
-        <div class="card-price">${formatPrice(l.price)}</div>
+        <div class="card-price">${formatPriceShort(l.price)}</div>
         <div class="card-title">${escapeHtml(l.title)}</div>
         <div class="card-meta">${escapeHtml(carMeta || l.category || '')}${isVehicle ? '' : condBadge}</div>
+        ${vMeta ? `<div class="card-vmeta">${vMeta}</div>` : ''}
         <div class="card-footer">
           <span ${shopClickable}>${isVehicle ? '👤' : '🏪'} ${escapeHtml(l.shop_name || 'Хувь хүн')}${verified}</span>
           <span class="card-date">${formatDate(l.created_at)}</span>
@@ -441,18 +456,11 @@ function updateFilterCountBadge() {
   if (!badge) return;
   const f = getFilters();
   let count = 0;
-  if (f.category)                        count++;
-  if (f.subcategory)                     count++;
-  if (f.car_makes && f.car_makes.length) count += f.car_makes.length;
-  if (f.car_model)                       count++;
-  if (f.year_from)                       count++;
-  if (f.year_to)                         count++;
-  if (f.price_min)                       count++;
-  if (f.price_max)                       count++;
-  if (f.part_type)                       count++;
-  if (f.condition)                       count++;
-  if (f.exchange_policy)                 count++;
-  if (f.locations && f.locations.length) count += f.locations.length;
+  ['category','subcategory','car_model','steering','mileage_max'].forEach(k => { if (f[k]) count++; });
+  if (f.year_from || f.year_to)   count++;
+  if (f.price_min || f.price_max) count++;
+  ['car_makes','locations','part_type','condition','exchange_policy','fuel_type','transmission','drive']
+    .forEach(k => { count += (f[k] || []).length; });
   badge.textContent = count;
   badge.classList.toggle('visible', count > 0);
   const mob = document.getElementById('mobile-filter-count');
@@ -573,25 +581,121 @@ function loadMoreHome() {
 // ═══════════════════════════════════════════════════════════
 async function initSearchPage() {
   _searchPage = 0;
+  populateYearSelects();
+  wireFilterAutoApply();
+  syncSearchTypeUI();
+  _catCountCache = {};
   await loadSearchResults(true);
 }
 
+// ── Label maps (chips, active filters) ───────────────────
+const FILTER_LABELS = {
+  'f-type':      { original: 'Оригинал', substitute: 'Орлуулах' },
+  'f-condition': { new: '✨ Шинэ', used: '👌 Хэрэглэсэн', refurbished: '🔧 Засварласан', damaged: '⚠️ Гэмтэлтэй' },
+  'f-policy':    { return_ok: '🟢 Буцаана', defect_only: '🟡 Гэмтэлтэй бол', no_return: '🔴 Буцаахгүй' },
+  'f-fuel':      { petrol: 'Бензин', hybrid: 'Хайбрид', diesel: 'Дизель', electric: 'Цахилгаан', gas: 'Хий', other: 'Бусад' },
+  'f-trans':     { auto: 'Автомат', manual: 'Механик', auto_manual: 'Автомат (+/-)', cvt: 'CVT', other: 'Бусад' },
+  'f-drive':     { fwd: 'Урдаа FWD', rwd: 'Хойноо RWD', awd: 'Бүх дугуй AWD', '4wd': '4WD', other: 'Бусад' },
+  'f-steering':  { left: 'Зөв хүрд', right: 'Буруу хүрд' },
+};
+
+// ── Price presets (сэлбэг / машин өөр) ───────────────────
+const PRICE_PRESETS = {
+  part: [
+    { label: '50 мянга хүртэл',   min: '',       max: 50000 },
+    { label: '50–200 мянга',      min: 50000,    max: 200000 },
+    { label: '200 мянга–1 сая',   min: 200000,   max: 1000000 },
+    { label: '1 саяас дээш',      min: 1000000,  max: '' },
+  ],
+  vehicle: [
+    { label: '10 сая хүртэл',     min: '',        max: 10000000 },
+    { label: '10–30 сая',         min: 10000000,  max: 30000000 },
+    { label: '30–60 сая',         min: 30000000,  max: 60000000 },
+    { label: '60–100 сая',        min: 60000000,  max: 100000000 },
+    { label: '100 саяас дээш',    min: 100000000, max: '' },
+  ],
+};
+
+function renderPricePresets() {
+  const wrap = document.getElementById('f-price-presets');
+  if (!wrap) return;
+  const list = PRICE_PRESETS[_listingTypeNav] || PRICE_PRESETS.part;
+  const curMin = document.getElementById('f-price-min').value;
+  const curMax = document.getElementById('f-price-max').value;
+  wrap.innerHTML = list.map((p, i) => {
+    const active = String(p.min) === curMin && String(p.max) === curMax && (curMin || curMax);
+    return `<button type="button" class="chip-btn${active ? ' active' : ''}" onclick="setPricePreset(${i})">${p.label}</button>`;
+  }).join('');
+}
+
+function setPricePreset(i) {
+  const p = (PRICE_PRESETS[_listingTypeNav] || PRICE_PRESETS.part)[i];
+  if (!p) return;
+  const minEl = document.getElementById('f-price-min');
+  const maxEl = document.getElementById('f-price-max');
+  const already = minEl.value === String(p.min) && maxEl.value === String(p.max);
+  minEl.value = already ? '' : p.min;
+  maxEl.value = already ? '' : p.max;
+  renderPricePresets();
+  applyFilters();
+}
+
+// ── Year selects ──────────────────────────────────────────
+let _yearSelectsReady = false;
+function populateYearSelects() {
+  if (_yearSelectsReady) return;
+  const now = new Date().getFullYear() + 1;
+  const opts = [];
+  for (let y = now; y >= 1980; y--) opts.push(`<option value="${y}">${y}</option>`);
+  document.getElementById('f-year-from').insertAdjacentHTML('beforeend', opts.join(''));
+  document.getElementById('f-year-to').insertAdjacentHTML('beforeend', opts.join(''));
+  _yearSelectsReady = true;
+}
+
+// ── Part / Vehicle-д тохирох sidebar ─────────────────────
+function syncSearchTypeUI() {
+  const page = document.getElementById('page-search');
+  if (page) page.dataset.lt = _listingTypeNav;
+  const yl = document.getElementById('f-year-label');
+  if (yl) yl.textContent = _listingTypeNav === 'vehicle' ? 'Үйлдвэрлэсэн он' : 'Таарах он';
+  renderPricePresets();
+}
+
+// ── Chip/select өөрчлөгдөхөд шууд шүүнэ ─────────────────
+let _autoApplyTimer = null;
+function wireFilterAutoApply() {
+  const side = document.getElementById('filter-sidebar');
+  if (!side || side.dataset.autoWired) return;
+  side.dataset.autoWired = '1';
+  side.addEventListener('change', e => {
+    if (e.target.id === 'f-category') return; // onSearchCategoryChange өөрөө шийднэ
+    if (e.target.id === 'f-price-min' || e.target.id === 'f-price-max') renderPricePresets();
+    clearTimeout(_autoApplyTimer);
+    _autoApplyTimer = setTimeout(applyFilters, 250);
+  });
+}
+
 function getFilters() {
-  const makes = Array.from(document.querySelectorAll('input[name="f-make-cb"]:checked')).map(i => i.value);
-  const locs  = Array.from(document.querySelectorAll('input[name="f-loc-cb"]:checked')).map(i => i.value);
+  const isV  = _listingTypeNav === 'vehicle';
+  const vals = name => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(i => i.value).filter(Boolean);
   return {
     category:        document.getElementById('f-category').value,
     subcategory:     document.getElementById('f-subcategory')?.value || '',
-    car_makes:       makes,
+    car_makes:       vals('f-make-cb'),
     car_model:       document.getElementById('f-model').value.trim(),
     year_from:       document.getElementById('f-year-from').value,
     year_to:         document.getElementById('f-year-to').value,
     price_min:       document.getElementById('f-price-min').value,
     price_max:       document.getElementById('f-price-max').value,
-    part_type:       document.querySelector('input[name="f-type"]:checked')?.value || '',
-    condition:       document.querySelector('input[name="f-condition"]:checked')?.value || '',
-    exchange_policy: document.querySelector('input[name="f-policy"]:checked')?.value || '',
-    locations:       locs,
+    part_type:       isV ? [] : vals('f-type'),
+    condition:       isV ? [] : vals('f-condition'),
+    exchange_policy: isV ? [] : vals('f-policy'),
+    fuel_type:       isV ? vals('f-fuel')  : [],
+    transmission:    isV ? vals('f-trans') : [],
+    drive:           isV ? vals('f-drive') : [],
+    steering:        isV ? (document.querySelector('input[name="f-steering"]:checked')?.value || '') : '',
+    mileage_max:     isV ? (document.getElementById('f-mileage-max')?.value || '') : '',
+    locations:       vals('f-loc-cb'),
     sort:            document.getElementById('sort-select').value,
   };
 }
@@ -611,7 +715,6 @@ function toggleFilterExpand(wrapId, btn) {
 function toggleFilterSection(btn) {
   const section = btn.closest('.filter-section');
   if (!section) return;
-  // Үндсэн хэсгийг хураахыг хориглоно
   if (section.dataset.section === 'essential') return;
   section.classList.toggle('collapsed');
 }
@@ -634,45 +737,88 @@ function renderActiveChips() {
   if (!el) return;
   const f = getFilters();
   const chips = [];
+  const add = (label, kind, value = '') => chips.push({ label, kind, value });
+  const fmt = n => Number(n).toLocaleString('mn-MN');
 
-  const addChip = (label, action) => chips.push({ label, action });
-
-  if (f.category)    addChip(`Ангилал: ${f.category}`, `document.getElementById('f-category').value='';onSearchCategoryChange();applyFilters();`);
-  if (f.subcategory) addChip(`Дэд: ${f.subcategory}`, `document.getElementById('f-subcategory').value='';applyFilters();`);
-  (f.car_makes || []).forEach(m => addChip(m, `document.querySelector('input[name="f-make-cb"][value="${m}"]').checked=false;applyFilters();`));
-  (f.locations || []).forEach(k => {
-    const label = (typeof locationLabel === 'function') ? locationLabel(k) : k;
-    addChip(label, `document.querySelector('input[name="f-loc-cb"][value="${k}"]').checked=false;applyFilters();`);
+  if (_searchFilters.keyword) add(`"${_searchFilters.keyword}"`, 'keyword');
+  if (f.category)    add(f.category, 'category');
+  if (f.subcategory) add(f.subcategory, 'subcategory');
+  f.car_makes.forEach(m => add(m, 'f-make-cb', m));
+  f.locations.forEach(k => add(typeof locationLabel === 'function' ? locationLabel(k) : k, 'f-loc-cb', k));
+  if (f.car_model) add(`Загвар: ${f.car_model}`, 'model');
+  if (f.year_from || f.year_to) add(`Он: ${f.year_from || '…'}–${f.year_to || '…'}`, 'year');
+  if (f.price_min || f.price_max) add(`Үнэ: ${f.price_min ? fmt(f.price_min) : '…'}–${f.price_max ? fmt(f.price_max) : '…'}₮`, 'price');
+  ['f-type','f-condition','f-policy','f-fuel','f-trans','f-drive'].forEach(name => {
+    const key = { 'f-type':'part_type','f-condition':'condition','f-policy':'exchange_policy','f-fuel':'fuel_type','f-trans':'transmission','f-drive':'drive' }[name];
+    (f[key] || []).forEach(v => add(FILTER_LABELS[name][v] || v, name, v));
   });
-  if (f.car_model) addChip(`Загвар: ${f.car_model}`, `document.getElementById('f-model').value='';applyFilters();`);
-  if (f.year_from || f.year_to) {
-    const txt = `Он: ${f.year_from || '…'}—${f.year_to || '…'}`;
-    addChip(txt, `document.getElementById('f-year-from').value='';document.getElementById('f-year-to').value='';applyFilters();`);
-  }
-  if (f.price_min || f.price_max) {
-    const txt = `Үнэ: ${f.price_min || '…'}—${f.price_max || '…'}₮`;
-    addChip(txt, `document.getElementById('f-price-min').value='';document.getElementById('f-price-max').value='';applyFilters();`);
-  }
-  if (f.part_type) {
-    const map = { original: 'Оригинал', substitute: 'Орлуулах' };
-    addChip(map[f.part_type] || f.part_type,
-      `document.querySelector('input[name="f-type"][value=""]').checked=true;applyFilters();`);
-  }
-  if (f.condition) {
-    const map = { new: '✨ Шинэ', used: '👌 Ашиглагдсан', refurbished: '🔧 Засварласан', damaged: '⚠️ Гэмтэлтэй' };
-    addChip(map[f.condition] || f.condition,
-      `document.querySelector('input[name="f-condition"][value=""]').checked=true;applyFilters();`);
-  }
-  if (f.exchange_policy) {
-    const map = { return_ok: '🟢 Буцаана', defect_only: '🟡 Гэмтэлтэй бол', no_return: '🔴 Буцаахгүй' };
-    addChip(map[f.exchange_policy] || f.exchange_policy,
-      `document.querySelector('input[name="f-policy"][value=""]').checked=true;applyFilters();`);
-  }
+  if (f.steering)    add(FILTER_LABELS['f-steering'][f.steering], 'steering');
+  if (f.mileage_max) add(`${fmt(f.mileage_max)} км хүртэл`, 'mileage');
 
   if (!chips.length) { el.innerHTML = ''; return; }
   el.innerHTML = chips.map(c =>
-    `<span class="active-chip"><strong>${c.label}</strong><span class="chip-remove" onclick="${c.action}">✕</span></span>`
+    `<span class="active-chip"><strong>${escapeHtml(c.label)}</strong><span class="chip-remove" onclick="removeFilter('${c.kind}','${encodeURIComponent(c.value)}')">✕</span></span>`
   ).join('') + `<span class="active-chip chip-clear-all" onclick="resetFilters()">Бүгдийг арилгах</span>`;
+}
+
+function removeFilter(kind, enc) {
+  const v = decodeURIComponent(enc || '');
+  const set = (id, val = '') => { const el = document.getElementById(id); if (el) el.value = val; };
+  switch (kind) {
+    case 'keyword':     delete _searchFilters.keyword; set('header-search-input'); break;
+    case 'category':    set('f-category'); onSearchCategoryChange(); break;
+    case 'subcategory': set('f-subcategory'); break;
+    case 'model':       set('f-model'); break;
+    case 'year':        set('f-year-from'); set('f-year-to'); break;
+    case 'price':       set('f-price-min'); set('f-price-max'); renderPricePresets(); break;
+    case 'mileage':     set('f-mileage-max'); break;
+    case 'steering': {
+      const r = document.querySelector('input[name="f-steering"][value=""]'); if (r) r.checked = true; break;
+    }
+    default: {
+      const cb = document.querySelector(`input[name="${kind}"][value="${CSS.escape(v)}"]`);
+      if (cb) cb.checked = false;
+    }
+  }
+  applyFilters();
+}
+
+// ── Category quick chips (тоотой) ────────────────────────
+let _catCountCache = {};
+async function renderCategoryChips() {
+  const el = document.getElementById('category-chips');
+  if (!el) return;
+  const type = _listingTypeNav;
+  if (!_catCountCache[type]) _catCountCache[type] = await fetchCategoryCounts(type);
+  const counts = _catCountCache[type] || {};
+  const source = type === 'vehicle' ? getVehicleCategories() : getMainCategories();
+  const cur = document.getElementById('f-category').value;
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  el.innerHTML =
+    `<button type="button" class="category-chip${!cur ? ' active' : ''}" onclick="selectCategoryChip('')">Бүгд <span class="cc-count">${total}</span></button>` +
+    source.map(c => {
+      const n = counts[c.name] || 0;
+      return `<button type="button" class="category-chip${cur === c.name ? ' active' : ''}" onclick="selectCategoryChip('${c.name.replace(/'/g, "\\'")}')">${c.icon} ${escapeHtml(c.name)} <span class="cc-count">${n}</span></button>`;
+    }).join('');
+}
+
+function selectCategoryChip(name) {
+  document.getElementById('f-category').value = name;
+  onSearchCategoryChange();
+  applyFilters();
+}
+
+// ── Breadcrumb + title ───────────────────────────────────
+function renderResultsHeader(count) {
+  const typeLabel = _listingTypeNav === 'vehicle' ? 'Авто зар' : 'Сэлбэг';
+  const cat = document.getElementById('f-category').value;
+  const bc = document.getElementById('results-breadcrumb');
+  if (bc) {
+    bc.innerHTML = `<a onclick="showPage('home')">Нүүр</a> › <a onclick="selectCategoryChip('')">${typeLabel}</a>` +
+      (cat ? ` › ${escapeHtml(cat)}` : '');
+  }
+  document.getElementById('results-count').innerHTML =
+    `<h1 class="results-title">${escapeHtml(cat || typeLabel)}</h1><span class="results-title-count">${Number(count).toLocaleString('mn-MN')} зар</span>`;
 }
 
 async function loadSearchResults(reset = false) {
@@ -681,8 +827,10 @@ async function loadSearchResults(reset = false) {
     renderSkeletons('search-listings-container', 8);
     document.getElementById('results-count').textContent = 'Хайж байна...';
   }
+  syncSearchTypeUI();
   updateFilterCountBadge();
   renderActiveChips();
+  renderCategoryChips();
   try {
     const filters = { ...getFilters(), ..._searchFilters, page: _searchPage, withCount: reset, listing_type: _listingTypeNav };
     const res = await fetchListings(filters);
@@ -692,42 +840,33 @@ async function loadSearchResults(reset = false) {
     const container = document.getElementById('search-listings-container');
     if (reset) {
       renderGrid(listings, 'search-listings-container', { emptyType: 'search' });
-      document.getElementById('results-count').innerHTML =
-        `<strong>${_searchTotalCount || listings.length}</strong> зар олдлоо`;
+      renderResultsHeader(_searchTotalCount || listings.length);
     } else {
       const grid = container.querySelector('.listing-grid');
       if (grid) grid.insertAdjacentHTML('beforeend', listings.map(buildListingCard).join(''));
     }
     updateLoadMoreButton('search-load-more', _searchPage, _searchTotalCount, listings.length);
   } catch(e) {
+    console.error('Search failed:', e);
     document.getElementById('search-listings-container').innerHTML = renderEmptyState('error');
   }
 }
 
 function applyFilters() {
-  _searchFilters = {};
+  // Хайлтын түлхүүр үгийг хадгална, бусад түр шүүлтийг sidebar-аас уншина
+  _searchFilters = _searchFilters.keyword ? { keyword: _searchFilters.keyword } : {};
   loadSearchResults(true);
 }
 
 function resetFilters() {
-  document.getElementById('f-category').value = '';
-  document.getElementById('f-model').value = '';
-  document.getElementById('f-year-from').value = '';
-  document.getElementById('f-year-to').value = '';
-  document.getElementById('f-price-min').value = '';
-  document.getElementById('f-price-max').value = '';
-  document.querySelector('input[name="f-type"]').checked = true;
-  const firstPolicy = document.querySelector('input[name="f-policy"]');
-  if (firstPolicy) firstPolicy.checked = true;
-  const firstCond = document.querySelector('input[name="f-condition"]');
-  if (firstCond) firstCond.checked = true;
-  const subEl = document.getElementById('f-subcategory');
-  if (subEl) subEl.value = '';
+  ['f-category','f-subcategory','f-model','f-year-from','f-year-to','f-price-min','f-price-max','f-mileage-max']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('f-subcategory-group').style.display = 'none';
-  document.querySelectorAll('input[name="f-make-cb"]').forEach(cb => cb.checked = false);
-  document.querySelectorAll('input[name="f-loc-cb"]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#filter-sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
+  const st = document.querySelector('input[name="f-steering"][value=""]'); if (st) st.checked = true;
   document.getElementById('sort-select').value = 'newest';
   _searchFilters = {};
+  renderPricePresets();
   loadSearchResults(true);
 }
 

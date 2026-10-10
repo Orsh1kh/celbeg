@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=24">
+<link rel="stylesheet" href="css/style.css?v=25">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -373,10 +373,8 @@
           </div>
           <div class="filter-sidebar-body">
 
-          <!-- ═══ Үндсэн шүүлт (always open) ═══ -->
+          <!-- ═══ Үндсэн (always open) ═══ -->
           <div class="filter-section" data-section="essential">
-            <div class="filter-section-head">Үндсэн шүүлт</div>
-
             <div class="filter-group">
               <label class="filter-label">Ангилал</label>
               <select class="filter-select" id="f-category" data-dropdown="category" onchange="onSearchCategoryChange()"><option value="">Бүгд</option></select>
@@ -386,15 +384,113 @@
               <select class="filter-select" id="f-subcategory"><option value="">Бүгд</option></select>
             </div>
             <div class="filter-group">
-              <label class="filter-label">Машины марк</label>
+              <label class="filter-label">Үнэ</label>
+              <div class="chip-group" id="f-price-presets"></div>
+              <div class="filter-range" style="margin-top:8px">
+                <input class="filter-input" id="f-price-min" type="number" min="0" placeholder="Доод ₮">
+                <input class="filter-input" id="f-price-max" type="number" min="0" placeholder="Дээд ₮">
+              </div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label" id="f-year-label">Он</label>
+              <div class="filter-range">
+                <select class="filter-select" id="f-year-from"><option value="">Хэзээнээс</option></select>
+                <select class="filter-select" id="f-year-to"><option value="">Хүртэл</option></select>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Марк</label>
               <div class="filter-checklist collapsed" id="f-makes-wrap"></div>
               <button type="button" class="filter-expand-btn" onclick="toggleFilterExpand('f-makes-wrap', this)">Бүгдийг харах ▾</button>
             </div>
-            <div class="filter-group">
-              <label class="filter-label">Үнэ (₮)</label>
-              <div class="filter-range">
-                <input class="filter-input" id="f-price-min" type="number" placeholder="Доод">
-                <input class="filter-input" id="f-price-max" type="number" placeholder="Дээд">
+          </div>
+
+          <!-- ═══ Машинд зориулсан (vehicle mode only) ═══ -->
+          <div class="filter-section" data-section="vehicle">
+            <button type="button" class="filter-section-head" onclick="toggleFilterSection(this)">
+              <span>🚗 Машины үзүүлэлт</span>
+              <span class="section-chevron">▾</span>
+            </button>
+            <div class="filter-section-body">
+              <div class="filter-group">
+                <label class="filter-label">Хөдөлгүүрийн төрөл</label>
+                <div class="chip-group">
+                  <label class="chip"><input type="checkbox" name="f-fuel" value="petrol"><span>Бензин</span></label>
+                  <label class="chip"><input type="checkbox" name="f-fuel" value="hybrid"><span>Хайбрид</span></label>
+                  <label class="chip"><input type="checkbox" name="f-fuel" value="diesel"><span>Дизель</span></label>
+                  <label class="chip"><input type="checkbox" name="f-fuel" value="electric"><span>Цахилгаан</span></label>
+                  <label class="chip"><input type="checkbox" name="f-fuel" value="gas"><span>Хий</span></label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Хурдны хайрцаг</label>
+                <div class="chip-group">
+                  <label class="chip"><input type="checkbox" name="f-trans" value="auto"><span>Автомат</span></label>
+                  <label class="chip"><input type="checkbox" name="f-trans" value="manual"><span>Механик</span></label>
+                  <label class="chip"><input type="checkbox" name="f-trans" value="auto_manual"><span>Автомат (+/-)</span></label>
+                  <label class="chip"><input type="checkbox" name="f-trans" value="cvt"><span>CVT</span></label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Жолооны хүрд</label>
+                <div class="chip-group">
+                  <label class="chip"><input type="radio" name="f-steering" value="" checked><span>Бүгд</span></label>
+                  <label class="chip"><input type="radio" name="f-steering" value="left"><span>Зөв</span></label>
+                  <label class="chip"><input type="radio" name="f-steering" value="right"><span>Буруу</span></label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Хөтлөгч</label>
+                <div class="chip-group">
+                  <label class="chip"><input type="checkbox" name="f-drive" value="fwd"><span>Урдаа FWD</span></label>
+                  <label class="chip"><input type="checkbox" name="f-drive" value="rwd"><span>Хойноо RWD</span></label>
+                  <label class="chip"><input type="checkbox" name="f-drive" value="awd"><span>Бүх дугуй AWD</span></label>
+                  <label class="chip"><input type="checkbox" name="f-drive" value="4wd"><span>4WD</span></label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Явсан км</label>
+                <select class="filter-select" id="f-mileage-max">
+                  <option value="">Бүгд</option>
+                  <option value="30000">30,000 км хүртэл</option>
+                  <option value="80000">80,000 км хүртэл</option>
+                  <option value="150000">150,000 км хүртэл</option>
+                  <option value="250000">250,000 км хүртэл</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ Сэлбэгт зориулсан (part mode only) ═══ -->
+          <div class="filter-section" data-section="part">
+            <button type="button" class="filter-section-head" onclick="toggleFilterSection(this)">
+              <span>🔩 Сэлбэгийн үзүүлэлт</span>
+              <span class="section-chevron">▾</span>
+            </button>
+            <div class="filter-section-body">
+              <div class="filter-group">
+                <label class="filter-label">Сэлбэгийн төрөл</label>
+                <div class="chip-group">
+                  <label class="chip"><input type="checkbox" name="f-type" value="original"><span>✅ Оригинал</span></label>
+                  <label class="chip"><input type="checkbox" name="f-type" value="substitute"><span>🔄 Орлуулах</span></label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Барааны нөхцөл</label>
+                <div class="chip-group">
+                  <label class="chip"><input type="checkbox" name="f-condition" value="new"><span>✨ Шинэ</span></label>
+                  <label class="chip"><input type="checkbox" name="f-condition" value="used"><span>👌 Хэрэглэсэн</span></label>
+                  <label class="chip"><input type="checkbox" name="f-condition" value="refurbished"><span>🔧 Засварласан</span></label>
+                  <label class="chip"><input type="checkbox" name="f-condition" value="damaged"><span>⚠️ Гэмтэлтэй</span></label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">Буцаан авах</label>
+                <div class="chip-group">
+                  <label class="chip"><input type="checkbox" name="f-policy" value="return_ok"><span>🟢 Буцаана</span></label>
+                  <label class="chip"><input type="checkbox" name="f-policy" value="defect_only"><span>🟡 Гэмтэлтэй бол</span></label>
+                  <label class="chip"><input type="checkbox" name="f-policy" value="no_return"><span>🔴 Буцаахгүй</span></label>
+                </div>
               </div>
             </div>
           </div>
@@ -413,50 +509,15 @@
             </div>
           </div>
 
-          <!-- ═══ Дэлгэрэнгүй ═══ -->
+          <!-- ═══ Бусад ═══ -->
           <div class="filter-section collapsed" data-section="advanced">
             <button type="button" class="filter-section-head" onclick="toggleFilterSection(this)">
-              <span>🔧 Дэлгэрэнгүй</span>
+              <span>🔎 Загвараар хайх</span>
               <span class="section-chevron">▾</span>
             </button>
             <div class="filter-section-body">
               <div class="filter-group">
-                <label class="filter-label">Загвар</label>
-                <input class="filter-input" id="f-model" type="text" placeholder="жш: Camry, X5...">
-              </div>
-              <div class="filter-group">
-                <label class="filter-label">Он (хугацаа)</label>
-                <div class="filter-range">
-                  <input class="filter-input" id="f-year-from" type="number" placeholder="2010" min="1990" max="2025">
-                  <input class="filter-input" id="f-year-to"   type="number" placeholder="2024" min="1990" max="2025">
-                </div>
-              </div>
-              <div class="filter-group">
-                <label class="filter-label">Сэлбэгийн төрөл</label>
-                <div class="filter-radio">
-                  <label class="filter-radio-item"><input type="radio" name="f-type" value=""> Бүгд</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-type" value="original"> Оригинал</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-type" value="substitute"> Орлуулах</label>
-                </div>
-              </div>
-              <div class="filter-group">
-                <label class="filter-label">Барааны нөхцөл</label>
-                <div class="filter-radio">
-                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="" checked> Бүгд</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="new"> ✨ Шинэ</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="used"> 👌 Ашиглагдсан</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="refurbished"> 🔧 Засварласан</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-condition" value="damaged"> ⚠️ Гэмтэлтэй</label>
-                </div>
-              </div>
-              <div class="filter-group">
-                <label class="filter-label">Буцаан авах</label>
-                <div class="filter-radio">
-                  <label class="filter-radio-item"><input type="radio" name="f-policy" value="" checked> Бүгд</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-policy" value="return_ok"> 🟢 Буцаана</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-policy" value="defect_only"> 🟡 Гэмтэлтэй бол</label>
-                  <label class="filter-radio-item"><input type="radio" name="f-policy" value="no_return"> 🔴 Буцаахгүй</label>
-                </div>
+                <input class="filter-input" id="f-model" type="text" placeholder="жш: Camry, Prius, X5...">
               </div>
             </div>
           </div>
@@ -464,13 +525,14 @@
           </div>
           <!-- Sticky bottom actions -->
           <div class="filter-sidebar-foot">
-            <button class="filter-btn-apply" onclick="applyFilters();closeMobileFilters()">Шүүх<span class="filter-count-badge" id="filter-count-badge">0</span></button>
+            <button class="filter-btn-apply" onclick="applyFilters();closeMobileFilters()">Үр дүн харах<span class="filter-count-badge" id="filter-count-badge">0</span></button>
             <button class="filter-btn-reset" onclick="resetFilters()">Цэвэрлэх</button>
           </div>
         </aside>
 
         <!-- Results -->
         <div class="search-main">
+          <div class="results-breadcrumb" id="results-breadcrumb"></div>
           <div class="results-header">
             <div class="results-count" id="results-count">Хайж байна...</div>
             <select class="sort-select" id="sort-select" onchange="applyFilters()">
@@ -479,6 +541,8 @@
               <option value="price_desc">Үнэ: Их → Бага</option>
             </select>
           </div>
+          <!-- Category quick chips with counts -->
+          <div class="category-chips" id="category-chips"></div>
           <!-- Active filter chips -->
           <div class="active-chips" id="active-chips"></div>
           <div id="search-listings-container">
@@ -1079,12 +1143,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=24"></script>
-<script src="js/data-manager.js?v=24"></script>
-<script src="js/auth.js?v=24"></script>
-<script src="js/listings.js?v=24"></script>
-<script src="js/upload.js?v=24"></script>
-<script src="js/admin.js?v=24"></script>
-<script src="js/main.js?v=24"></script>
+<script src="js/supabase-client.js?v=25"></script>
+<script src="js/data-manager.js?v=25"></script>
+<script src="js/auth.js?v=25"></script>
+<script src="js/listings.js?v=25"></script>
+<script src="js/upload.js?v=25"></script>
+<script src="js/admin.js?v=25"></script>
+<script src="js/main.js?v=25"></script>
 </body>
 </html>

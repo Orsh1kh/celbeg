@@ -67,65 +67,144 @@ function _buildLocationOr(locKeys) {
   return { parts, knownPatterns, hasOther };
 }
 
-async function fetchListings({ listing_type='part', category='', subcategory='', car_makes=[], car_model='', year_from='', year_to='', price_min='', price_max='', part_type='', condition='', exchange_policy='', locations=[], keyword='', sort='newest', page=0, withCount=false } = {}) {
+function _arr(v) {
+  if (Array.isArray(v)) return v.filter(Boolean);
+  return v ? [v] : [];
+}
+
+let _vehicleEmbedSupported = true;  // vehicle_details хүснэгт байхгүй бол false болно
+
+async function fetchListings(f = {}) {
+  const {
+    listing_type = 'part', category = '', subcategory = '', car_makes = [], car_model = '',
+    year_from = '', year_to = '', price_min = '', price_max = '', locations = [],
+    keyword = '', sort = 'newest', page = 0, withCount = false,
+    mileage_max = '', steering = '',
+  } = f;
+  const part_types   = _arr(f.part_type);
+  const conditions   = _arr(f.condition);
+  const policies     = _arr(f.exchange_policy);
+  const fuels        = _arr(f.fuel_type);
+  const transmissions= _arr(f.transmission);
+  const drives       = _arr(f.drive);
+
+  const norm = { ...f, listing_type, part_types, conditions, policies, fuels, transmissions, drives, mileage_max, steering };
+
   if (DEMO_MODE) {
-    const data = _filterDemo({ listing_type, category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword, sort, page });
-    if (withCount) return { data, count: _countDemo({ listing_type, category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword }) };
+    const data = _filterDemo({ ...norm, sort, page });
+    if (withCount) return { data, count: _countDemo(norm) };
     return data;
   }
 
-  const selectOpts = withCount ? { count: 'exact' } : undefined;
-  let q = sb.from('listings').select('*', selectOpts).eq('is_active', true).or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+  const isVehicle   = listing_type === 'vehicle';
+  const needVFilter = isVehicle && (fuels.length || transmissions.length || drives.length || mileage_max || steering);
 
-  if (listing_type)           q = q.eq('listing_type', listing_type);
-  if (category)               q = q.eq('category', category);
-  if (subcategory)            q = q.eq('subcategory', subcategory);
-  if (car_makes && car_makes.length) q = q.in('car_make', car_makes);
-  if (car_model)              q = q.ilike('car_model', `%${car_model}%`);
-  if (year_from)              q = q.gte('year_to', parseInt(year_from));
-  if (year_to)                q = q.lte('year_from', parseInt(year_to));
-  if (price_min)              q = q.gte('price', parseInt(price_min));
-  if (price_max)              q = q.lte('price', parseInt(price_max));
-  if (part_type)              q = q.eq('part_type', part_type);
-  if (condition)              q = q.eq('condition', condition);
-  if (exchange_policy)        q = q.eq('exchange_policy', exchange_policy);
-  if (keyword)                q = q.ilike('title', `%${keyword}%`);
+  const build = (withEmbed) => {
+    let sel = '*';
+    if (withEmbed && isVehicle) {
+      sel = needVFilter
+        ? '*, vehicle_details!inner(fuel_type,transmission,drive,steering,mileage_km,engine_cc)'
+        : '*, vehicle_details(fuel_type,transmission,drive,steering,mileage_km,engine_cc)';
+    }
+    const selectOpts = withCount ? { count: 'exact' } : undefined;
+    let q = sb.from('listings').select(sel, selectOpts).eq('is_active', true)
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
-  if (locations && locations.length) {
-    const { parts } = _buildLocationOr(locations);
-    if (parts.length) q = q.or(parts.join(','));
+    if (listing_type)        q = q.eq('listing_type', listing_type);
+    if (category)            q = q.eq('category', category);
+    if (subcategory)         q = q.eq('subcategory', subcategory);
+    if (car_makes.length)    q = q.in('car_make', car_makes);
+    if (car_model)           q = q.ilike('car_model', `%${car_model}%`);
+    if (year_from)           q = q.gte('year_to', parseInt(year_from));
+    if (year_to)             q = q.lte('year_from', parseInt(year_to));
+    if (price_min)           q = q.gte('price', parseInt(price_min));
+    if (price_max)           q = q.lte('price', parseInt(price_max));
+    if (part_types.length)   q = q.in('part_type', part_types);
+    if (conditions.length)   q = q.in('condition', conditions);
+    if (policies.length)     q = q.in('exchange_policy', policies);
+    if (keyword)             q = q.ilike('title', `%${keyword}%`);
+
+    if (withEmbed && needVFilter) {
+      if (fuels.length)         q = q.in('vehicle_details.fuel_type', fuels);
+      if (transmissions.length) q = q.in('vehicle_details.transmission', transmissions);
+      if (drives.length)        q = q.in('vehicle_details.drive', drives);
+      if (steering)             q = q.eq('vehicle_details.steering', steering);
+      if (mileage_max)          q = q.lte('vehicle_details.mileage_km', parseInt(mileage_max));
+    }
+
+    if (locations.length) {
+      const { parts } = _buildLocationOr(locations);
+      if (parts.length) q = q.or(parts.join(','));
+    }
+
+    if (sort === 'price_asc')       q = q.order('price', { ascending: true });
+    else if (sort === 'price_desc') q = q.order('price', { ascending: false });
+    else                            q = q.order('created_at', { ascending: false });
+
+    return q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+  };
+
+  let res = await build(_vehicleEmbedSupported);
+  if (res.error && _vehicleEmbedSupported && isVehicle) {
+    // vehicle_details хүснэгт/холбоос байхгүй (007 migration ажиллаагүй) → embed-гүй дахин оролдоно
+    _vehicleEmbedSupported = false;
+    res = await build(false);
   }
+  if (res.error) throw res.error;
 
-  if (sort === 'price_asc')       q = q.order('price', { ascending: true });
-  else if (sort === 'price_desc') q = q.order('price', { ascending: false });
-  else                            q = q.order('created_at', { ascending: false });
+  const rows = (res.data || []).map(r => {
+    if (r.vehicle_details !== undefined) {
+      r.vehicle = Array.isArray(r.vehicle_details) ? r.vehicle_details[0] : r.vehicle_details;
+      delete r.vehicle_details;
+    }
+    return r;
+  });
+  if (withCount) return { data: rows, count: res.count || 0 };
+  return rows;
+}
 
-  q = q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-  const { data, error, count } = await q;
-  if (error) throw error;
-  if (withCount) return { data: data || [], count: count || 0 };
-  return data || [];
+// ── Ангилал бүрийн зарын тоо (chip-үүдэд) ────────────────
+async function fetchCategoryCounts(listing_type = 'part') {
+  if (DEMO_MODE || !sb) {
+    const out = {};
+    DEMO_LISTINGS.filter(l => (l.listing_type || 'part') === listing_type)
+      .forEach(l => { if (l.category) out[l.category] = (out[l.category] || 0) + 1; });
+    return out;
+  }
+  try {
+    const { data, error } = await sb.rpc('category_counts', { lt: listing_type });
+    if (error) throw error;
+    const out = {};
+    (data || []).forEach(r => { out[r.category] = Number(r.cnt); });
+    return out;
+  } catch {
+    return {};
+  }
 }
 
 function _countDemo(f) {
   return _filterDemoAll(f).length;
 }
 
-function _filterDemoAll({ listing_type, category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_type, condition, exchange_policy, locations, keyword }) {
+function _filterDemoAll({ listing_type, category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_types = [], conditions = [], policies = [], fuels = [], transmissions = [], drives = [], mileage_max, steering, locations, keyword }) {
   let list = [...DEMO_LISTINGS];
   if (listing_type) list = list.filter(l => (l.listing_type || 'part') === listing_type);
   if (category)    list = list.filter(l => l.category === category);
   if (subcategory) list = list.filter(l => l.subcategory === subcategory);
   if (car_makes && car_makes.length) list = list.filter(l => car_makes.includes(l.car_make));
-  if (car_model) list = list.filter(l => l.car_model.toLowerCase().includes(car_model.toLowerCase()));
+  if (car_model) list = list.filter(l => (l.car_model || '').toLowerCase().includes(car_model.toLowerCase()));
   if (year_from) list = list.filter(l => l.year_to >= parseInt(year_from));
   if (year_to)   list = list.filter(l => l.year_from <= parseInt(year_to));
   if (price_min) list = list.filter(l => l.price >= parseInt(price_min));
   if (price_max) list = list.filter(l => l.price <= parseInt(price_max));
-  if (part_type) list = list.filter(l => l.part_type === part_type);
-  if (condition) list = list.filter(l => l.condition === condition);
-  if (exchange_policy) list = list.filter(l => l.exchange_policy === exchange_policy);
+  if (part_types.length) list = list.filter(l => part_types.includes(l.part_type));
+  if (conditions.length) list = list.filter(l => conditions.includes(l.condition));
+  if (policies.length)   list = list.filter(l => policies.includes(l.exchange_policy));
+  if (fuels.length)         list = list.filter(l => fuels.includes(l.vehicle?.fuel_type));
+  if (transmissions.length) list = list.filter(l => transmissions.includes(l.vehicle?.transmission));
+  if (drives.length)        list = list.filter(l => drives.includes(l.vehicle?.drive));
+  if (steering)             list = list.filter(l => l.vehicle?.steering === steering);
+  if (mileage_max)          list = list.filter(l => (l.vehicle?.mileage_km || 0) <= parseInt(mileage_max));
   if (locations && locations.length) {
     list = list.filter(l => {
       const loc = (l.location || '').toLowerCase();
@@ -390,8 +469,18 @@ function _filterDemo(f) {
 
 // ── Helpers ─────────────────────────────────────────────────
 function formatPrice(p) {
-  if (!p && p !== 0) return 'Үнэ тохиролцоно';
+  if (!p || Number(p) <= 0) return 'Үнэ тохиролцоно';
   return Number(p).toLocaleString('mn-MN') + '₮';
+}
+
+// Картанд: 47,000,000 → "47 сая ₮", 31,500,000 → "31.5 сая ₮", 450,000 → "450 мянга ₮"
+function formatPriceShort(p) {
+  const n = Number(p);
+  if (!n || n <= 0) return 'Үнэ тохиролцоно';
+  const trim = x => String(Math.round(x * 10) / 10).replace(/\.0$/, '');
+  if (n >= 1000000) return `${trim(n / 1000000)} сая ₮`;
+  if (n >= 10000)   return `${trim(n / 1000)} мянга ₮`;
+  return n.toLocaleString('mn-MN') + '₮';
 }
 
 function formatDate(iso) {
