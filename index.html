@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=37">
+<link rel="stylesheet" href="css/style.css?v=38">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -332,8 +332,9 @@
         <div class="hero-stat"><strong id="stat-brands">0</strong><span>Марк</span></div>
       </div>
       <div class="hero-search-bar">
-        <select id="hero-mark" data-dropdown="mark"><option value="">Машины марк</option></select>
-        <input type="text" id="hero-model" placeholder="Загвар (жш: Camry)">
+        <select id="hero-mark" data-dropdown="mark" onchange="refreshModelSuggestions('hero')"><option value="">Машины марк</option></select>
+        <input type="text" id="hero-model" list="dl-hero-model" autocomplete="off" placeholder="Загвар (жш: Camry)">
+        <datalist id="dl-hero-model"></datalist>
         <select id="hero-cat" data-dropdown="category"><option value="">Ангилал</option></select>
         <input type="text" id="hero-keyword" placeholder="Сэлбэгийн нэр...">
         <button class="btn-search" onclick="doHeroSearch()">🔍 Хайх</button>
@@ -550,7 +551,8 @@
             </button>
             <div class="filter-section-body">
               <div class="filter-group">
-                <input class="filter-input" id="f-model" type="text" placeholder="жш: Camry, Prius, X5...">
+                <input class="filter-input" id="f-model" type="text" list="dl-f-model" autocomplete="off" placeholder="жш: Camry, Prius, X5...">
+                <datalist id="dl-f-model"></datalist>
               </div>
             </div>
           </div>
@@ -648,8 +650,14 @@
             </div>
             <div class="form-group">
               <label class="form-label big">Машины марк *</label>
-              <select class="form-input big" id="p-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
+              <select class="form-input big" id="p-make" data-dropdown="mark-req" onchange="refreshModelSuggestions('p')"><option value="">Сонгоно уу</option></select>
               <div class="form-error" id="p-make-err"></div>
+            </div>
+            <div class="form-group post-full">
+              <label class="form-label big">Загвар <span style="color:var(--muted);font-weight:400">(сонголтоор)</span></label>
+              <input class="form-input big" id="p-model" type="text" list="dl-p-model" autocomplete="off" placeholder="Маркаа сонгоход загварууд гарч ирнэ">
+              <datalist id="dl-p-model"></datalist>
+              <div class="model-chips" id="p-model-chips"></div>
             </div>
           </div>
 
@@ -678,10 +686,6 @@
                 <div class="type-btn" id="type-substitute" onclick="selectType('substitute')">🔄 Орлуулах</div>
               </div>
               <input type="hidden" id="p-type" value="original">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Загвар</label>
-              <input class="form-input" id="p-model" type="text" placeholder="жш: Camry, X5...">
             </div>
             <div class="form-group">
               <label class="form-label">Таарах он</label>
@@ -721,12 +725,14 @@
               </div>
               <div class="form-group">
                 <label class="form-label big">Марк *</label>
-                <select class="form-input big" id="v-make" data-dropdown="mark-req"><option value="">Сонгоно уу</option></select>
+                <select class="form-input big" id="v-make" data-dropdown="mark-req" onchange="refreshModelSuggestions('v')"><option value="">Сонгоно уу</option></select>
                 <div class="form-error" id="v-make-err"></div>
               </div>
               <div class="form-group">
                 <label class="form-label big">Загвар *</label>
-                <input class="form-input big" id="v-model" type="text" placeholder="жш: Camry, RAV4, X5">
+                <input class="form-input big" id="v-model" type="text" list="dl-v-model" autocomplete="off" placeholder="Маркаа сонгоход загварууд гарч ирнэ">
+                <datalist id="dl-v-model"></datalist>
+                <div class="model-chips" id="v-model-chips"></div>
                 <div class="form-error" id="v-model-err"></div>
               </div>
               <div class="form-group">
@@ -1300,12 +1306,13 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=37"></script>
-<script src="js/data-manager.js?v=37"></script>
-<script src="js/auth.js?v=37"></script>
-<script src="js/listings.js?v=37"></script>
-<script src="js/upload.js?v=37"></script>
-<script src="js/admin.js?v=37"></script>
-<script src="js/main.js?v=37"></script>
+<script src="js/supabase-client.js?v=38"></script>
+<script src="js/car-models.js?v=38"></script>
+<script src="js/data-manager.js?v=38"></script>
+<script src="js/auth.js?v=38"></script>
+<script src="js/listings.js?v=38"></script>
+<script src="js/upload.js?v=38"></script>
+<script src="js/admin.js?v=38"></script>
+<script src="js/main.js?v=38"></script>
 </body>
 </html>

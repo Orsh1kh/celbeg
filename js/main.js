@@ -909,6 +909,7 @@ async function loadSearchResults(reset = false) {
     document.getElementById('results-count').textContent = 'Хайж байна...';
   }
   syncSearchTypeUI();
+  refreshModelSuggestions('f');
   updateFilterCountBadge();
   renderActiveChips();
   renderCategoryChips();
@@ -977,7 +978,7 @@ function doHeroSearch() {
   showPage('search');
   // sync sidebar
   if (heroMake) {
-    const cb = document.querySelector(`input[name="f-make-cb"][value="${heroMake}"]`);
+    const cb = document.querySelector(`input[name="f-make-cb"][value="${CSS.escape(heroMake)}"]`);
     if (cb) cb.checked = true;
   }
   if (_searchFilters.car_model) document.getElementById('f-model').value    = _searchFilters.car_model;
@@ -1151,6 +1152,8 @@ async function initPostPage() {
   checkForDraft();
   // Form дээр өөрчлөлт болгонд draft-ыг автомат хадгалах
   attachDraftAutoSave();
+  refreshModelSuggestions('p');
+  refreshModelSuggestions('v');
 
   await refreshQuotaInfo();
 }
@@ -1187,6 +1190,68 @@ function toggleNegotiable() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// MODEL SUGGESTIONS (марк → загвар)
+// ═══════════════════════════════════════════════════════════
+const MODEL_FIELDS = {
+  p:    { make: 'p-make',    model: 'p-model',    list: 'dl-p-model',    chips: 'p-model-chips' },
+  v:    { make: 'v-make',    model: 'v-model',    list: 'dl-v-model',    chips: 'v-model-chips' },
+  hero: { make: 'hero-mark', model: 'hero-model', list: 'dl-hero-model' },
+  f:    {                    model: 'f-model',    list: 'dl-f-model' },   // маркийг checkbox-оос уншина
+};
+const MODEL_CHIP_LIMIT = 8;
+
+function refreshModelSuggestions(key) {
+  const c = MODEL_FIELDS[key];
+  if (!c) return;
+  const makes = key === 'f'
+    ? [...document.querySelectorAll('input[name="f-make-cb"]:checked')].map(i => i.value)
+    : [document.getElementById(c.make)?.value].filter(Boolean);
+  const models = [...new Set(makes.flatMap(getModelsFor))];
+  const input = document.getElementById(c.model);
+
+  // Өмнөх маркийн загвар сонгогдсон байхад марк солигдвол загварыг цэвэрлэнэ
+  const prev = c._models || [];
+  const cur = input?.value.trim();
+  if (input && cur && prev.includes(cur) && !models.includes(cur)) {
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  c._models = models;
+
+  const dl = document.getElementById(c.list);
+  if (dl) dl.innerHTML = models.map(m => `<option value="${escapeHtml(m)}"></option>`).join('');
+
+  if (c.chips && input) {
+    renderModelChips(key);
+    if (!input.dataset.chipsWired) {
+      input.dataset.chipsWired = '1';
+      input.addEventListener('input', () => renderModelChips(key));
+    }
+  }
+}
+
+function renderModelChips(key) {
+  const c = MODEL_FIELDS[key];
+  const wrap = document.getElementById(c.chips);
+  const input = document.getElementById(c.model);
+  if (!wrap || !input) return;
+  const models = c._models || [];
+  const top = models.slice(0, MODEL_CHIP_LIMIT);
+  if (!top.length) { wrap.innerHTML = ''; return; }
+  const cur = input.value.trim();
+  wrap.innerHTML =
+    top.map((m, i) => `<button type="button" class="model-chip${cur === m ? ' active' : ''}" data-i="${i}">${escapeHtml(m)}</button>`).join('') +
+    (models.length > top.length ? `<span class="model-chip-more">+${models.length - top.length} загвар — бичиж эхлэхэд гарна</span>` : '');
+  wrap.querySelectorAll('.model-chip').forEach(btn => {
+    btn.onclick = () => {
+      const picked = top[+btn.dataset.i];
+      input.value = cur === picked ? '' : picked;   // дахин дарвал болиулна
+      input.dispatchEvent(new Event('input', { bubbles: true }));  // draft хадгалалт + chip шинэчлэл
+    };
+  });
+}
+
 // ── Амжилттай нийтэлсний дараа form-ыг цэвэрлэнэ ─────────
 // Утас, дэлгүүрийн нэр, байршлыг дараагийн зарт ашиглахаар үлдээнэ.
 const POST_KEEP_FIELDS = new Set(['p-phone', 'p-shop', 'p-location', 'p-listing-type']);
@@ -1212,14 +1277,16 @@ function resetPostForm() {
   if (document.getElementById('p-advanced-fields').style.display !== 'none') togglePartAdvanced();
   if (document.getElementById('v-advanced-fields').style.display !== 'none') toggleVehicleAdvanced();
   document.querySelectorAll('#post-form-wrap .form-error').forEach(e => { e.textContent = ''; e.classList.remove('show'); });
+  refreshModelSuggestions('p');
+  refreshModelSuggestions('v');
 }
 
 // ── Draft auto-save + restore ────────────────────────────
 const DRAFT_KEY = 'cb_post_draft_v1';
 const DRAFT_FIELDS = [
-  'p-title','p-category','p-subcategory','p-condition','p-model','p-year-from',
+  'p-title','p-category','p-subcategory','p-condition','p-make','p-model','p-year-from',
   'p-policy','p-desc','p-price','p-shop','p-location',
-  'v-title','v-body-type','v-model','v-year','v-imported-year','v-mileage',
+  'v-title','v-body-type','v-make','v-model','v-year','v-imported-year','v-mileage',
   'v-engine','v-fuel','v-transmission','v-drive','v-steering','v-color',
   'v-color-interior','v-plate-region','v-customs','v-desc',
 ];
@@ -1251,6 +1318,8 @@ function _applyDraft(data) {
   });
   if (data['v-barter'])  { const el = document.getElementById('v-barter');  if (el) el.checked = true; }
   if (data['v-leasing']) { const el = document.getElementById('v-leasing'); if (el) el.checked = true; }
+  refreshModelSuggestions('p');
+  refreshModelSuggestions('v');
 }
 
 let _draftTimer = null;
