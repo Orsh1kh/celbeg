@@ -166,8 +166,9 @@ async function submitLogin() {
   const btn = document.getElementById('login-submit-btn');
   btn.disabled = true; btn.textContent = 'Нэвтэрч байна...';
   try {
-    const user = await authLogin(email, pass);
+    await authLogin(email, pass);
     updateAuthUI(authGetUser());
+    await initFavorites();
     closeAuthModal();
     showToast('Амжилттай нэвтэрлээ!', 'success');
   } catch(e) {
@@ -194,10 +195,16 @@ async function submitRegister() {
   btn.disabled = true; btn.textContent = 'Бүртгэж байна...';
   try {
     await authRegister(email, pass, name, userType, shopName);
-    // Signup дараа шууд нэвтэрсэн байдалтай авах гэж login дуудна
-    // (Email confirmation OFF үед session автоматаар үүсдэг ч найдвартай байхын тулд login хийнэ)
-    try { await authLogin(email, pass); } catch {}
-    updateAuthUI(authGetUser());
+    // Signup session өгөөгүй үед л нэвтрэлт оролдоно (нэр/төрлийг дарж бичихгүйн тулд)
+    if (!authGetUser()) { try { await authLogin(email, pass); } catch {} }
+    const user = authGetUser();
+    if (!user) {
+      // Supabase-т "Confirm email" асаалттай байна
+      showFieldError('reg-email-err', 'Бүртгэл үүслээ. Email-ээ шалгаж баталгаажуулаад нэвтэрнэ үү.');
+      return;
+    }
+    updateAuthUI(user);
+    await initFavorites();
     closeAuthModal();
     showToast('Амжилттай бүртгүүллээ!', 'success');
   } catch(e) {
@@ -261,6 +268,7 @@ function updateAuthUI(user) {
 
 async function doLogout() {
   await authLogout();
+  _favoriteIds = new Set();
   updateAuthUI(null);
   showToast('Гарлаа', 'info');
   showPage('home');
@@ -271,7 +279,7 @@ async function doLogout() {
 // ═══════════════════════════════════════════════════════════
 function buildListingCard(l) {
   const img = l.images?.[0]
-    ? `<img src="${l.images[0]}" alt="${l.title}" loading="lazy">`
+    ? `<img src="${escapeHtml(safeImgUrl(l.images[0]))}" alt="${escapeHtml(l.title)}" loading="lazy">`
     : `<div class="card-img-placeholder"><span>📦</span><small>Зураг байхгүй</small></div>`;
 
   const badgeClass = l.part_type === 'original' ? 'original' : 'substitute';
@@ -491,7 +499,7 @@ function renderLightbox() {
   const prev = document.getElementById('lightbox-prev');
   const next = document.getElementById('lightbox-next');
   if (!img) return;
-  img.src = _lightboxImages[_lightboxIdx] || '';
+  img.src = safeImgUrl(_lightboxImages[_lightboxIdx]);
   counter.textContent = `${_lightboxIdx + 1} / ${_lightboxImages.length}`;
   const many = _lightboxImages.length > 1;
   prev.style.display = many ? 'flex' : 'none';
@@ -989,12 +997,15 @@ async function openDetail(id) {
     const mainWrap = document.getElementById('detail-main-img-wrap');
     const thumbsWrap = document.getElementById('detail-thumbs');
     if (l.images?.length) {
-      const imgsJson = encodeURIComponent(JSON.stringify(l.images));
-      mainWrap.innerHTML = `<img src="${l.images[0]}" alt="${l.title}" onclick="openLightbox(JSON.parse(decodeURIComponent('${imgsJson}')), 0)">`;
-      thumbsWrap.innerHTML = l.images.map((url, i) =>
-        `<div class="gallery-thumb ${i===0?'active':''}" onclick="switchDetailImg(this,'${url}',${i})"><img src="${url}" loading="lazy"></div>`
+      _currentListingImages = l.images.map(safeImgUrl).filter(Boolean);
+      mainWrap.innerHTML = `<img src="${escapeHtml(_currentListingImages[0] || '')}" alt="${escapeHtml(l.title)}">`;
+      mainWrap.querySelector('img').onclick = () => openLightbox(_currentListingImages, 0);
+      thumbsWrap.innerHTML = _currentListingImages.map((url, i) =>
+        `<div class="gallery-thumb ${i===0?'active':''}" data-idx="${i}"><img src="${escapeHtml(url)}" loading="lazy" alt=""></div>`
       ).join('');
-      _currentListingImages = l.images;
+      thumbsWrap.querySelectorAll('.gallery-thumb').forEach(t => {
+        t.onclick = () => switchDetailImg(t, _currentListingImages[+t.dataset.idx], +t.dataset.idx);
+      });
     } else {
       mainWrap.innerHTML = `<div class="no-photo"><span>📦</span><small>Зураг байхгүй</small></div>`;
       thumbsWrap.innerHTML = '';
@@ -1008,7 +1019,7 @@ async function openDetail(id) {
     const cond = conditionMeta(l.condition);
     document.getElementById('detail-badges').innerHTML =
       `<span class="detail-badge ${badgeClass}">${badgeText}</span>` +
-      `<span class="detail-badge category">${l.category || ''}${l.subcategory ? ' / ' + l.subcategory : ''}</span>` +
+      `<span class="detail-badge category">${escapeHtml(l.category || '')}${l.subcategory ? ' / ' + escapeHtml(l.subcategory) : ''}</span>` +
       (l.is_vip ? '<span class="detail-badge vip">⭐ VIP</span>' : '') +
       (cond ? `<span class="detail-badge ${cond.cls}">${cond.short}</span>` : '') +
       (policy ? `<span class="detail-badge ${policy.cls}">${policy.short}</span>` : '');
@@ -1023,7 +1034,7 @@ async function openDetail(id) {
       (l.year_from || l.year_to) ? ['Он', l.year_from && l.year_to && l.year_from !== l.year_to ? `${l.year_from}–${l.year_to}` : `${l.year_from || l.year_to}`] : null,
     ].filter(Boolean);
     document.getElementById('detail-car').innerHTML = carRows.map(([k,v]) =>
-      `<div class="detail-car-row"><span>${k}</span><span>${v}</span></div>`
+      `<div class="detail-car-row"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>`
     ).join('');
 
     // Vehicle-specific extra spec
@@ -1047,7 +1058,7 @@ async function openDetail(id) {
           typeof vd.customs_cleared === 'boolean' ? ['Гаальд орсон', vd.customs_cleared ? 'Тийм' : 'Үгүй'] : null,
         ].filter(Boolean);
         document.getElementById('detail-car').innerHTML += extra.map(([k,v]) =>
-          `<div class="detail-car-row"><span>${k}</span><span>${v}</span></div>`
+          `<div class="detail-car-row"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>`
         ).join('');
       }
     }
@@ -1080,9 +1091,14 @@ async function openDetail(id) {
     }
 
     // Actions
-    const phone = l.phone ? '+976' + l.phone.replace(/^\+976/, '') : '';
-    document.getElementById('detail-call-btn').href = phone ? `tel:${phone}` : '#';
-    document.getElementById('detail-wa-btn').href   = phone ? `https://wa.me/${phone.replace('+','')}` : '#';
+    const phone = l.phone ? '+976' + String(l.phone).replace(/\D/g, '').replace(/^976/, '') : '';
+    const callBtn = document.getElementById('detail-call-btn');
+    const waBtn   = document.getElementById('detail-wa-btn');
+    callBtn.href = phone ? `tel:${phone}` : '#';
+    waBtn.href   = phone ? `https://wa.me/${phone.replace('+','')}` : '#';
+    // Утасгүй зар дээр ажиллахгүй товч харуулахгүй
+    callBtn.style.display = phone ? '' : 'none';
+    waBtn.style.display   = phone ? '' : 'none';
 
     document.getElementById('detail-date').textContent  = formatDate(l.created_at);
     document.getElementById('detail-views').textContent = `👁 ${l.view_count || 0} үзэлт`;
@@ -1097,7 +1113,7 @@ async function openDetail(id) {
 function switchDetailImg(thumb, url, idx) {
   const mainImg = document.querySelector('#detail-main-img-wrap img');
   if (mainImg) {
-    mainImg.setAttribute('src', url);
+    mainImg.src = safeImgUrl(url);
     if (typeof idx === 'number') {
       mainImg.onclick = () => openLightbox(_currentListingImages, idx);
     }
@@ -1163,6 +1179,33 @@ function toggleNegotiable() {
     priceEl.disabled = false;
     priceEl.placeholder = '150000';
   }
+}
+
+// ── Амжилттай нийтэлсний дараа form-ыг цэвэрлэнэ ─────────
+// Утас, дэлгүүрийн нэр, байршлыг дараагийн зарт ашиглахаар үлдээнэ.
+const POST_KEEP_FIELDS = new Set(['p-phone', 'p-shop', 'p-location', 'p-listing-type']);
+function resetPostForm() {
+  const wrap = document.getElementById('post-form-wrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('input, select, textarea').forEach(el => {
+    if (POST_KEEP_FIELDS.has(el.id) || el.type === 'file') return;
+    if (el.type === 'checkbox' || el.type === 'radio') { el.checked = el.defaultChecked; return; }
+    if (el.tagName === 'SELECT') {
+      const def = [...el.options].findIndex(o => o.defaultSelected);
+      el.selectedIndex = def >= 0 ? def : 0;
+      return;
+    }
+    el.value = el.defaultValue || '';
+  });
+  // Үнэ тохиролцоно → идэвхгүй болсон үнийн талбарыг сэргээнэ
+  const price = document.getElementById('p-price');
+  price.disabled = false; price.placeholder = '150000';
+  selectType('original');
+  document.getElementById('p-subcategory-group').style.display = 'none';
+  // Нээлттэй "Дэлгэрэнгүй" хэсгүүдийг хураана
+  if (document.getElementById('p-advanced-fields').style.display !== 'none') togglePartAdvanced();
+  if (document.getElementById('v-advanced-fields').style.display !== 'none') toggleVehicleAdvanced();
+  document.querySelectorAll('#post-form-wrap .form-error').forEach(e => { e.textContent = ''; e.classList.remove('show'); });
 }
 
 // ── Draft auto-save + restore ────────────────────────────
@@ -1459,6 +1502,7 @@ async function submitListing() {
     clearDraftAfterSubmit();
     const locVal = document.getElementById('p-location').value.trim();
     if (locVal) { try { localStorage.setItem('cb_last_location', locVal); } catch {} }
+    resetPostForm();
     document.getElementById('post-form-wrap').style.display = 'none';
     document.getElementById('post-success').style.display   = 'block';
     showToast('Зар амжилттай нийтлэгдлээ!', 'success');
@@ -1528,7 +1572,7 @@ async function loadMyListings() {
     }
     container.innerHTML = listings.map(l => {
       const thumb = l.images?.[0]
-        ? `<img src="${l.images[0]}" alt="${l.title}" loading="lazy">`
+        ? `<img src="${escapeHtml(safeImgUrl(l.images[0]))}" alt="${escapeHtml(l.title)}" loading="lazy">`
         : '';
       const expTag = expiryTag(l.expires_at);
       const expired = l.expires_at && new Date(l.expires_at) < new Date();
@@ -1540,8 +1584,8 @@ async function loadMyListings() {
           <div class="my-listing-img">${thumb}</div>
           <div class="my-listing-body">
             <div class="my-listing-info">
-              <div class="my-listing-title">${l.title} ${expTag}</div>
-              <div class="my-listing-meta">${l.car_make || ''} ${l.car_model || ''} • ${l.category || ''}</div>
+              <div class="my-listing-title">${escapeHtml(l.title)} ${expTag}</div>
+              <div class="my-listing-meta">${escapeHtml(l.car_make || '')} ${escapeHtml(l.car_model || '')} • ${escapeHtml(l.category || '')}</div>
             </div>
             <div class="my-listing-price">${formatPrice(l.price)}</div>
             <div class="my-listing-actions">
@@ -1593,21 +1637,6 @@ async function doExtendListing(id) {
 // INIT
 // ═══════════════════════════════════════════════════════════
 // ── Admin page helpers (called from admin.js) ───────────────
-function adminAddNew() {
-  if (_adminTab === 'categories') openAddCat();
-  else openAddMark();
-}
-function adminResetDefaults() {
-  resetToDefaults(_adminTab);
-}
-
-// ── Admin tab switch — show/hide bulk button ────────────────
-const _origAdminSwitchTab = adminSwitchTab;
-function adminSwitchTab(tab) {
-  _origAdminSwitchTab(tab);
-  const bulkBtn = document.getElementById('admin-bulk-btn');
-  if (bulkBtn) bulkBtn.style.display = tab === 'marks' ? 'inline-flex' : 'none';
-}
 
 // ═══════════════════════════════════════════════════════════
 // RATING / REVIEW UI
@@ -1746,7 +1775,7 @@ async function loadShopRatingAndReviews(shopId) {
     return;
   }
   listEl.innerHTML = '<div class="review-list">' + reviews.map(r => {
-    const initial = (r.reviewer_name || 'Х').charAt(0).toUpperCase();
+    const initial = escapeHtml((r.reviewer_name || 'Х').charAt(0).toUpperCase());
     const isOwn = user && user.id === r.reviewer_id;
     return `
       <div class="review-card">
@@ -1754,7 +1783,7 @@ async function loadShopRatingAndReviews(shopId) {
           <div class="review-reviewer">
             <div class="review-avatar">${initial}</div>
             <div>
-              <div class="review-name">${r.reviewer_name}</div>
+              <div class="review-name">${escapeHtml(r.reviewer_name)}</div>
               <div class="review-date">${formatDate(r.created_at)}</div>
             </div>
           </div>
@@ -1764,6 +1793,12 @@ async function loadShopRatingAndReviews(shopId) {
         ${isOwn ? `<div class="review-actions"><button onclick="doDeleteReview('${r.id}')">Устгах</button></div>` : ''}
       </div>`;
   }).join('') + '</div>';
+}
+
+// Зөвхөн http(s), blob, локал img/ эсвэл data:image URL-г зөвшөөрнө
+function safeImgUrl(u) {
+  const str = String(u || '').trim();
+  return /^(https?:\/\/|blob:|img\/|data:image\/)/i.test(str) ? str : '';
 }
 
 function escapeHtml(s) {

@@ -21,20 +21,35 @@ async function authRegister(email, password, name, userType, shopName) {
   const user = data.user;
   if (!user) throw new Error('Бүртгэл үүссэн, email-ийг шалгаад баталгаажуулна уу');
 
-  // Хэрэв Supabase-т email confirmation ON хэвээр бол session байхгүй.
-  // Тэр үед _ensureProfile-г шууд дуудаж чадахгүй (RLS-т auth.uid() хэрэгтэй).
-  // Гэхдээ баталгаажаагүй ч auth.users-т мөр үүссэн байна. Дараа login хийхэд шинэ ensure явна.
-  const isAdmin = _isAdminEmail(email);
+  // Email confirmation ON бол session байхгүй → профайлыг одоо үүсгэж чадахгүй (RLS).
+  // Нэр/төрлийг түр хадгалаад анхны нэвтрэлтээр профайл үүсэхэд ашиглана.
   if (data.session) {
-    await _ensureProfile(user, { name, userType, shopName, isAdmin });
+    await _ensureProfile(user, { name, userType, shopName });
+  } else {
+    localStorage.setItem(PENDING_PROFILE_KEY, JSON.stringify({ email: email.toLowerCase(), name, userType, shopName }));
   }
   return user;
 }
 
+const PENDING_PROFILE_KEY = 'cb_pending_profile';
+
+function _takePendingProfile(email) {
+  try {
+    const p = JSON.parse(localStorage.getItem(PENDING_PROFILE_KEY) || 'null');
+    if (p && p.email === email.toLowerCase()) {
+      localStorage.removeItem(PENDING_PROFILE_KEY);
+      return p;
+    }
+  } catch {}
+  return null;
+}
+
 async function authLogin(email, password) {
   if (DEMO_MODE) {
-    const isAdmin = _isAdminEmail(email);
-    const profile = { id: 'demo-' + email, email, name: 'Хэрэглэгч', user_type: 'buyer', is_admin: isAdmin };
+    // Нэг email-ээр дахин нэвтрэхэд хадгалсан профайлыг дарж бичихгүй
+    const existing = authGetUser();
+    if (existing && existing.email === email) return existing;
+    const profile = { id: 'demo-' + email, email, name: 'Хэрэглэгч', user_type: 'buyer', is_admin: _isAdminEmail(email) };
     localStorage.setItem('cb_user', JSON.stringify(profile));
     return profile;
   }
@@ -42,8 +57,11 @@ async function authLogin(email, password) {
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
 
-  const isAdmin = _isAdminEmail(email);
-  await _ensureProfile(data.user, { name: '', userType: 'buyer', shopName: '', isAdmin });
+  // Профайл байхгүй (анх удаа) бол бүртгэлийн үеийн нэр/төрлийг ашиглана; байгаа профайлын нэрийг өөрчлөхгүй
+  const pending = _takePendingProfile(email) || {};
+  await _ensureProfile(data.user, {
+    name: pending.name || '', userType: pending.userType || 'buyer', shopName: pending.shopName || '',
+  });
   return data.user;
 }
 

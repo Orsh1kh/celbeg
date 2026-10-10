@@ -10,7 +10,21 @@ function adminSwitchTab(tab) {
   _adminTab = tab;
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   document.querySelector(`.admin-tab[data-tab="${tab}"]`).classList.add('active');
+  // Toolbar: "Олноор нэмэх" зөвхөн марк дээр; Дэлгүүр таб дээр нэмэх/буцаах товч хэрэггүй
+  const show = (id, on, disp = 'inline-flex') => { const el = document.getElementById(id); if (el) el.style.display = on ? disp : 'none'; };
+  show('admin-bulk-btn', tab === 'marks');
+  show('admin-add-btn', tab !== 'shops');
+  document.querySelector('.btn-admin-reset')?.style.setProperty('display', tab === 'shops' ? 'none' : '');
   renderAdminTable();
+}
+
+function adminAddNew() {
+  if (_adminTab === 'categories') openAddCat();
+  else if (_adminTab === 'marks') openAddMark();
+}
+
+function adminResetDefaults() {
+  if (_adminTab === 'categories' || _adminTab === 'marks') resetToDefaults(_adminTab);
 }
 
 // ── Render table ────────────────────────────────────────────
@@ -31,7 +45,7 @@ async function renderShopsTable(wrap) {
   try {
     const { data: shops, error } = await sb
       .from('profiles')
-      .select('id,name,phone,shop_name,is_verified,created_at')
+      .select('id,name,phone,email,shop_name,is_verified,created_at')
       .eq('user_type', 'shop')
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -54,9 +68,9 @@ async function renderShopsTable(wrap) {
           ${shops.map(s => `
             <tr id="shop-row-${s.id}">
               <td class="admin-center">${s.is_verified ? '<span class="verified-badge" title="Баталгаажсан"></span>' : ''}</td>
-              <td><strong>${s.shop_name || '—'}</strong></td>
-              <td>${s.name || '—'}</td>
-              <td>${s.phone || ''}</td>
+              <td><strong>${escapeHtml(s.shop_name || '—')}</strong></td>
+              <td>${escapeHtml(s.name || '—')}</td>
+              <td>${escapeHtml(s.phone || s.email || '')}</td>
               <td class="admin-actions">
                 <button class="${s.is_verified ? 'ab-del' : 'ab-edit'}" onclick="toggleShopVerified('${s.id}',${s.is_verified})">
                   ${s.is_verified ? '✕ Цуцлах' : '✓ Баталгаа'}
@@ -104,7 +118,7 @@ function renderCategoryTable(wrap) {
               </div>
             </td>
             <td class="admin-center"><span style="font-size:22px">${c.icon}</span></td>
-            <td>${c.name}</td>
+            <td>${escapeHtml(c.name)}</td>
             <td class="admin-actions">
               <button class="ab-edit" onclick="openEditCat('${c.id}')">✏️</button>
               <button class="ab-del"  onclick="deleteCat('${c.id}')">🗑️</button>
