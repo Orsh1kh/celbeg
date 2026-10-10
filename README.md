@@ -12,21 +12,28 @@
 
 ### 2. Schema ажиллуулах
 
-1. Supabase Dashboard → **SQL Editor** → **+ New query**
-2. `supabase/schema.sql` файлын агуулгыг бүхэлд нь хуулж paste
-3. **Run** дарна
-4. `profiles`, `listings`, `categories`, `car_marks` table үүссэн эсэхийг Table Editor-с шалгана
+Supabase Dashboard → **SQL Editor** дээр дараах файлуудыг **дарааллаар** ажиллуулна
+(бүгд дахин ажиллуулахад аюулгүй):
 
-### 3. Phone Auth (Twilio) тохируулах
+1. `supabase/schema.sql` — үндсэн хүснэгтүүд, RLS
+2. `supabase/002_marketplace_policies.sql` — хугацаа, rate limit
+3. `supabase/007_vehicles.sql` — машины зар
+4. `supabase/008_email_auth.sql` — email нэвтрэлт
+5. `supabase/RUN_PENDING_003_to_012.sql` — үнэлгээ, дэлгүүр, дэд ангилал,
+   хадгалах, хамгаалалт, ангиллын тоо (003–012 нэг дор)
 
-1. https://www.twilio.com/ дээр бүртгүүлж Account SID, Auth Token, Twilio phone number авна
-2. Supabase Dashboard → **Authentication → Providers → Phone**
-3. **Enable Phone provider**
-4. SMS provider: **Twilio** сонгож credential оруулна
-5. Message template-д Монгол хэлээр тохируулж болно:
-   ```
-   Celbeg.mn — Таны OTP код: {{ .Code }}
-   ```
+### 3. Нэвтрэлт (Email + нууц үг)
+
+1. Supabase Dashboard → **Authentication → Providers → Email** → Enable
+2. **Confirm email** — OFF (бүртгүүлмэгц шууд нэвтэрнэ)
+3. **Authentication → URL Configuration** → Site URL: `https://celbeg.mn`
+
+Админ эрх нь DB доторх `admin_emails` хүснэгтээр тодорхойлогдоно
+(`011_security_hardening.sql`). Шинэ админ нэмэх:
+
+```sql
+insert into public.admin_emails (email) values ('new-admin@example.com');
+```
 
 ### 4. Storage bucket
 
@@ -40,15 +47,10 @@
 
 ```js
 const SUPABASE_URL      = 'https://XXXXXXXX.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOi...';
-
-const ADMIN_PHONES = [
-  '99112233',   // Өөрийн утасны дугаар
-];
+const SUPABASE_ANON_KEY = 'sb_publishable_...';
 ```
 
-- **URL & anon key** — Dashboard → Settings → API
-- **ADMIN_PHONES** — 8 оронтой (+976 гүй) дугаарууд. Эдгээр дугаараар нэвтэрсэн бүртгэлд автоматаар `is_admin=true` онооно
+- **URL & publishable key** — Dashboard → Settings → API Keys
 
 ### 6. Netlify руу deploy хийх
 
@@ -62,7 +64,7 @@ const ADMIN_PHONES = [
 
 ### 7. Эхний туршилт
 
-1. Site нээгээд утсаараа бүртгүүлнэ
+1. Site нээгээд email + нууц үгээр бүртгүүлнэ
 2. Console-д `DEMO горим` warning гарахгүй байх ёстой
 3. Зар нийтэлж, зураг оруулж, admin panel-с ангилал нэмэх
 4. Өөр browser эсвэл incognito-с нэвтрэн зар харагдаж байгаа эсэхийг шалга
@@ -82,8 +84,6 @@ npx serve
 
 - Зар засах (edit) функц
 - Report/гомдол систем
-- Хадгалсан зар (favorites)
-- Дэлгүүрийн профайл хуудас
 - VIP төлбөр — QPay/SocialPay
 - Мессеж/чат
 - Үйлчилгээний нөхцөл, Нууцлалын бодлого
@@ -97,14 +97,17 @@ celbeg-main/
 ├── img/
 ├── js/
 │   ├── supabase-client.js  — Supabase config + demo data
-│   ├── auth.js             — Phone OTP нэвтрэлт
+│   ├── auth.js             — Email + нууц үгээр нэвтрэлт
 │   ├── data-manager.js     — Ангилал, марк
 │   ├── listings.js         — Зарын CRUD
 │   ├── upload.js           — Зургийн upload
 │   ├── admin.js            — Админ панел
 │   └── main.js             — UI, navigation
 ├── supabase/
-│   └── schema.sql          — DB migration
+│   ├── schema.sql          — Үндсэн schema
+│   ├── 0NN_*.sql           — Дараалсан migration-ууд
+│   └── RUN_PENDING_003_to_012.sql — 003–012-г нэг дор
+├── sw.js, manifest.json    — PWA
 ├── netlify.toml
 ├── robots.txt
 └── sitemap.xml

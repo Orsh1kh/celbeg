@@ -44,7 +44,7 @@ const LOCATIONS = [
   { key: 'zuunmod',    label: 'Зуунмод (Төв)',           patterns: ['зуунмод', 'zuunmod', 'төв аймаг', 'tov aimag'] },
 
   // ── Catchall ───────────────────────────────────────────
-  { key: 'other',      label: 'Бусад',                   patterns: null },
+  { key: 'other',      label: 'Бусад',                   patterns: ['бусад'] },
 ];
 
 function locationLabel(key) {
@@ -53,18 +53,11 @@ function locationLabel(key) {
 
 function _buildLocationOr(locKeys) {
   const parts = [];
-  const knownPatterns = [];
-  let hasOther = false;
   locKeys.forEach(k => {
     const loc = LOCATIONS.find(l => l.key === k);
-    if (!loc) return;
-    if (loc.patterns === null) hasOther = true;
-    else loc.patterns.forEach(p => {
-      parts.push(`location.ilike.%${p}%`);
-      knownPatterns.push(p);
-    });
+    if (loc) loc.patterns.forEach(p => parts.push(`location.ilike.%${p}%`));
   });
-  return { parts, knownPatterns, hasOther };
+  return { parts };
 }
 
 function _arr(v) {
@@ -210,7 +203,7 @@ function _filterDemoAll({ listing_type, category, subcategory, car_makes, car_mo
       const loc = (l.location || '').toLowerCase();
       return locations.some(k => {
         const def = LOCATIONS.find(x => x.key === k);
-        if (!def || def.patterns === null) return false;
+        if (!def) return false;
         return def.patterns.some(p => loc.includes(p.toLowerCase()));
       });
     });
@@ -490,8 +483,4 @@ function formatDate(iso) {
   if (diff < 3600)  return Math.floor(diff/60) + ' минутын өмнө';
   if (diff < 86400) return Math.floor(diff/3600) + ' цагийн өмнө';
   return Math.floor(diff/86400) + ' өдрийн өмнө';
-}
-
-function listingThumb(listing) {
-  return listing.images?.[0] || 'img/no-photo.svg';
 }

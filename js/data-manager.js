@@ -84,13 +84,30 @@ async function _syncCategoriesToSupabase(cats) {
   } catch (e) { console.warn('Category sync failed:', e.message); }
 }
 
+// Нэрээр нь тааруулна: байхгүй болсныг устгаж, шинийг нэмнэ.
+// (Индексээр id өгвөл нэг марк устгахад бусад нь шилжиж, нэрийн unique хязгаарлалт зөрчигддөг байсан.)
 async function _syncMarksToSupabase(marks) {
   if (DEMO_MODE || !sb) return;
   try {
-    const rows = marks.map((name, i) => ({ id: 'mark-' + i, name }));
-    const { error } = await sb.from('car_marks').upsert(rows, { onConflict: 'id' });
-    if (error) throw error;
-  } catch (e) { console.warn('Mark sync failed:', e.message); }
+    const { data: existing, error: readErr } = await sb.from('car_marks').select('id,name');
+    if (readErr) throw readErr;
+    const want = new Set(marks);
+    const have = new Set((existing || []).map(r => r.name));
+    const toDelete = (existing || []).filter(r => !want.has(r.name)).map(r => r.id);
+    const toInsert = marks.filter(n => !have.has(n))
+      .map(n => ({ id: 'mark-' + crypto.randomUUID().slice(0, 8), name: n }));
+    if (toDelete.length) {
+      const { error } = await sb.from('car_marks').delete().in('id', toDelete);
+      if (error) throw error;
+    }
+    if (toInsert.length) {
+      const { error } = await sb.from('car_marks').insert(toInsert);
+      if (error) throw error;
+    }
+  } catch (e) {
+    console.warn('Mark sync failed:', e.message);
+    if (typeof showToast === 'function') showToast('Марк хадгалахад алдаа: ' + e.message, 'error');
+  }
 }
 
 // ── Init defaults if not yet cached ─────────────────────────

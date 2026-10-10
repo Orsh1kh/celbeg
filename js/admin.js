@@ -82,7 +82,8 @@ async function toggleShopVerified(id, current) {
 }
 
 function renderCategoryTable(wrap) {
-  const cats = getCategories().sort((a,b) => a.order - b.order);
+  // Дэд ангиллыг (parent_id-тай) энд харуулахгүй
+  const cats = getMainCategories();
   wrap.innerHTML = `
     <table class="admin-table">
       <thead>
@@ -156,8 +157,9 @@ function saveCat() {
     const idx = cats.findIndex(c => c.id === _editingId);
     if (idx !== -1) { cats[idx].name = name; cats[idx].icon = icon; }
   } else {
-    if (cats.find(c => c.name === name)) { showToast('Тийм ангилал аль хэдийн байна', 'error'); return; }
-    const maxOrder = cats.length ? Math.max(...cats.map(c => c.order)) : 0;
+    const mains = cats.filter(c => !c.parent_id);
+    if (mains.find(c => c.name === name)) { showToast('Тийм ангилал аль хэдийн байна', 'error'); return; }
+    const maxOrder = mains.length ? Math.max(...mains.map(c => c.order || 0)) : 0;
     cats.push({ id: 'cat-' + Date.now(), name, icon, order: maxOrder + 1 });
   }
   saveCategories(cats);
@@ -167,9 +169,13 @@ function saveCat() {
   showToast(_editingId ? 'Ангилал шинэчлэгдлээ' : 'Ангилал нэмэгдлээ', 'success');
 }
 
-function deleteCat(id) {
-  if (!confirm('Энэ ангилалыг устгах уу?')) return;
-  const cats = getCategories().filter(c => c.id !== id);
+async function deleteCat(id) {
+  if (!confirm('Энэ ангилалыг устгах уу? Дэд ангиллууд нь хамт устна.')) return;
+  if (!DEMO_MODE && sb) {
+    const { error } = await sb.from('categories').delete().eq('id', id);
+    if (error) { showToast('Алдаа: ' + error.message, 'error'); return; }
+  }
+  const cats = getCategories().filter(c => c.id !== id && c.parent_id !== id);
   saveCategories(cats);
   populateAllDropdowns();
   renderAdminTable();
@@ -177,12 +183,15 @@ function deleteCat(id) {
 }
 
 function moveCat(id, dir) {
-  let cats = getCategories().sort((a,b) => a.order - b.order);
-  const idx = cats.findIndex(c => c.id === id);
+  const all   = getCategories();
+  const mains = all.filter(c => !c.parent_id).sort((a,b) => (a.order || 0) - (b.order || 0));
+  const idx = mains.findIndex(c => c.id === id);
   const swapIdx = idx + dir;
-  if (swapIdx < 0 || swapIdx >= cats.length) return;
-  [cats[idx].order, cats[swapIdx].order] = [cats[swapIdx].order, cats[idx].order];
-  saveCategories(cats);
+  if (idx < 0 || swapIdx < 0 || swapIdx >= mains.length) return;
+  // Давхардсан order утгатай байж болох тул дарааллыг 1..N болгож дахин дугаарлана
+  [mains[idx], mains[swapIdx]] = [mains[swapIdx], mains[idx]];
+  mains.forEach((c, i) => { c.order = i + 1; });
+  saveCategories(all);
   populateAllDropdowns();
   renderAdminTable();
 }
@@ -271,7 +280,7 @@ function saveBulkMarks() {
 function resetToDefaults(type) {
   if (!confirm('Анхны тохиргоонд буцаах уу?')) return;
   if (type === 'categories') {
-    saveCategories([...DEFAULT_CATEGORIES]);
+    saveCategories([...DEFAULT_CATEGORIES, ...getCategories().filter(c => c.parent_id)]);
     showToast('Ангилал анхны байдалд буцлаа', 'success');
   } else {
     saveMarks([...DEFAULT_MARKS]);
@@ -308,7 +317,7 @@ function initAdminPage() {
   content.style.display = 'block';
 
   // Stats
-  document.getElementById('admin-stat-cats').textContent  = getCategories().length;
+  document.getElementById('admin-stat-cats').textContent  = getMainCategories().length;
   document.getElementById('admin-stat-marks').textContent = getMarks().length;
 
   renderAdminTable();

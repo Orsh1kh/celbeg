@@ -4,7 +4,6 @@
 
 [build]
   publish       = "."
-  functions     = "netlify/functions"
 
 # SPA-шиг hash routing ашиглаж байгаа тул бүх замыг index.html руу
 [[redirects]]

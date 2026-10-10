@@ -507,6 +507,34 @@ async function initHomePage() {
   await loadHomeListings(true);
   await loadVipListings();
   loadRecentlyViewed();
+  updateHeroStats();
+}
+
+// ── Hero stats: бодит тоо, зар цөөн бол нууна ───────────
+const HERO_STATS_MIN_LISTINGS = 20;
+async function updateHeroStats() {
+  const box = document.getElementById('hero-stats');
+  if (!box) return;
+  let listings = 0, shops = 0;
+  if (DEMO_MODE || !sb) {
+    listings = DEMO_LISTINGS.length;
+    shops = new Set(DEMO_LISTINGS.map(l => l.shop_name).filter(Boolean)).size;
+  } else {
+    try {
+      const [l, s] = await Promise.all([
+        sb.from('listings').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        sb.from('profiles').select('id', { count: 'exact', head: true }).eq('user_type', 'shop'),
+      ]);
+      listings = l.count || 0;
+      shops = s.count || 0;
+    } catch { /* тоо гаргаж чадахгүй бол нууцаар үлдээнэ */ }
+  }
+  if (listings < HERO_STATS_MIN_LISTINGS) { box.style.display = 'none'; return; }
+  const fmt = n => Number(n).toLocaleString('mn-MN');
+  document.getElementById('stat-listings').textContent = fmt(listings);
+  document.getElementById('stat-shops').textContent    = fmt(shops);
+  document.getElementById('stat-brands').textContent   = fmt(getMarks().filter(m => m !== 'Бусад').length);
+  box.style.display = '';
 }
 
 function clearRecentlyViewed() {
