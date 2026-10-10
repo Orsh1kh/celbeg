@@ -21,6 +21,8 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + id);
   if (el) el.classList.add('active');
+  // Хайлтын хуудсанд ангиллыг зөвхөн chip мөрөөр сонгоно — дээд цэсийг нууна
+  document.body.classList.toggle('on-search', id === 'search');
   window.scrollTo(0, 0);
   closeMobileNav();
 
@@ -456,7 +458,7 @@ function updateFilterCountBadge() {
   if (!badge) return;
   const f = getFilters();
   let count = 0;
-  ['category','subcategory','car_model','steering','mileage_max'].forEach(k => { if (f[k]) count++; });
+  ['subcategory','car_model','steering','mileage_max'].forEach(k => { if (f[k]) count++; });
   if (f.year_from || f.year_to)   count++;
   if (f.price_min || f.price_max) count++;
   ['car_makes','locations','part_type','condition','exchange_policy','fuel_type','transmission','drive']
@@ -741,7 +743,6 @@ function renderActiveChips() {
   const fmt = n => Number(n).toLocaleString('mn-MN');
 
   if (_searchFilters.keyword) add(`"${_searchFilters.keyword}"`, 'keyword');
-  if (f.category)    add(f.category, 'category');
   if (f.subcategory) add(f.subcategory, 'subcategory');
   f.car_makes.forEach(m => add(m, 'f-make-cb', m));
   f.locations.forEach(k => add(typeof locationLabel === 'function' ? locationLabel(k) : k, 'f-loc-cb', k));

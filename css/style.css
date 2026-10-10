@@ -1027,6 +1027,9 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 .chip input:focus-visible + span { outline: 2px solid var(--red); outline-offset: 2px; }
 .chip-btn { cursor: pointer; font-family: inherit; }
 
+/* Хайлтын хуудсанд ангиллын дээд цэс давхардахгүй */
+body.on-search .cat-nav { display: none; }
+
 /* Type-specific sections */
 #page-search[data-lt="part"]    .filter-section[data-section="vehicle"] { display: none; }
 #page-search[data-lt="vehicle"] .filter-section[data-section="part"]    { display: none; }

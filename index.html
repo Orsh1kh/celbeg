@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -375,10 +375,8 @@
 
           <!-- ═══ Үндсэн (always open) ═══ -->
           <div class="filter-section" data-section="essential">
-            <div class="filter-group">
-              <label class="filter-label">Ангилал</label>
-              <select class="filter-select" id="f-category" data-dropdown="category" onchange="onSearchCategoryChange()"><option value="">Бүгд</option></select>
-            </div>
+            <!-- Ангиллыг үр дүнгийн дээрх chip мөрөөр сонгоно; энэ select зөвхөн төлөв хадгална -->
+            <select id="f-category" data-dropdown="category" onchange="onSearchCategoryChange()" hidden><option value="">Бүгд</option></select>
             <div class="filter-group" id="f-subcategory-group" style="display:none">
               <label class="filter-label">Дэд ангилал</label>
               <select class="filter-select" id="f-subcategory"><option value="">Бүгд</option></select>
@@ -1143,12 +1141,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=25"></script>
-<script src="js/data-manager.js?v=25"></script>
-<script src="js/auth.js?v=25"></script>
-<script src="js/listings.js?v=25"></script>
-<script src="js/upload.js?v=25"></script>
-<script src="js/admin.js?v=25"></script>
-<script src="js/main.js?v=25"></script>
+<script src="js/supabase-client.js?v=26"></script>
+<script src="js/data-manager.js?v=26"></script>
+<script src="js/auth.js?v=26"></script>
+<script src="js/listings.js?v=26"></script>
+<script src="js/upload.js?v=26"></script>
+<script src="js/admin.js?v=26"></script>
+<script src="js/main.js?v=26"></script>
 </body>
 </html>
