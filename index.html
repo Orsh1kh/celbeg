@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=27">
+<link rel="stylesheet" href="css/style.css?v=28">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -387,7 +387,7 @@
                 <input class="filter-input" id="f-price-min" type="number" min="0" placeholder="Доод ₮">
                 <input class="filter-input" id="f-price-max" type="number" min="0" placeholder="Дээд ₮">
               </div>
-              <div class="price-slider" id="price-slider">
+              <div class="dual-slider" id="price-slider">
                 <div class="ps-track"><div class="ps-fill" id="ps-fill"></div></div>
                 <input type="range" id="ps-min" min="0" max="20" step="1" value="0"  aria-label="Доод үнэ">
                 <input type="range" id="ps-max" min="0" max="20" step="1" value="20" aria-label="Дээд үнэ">
@@ -397,9 +397,15 @@
             <div class="filter-group">
               <label class="filter-label" id="f-year-label">Он</label>
               <div class="filter-range">
-                <select class="filter-select" id="f-year-from"><option value="">Хэзээнээс</option></select>
-                <select class="filter-select" id="f-year-to"><option value="">Хүртэл</option></select>
+                <input class="filter-input" id="f-year-from" type="number" min="1990" placeholder="Хэзээнээс">
+                <input class="filter-input" id="f-year-to"   type="number" min="1990" placeholder="Хүртэл">
               </div>
+              <div class="dual-slider" id="year-slider">
+                <div class="ps-track"><div class="ps-fill" id="ys-fill"></div></div>
+                <input type="range" id="ys-min" min="0" max="36" step="1" value="0"  aria-label="Эхлэх он">
+                <input type="range" id="ys-max" min="0" max="36" step="1" value="36" aria-label="Дуусах он">
+              </div>
+              <div class="ps-labels"><span id="ys-label-min">1990</span><span id="ys-label-max">2027</span></div>
             </div>
             <div class="filter-group">
               <label class="filter-label">Марк</label>
@@ -1146,12 +1152,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=27"></script>
-<script src="js/data-manager.js?v=27"></script>
-<script src="js/auth.js?v=27"></script>
-<script src="js/listings.js?v=27"></script>
-<script src="js/upload.js?v=27"></script>
-<script src="js/admin.js?v=27"></script>
-<script src="js/main.js?v=27"></script>
+<script src="js/supabase-client.js?v=28"></script>
+<script src="js/data-manager.js?v=28"></script>
+<script src="js/auth.js?v=28"></script>
+<script src="js/listings.js?v=28"></script>
+<script src="js/upload.js?v=28"></script>
+<script src="js/admin.js?v=28"></script>
+<script src="js/main.js?v=28"></script>
 </body>
 </html>
