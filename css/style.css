@@ -183,7 +183,9 @@ img { max-width: 100%; display: block; }
 /* ═══════════════════════════════════════════════════════════
    SEARCH PAGE
 ═══════════════════════════════════════════════════════════ */
-.search-layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; padding-top: 24px; padding-bottom: 40px; align-items: start; }
+.search-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; padding-top: 24px; padding-bottom: 40px; align-items: start; }
+/* min-width:0 — урт chip мөр баганыг тэлж container-оос хальхаас сэргийлнэ */
+.search-main { min-width: 0; }
 .filter-sidebar { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; position: sticky; top: 120px; }
 .filter-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .filter-group { margin-bottom: 16px; }
@@ -715,7 +717,9 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
    LISTING TYPE NAV (Part / Vehicle segmented switcher)
 ═══════════════════════════════════════════════════════════ */
 .type-nav {
-  display: flex; gap: 6px; padding: 10px 20px 4px;
+  /* Хажуугийн зай = header-main-ийн 1200px container + 16px padding-тэй ижил → логотой зэрэгцэнэ */
+  display: flex; gap: 6px;
+  padding: 10px max(16px, calc((100% - 1200px) / 2 + 16px)) 4px;
   border-bottom: 1px solid var(--border); background: var(--bg2);
   overflow-x: auto; scrollbar-width: none;
 }
