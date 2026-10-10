@@ -601,45 +601,66 @@ const FILTER_LABELS = {
   'f-steering':  { left: 'Зөв хүрд', right: 'Буруу хүрд' },
 };
 
-// ── Price presets (сэлбэг / машин өөр) ───────────────────
-const PRICE_PRESETS = {
-  part: [
-    { label: '50 мянга хүртэл',   min: '',       max: 50000 },
-    { label: '50–200 мянга',      min: 50000,    max: 200000 },
-    { label: '200 мянга–1 сая',   min: 200000,   max: 1000000 },
-    { label: '1 саяас дээш',      min: 1000000,  max: '' },
-  ],
-  vehicle: [
-    { label: '10 сая хүртэл',     min: '',        max: 10000000 },
-    { label: '10–30 сая',         min: 10000000,  max: 30000000 },
-    { label: '30–60 сая',         min: 30000000,  max: 60000000 },
-    { label: '60–100 сая',        min: 60000000,  max: 100000000 },
-    { label: '100 саяас дээш',    min: 100000000, max: '' },
-  ],
+// ── Price slider (сэлбэг / машинд өөр алхамтай) ──────────
+// Шугаман биш: бага үнэд нарийн, өндөр үнэд том алхамтай.
+// Эхний алхам = доод хязгааргүй, сүүлийн алхам = дээд хязгааргүй.
+const PRICE_STEPS = {
+  part: [0, 10000, 20000, 30000, 50000, 75000, 100000, 150000, 200000, 300000,
+         500000, 750000, 1000000, 1500000, 2000000, 3000000, 5000000, 10000000],
+  vehicle: [0, 1000000, 3000000, 5000000, 8000000, 10000000, 15000000, 20000000,
+            25000000, 30000000, 40000000, 50000000, 60000000, 80000000, 100000000,
+            150000000, 200000000, 300000000, 500000000],
 };
 
-function renderPricePresets() {
-  const wrap = document.getElementById('f-price-presets');
-  if (!wrap) return;
-  const list = PRICE_PRESETS[_listingTypeNav] || PRICE_PRESETS.part;
-  const curMin = document.getElementById('f-price-min').value;
-  const curMax = document.getElementById('f-price-max').value;
-  wrap.innerHTML = list.map((p, i) => {
-    const active = String(p.min) === curMin && String(p.max) === curMax && (curMin || curMax);
-    return `<button type="button" class="chip-btn${active ? ' active' : ''}" onclick="setPricePreset(${i})">${p.label}</button>`;
-  }).join('');
+function _priceSteps() { return PRICE_STEPS[_listingTypeNav] || PRICE_STEPS.part; }
+
+// Input-д бичсэн утгаас гулсагчийн байрлалыг тохируулна
+function syncPriceSlider() {
+  const psMin = document.getElementById('ps-min');
+  const psMax = document.getElementById('ps-max');
+  if (!psMin || !psMax) return;
+  const steps = _priceSteps();
+  const N = steps.length - 1;
+  psMin.max = psMax.max = N;
+  const vMin = parseInt(document.getElementById('f-price-min').value) || 0;
+  const vMax = parseInt(document.getElementById('f-price-max').value) || 0;
+  let a = 0, b = N;
+  if (vMin > 0) { a = steps.findIndex(s => s >= vMin); if (a < 0) a = N; }
+  if (vMax > 0) { b = N; for (let i = N; i >= 0; i--) { if (steps[i] <= vMax) { b = i; break; } } }
+  if (a > b) a = b;
+  psMin.value = a;
+  psMax.value = b;
+  _paintPriceSlider();
 }
 
-function setPricePreset(i) {
-  const p = (PRICE_PRESETS[_listingTypeNav] || PRICE_PRESETS.part)[i];
-  if (!p) return;
-  const minEl = document.getElementById('f-price-min');
-  const maxEl = document.getElementById('f-price-max');
-  const already = minEl.value === String(p.min) && maxEl.value === String(p.max);
-  minEl.value = already ? '' : p.min;
-  maxEl.value = already ? '' : p.max;
-  renderPricePresets();
-  applyFilters();
+// Гулсагч чирэх үед input-уудыг шинэчилнэ
+function onPriceSliderInput(which) {
+  const psMin = document.getElementById('ps-min');
+  const psMax = document.getElementById('ps-max');
+  const steps = _priceSteps();
+  const N = steps.length - 1;
+  let a = +psMin.value, b = +psMax.value;
+  if (a > b) {
+    if (which === 'min') { a = b; psMin.value = a; } else { b = a; psMax.value = b; }
+  }
+  document.getElementById('f-price-min').value = a === 0 ? '' : steps[a];
+  document.getElementById('f-price-max').value = b === N ? '' : steps[b];
+  _paintPriceSlider();
+}
+
+function _paintPriceSlider() {
+  const psMin = document.getElementById('ps-min');
+  const psMax = document.getElementById('ps-max');
+  const fill  = document.getElementById('ps-fill');
+  const steps = _priceSteps();
+  const N = steps.length - 1;
+  const a = +psMin.value, b = +psMax.value;
+  fill.style.left  = (a / N * 100) + '%';
+  fill.style.right = (100 - b / N * 100) + '%';
+  // Хоёр бариул баруун захад давхцвал доод бариулыг дээр нь гаргана
+  psMin.style.zIndex = a >= N - 1 ? 5 : 3;
+  document.getElementById('ps-label-min').textContent = a === 0 ? '0 ₮' : formatPriceShort(steps[a]);
+  document.getElementById('ps-label-max').textContent = b === N ? 'Хязгааргүй' : formatPriceShort(steps[b]);
 }
 
 // ── Year selects ──────────────────────────────────────────
@@ -660,7 +681,7 @@ function syncSearchTypeUI() {
   if (page) page.dataset.lt = _listingTypeNav;
   const yl = document.getElementById('f-year-label');
   if (yl) yl.textContent = _listingTypeNav === 'vehicle' ? 'Үйлдвэрлэсэн он' : 'Таарах он';
-  renderPricePresets();
+  syncPriceSlider();
 }
 
 // ── Chip/select өөрчлөгдөхөд шууд шүүнэ ─────────────────
@@ -669,9 +690,12 @@ function wireFilterAutoApply() {
   const side = document.getElementById('filter-sidebar');
   if (!side || side.dataset.autoWired) return;
   side.dataset.autoWired = '1';
+  // Чирэх үед зөвхөн тоо/шугам шинэчилнэ; суллахад (change) шүүлт ажиллана
+  document.getElementById('ps-min')?.addEventListener('input', () => onPriceSliderInput('min'));
+  document.getElementById('ps-max')?.addEventListener('input', () => onPriceSliderInput('max'));
   side.addEventListener('change', e => {
     if (e.target.id === 'f-category') return; // onSearchCategoryChange өөрөө шийднэ
-    if (e.target.id === 'f-price-min' || e.target.id === 'f-price-max') renderPricePresets();
+    if (e.target.id === 'f-price-min' || e.target.id === 'f-price-max') syncPriceSlider();
     clearTimeout(_autoApplyTimer);
     _autoApplyTimer = setTimeout(applyFilters, 250);
   });
@@ -748,7 +772,11 @@ function renderActiveChips() {
   f.locations.forEach(k => add(typeof locationLabel === 'function' ? locationLabel(k) : k, 'f-loc-cb', k));
   if (f.car_model) add(`Загвар: ${f.car_model}`, 'model');
   if (f.year_from || f.year_to) add(`Он: ${f.year_from || '…'}–${f.year_to || '…'}`, 'year');
-  if (f.price_min || f.price_max) add(`Үнэ: ${f.price_min ? fmt(f.price_min) : '…'}–${f.price_max ? fmt(f.price_max) : '…'}₮`, 'price');
+  if (f.price_min || f.price_max) {
+    const lo = f.price_min ? formatPriceShort(f.price_min).replace(' ₮', '') : '0';
+    const hi = f.price_max ? formatPriceShort(f.price_max) : 'дээш';
+    add(`Үнэ: ${lo} – ${hi}`, 'price');
+  }
   ['f-type','f-condition','f-policy','f-fuel','f-trans','f-drive'].forEach(name => {
     const key = { 'f-type':'part_type','f-condition':'condition','f-policy':'exchange_policy','f-fuel':'fuel_type','f-trans':'transmission','f-drive':'drive' }[name];
     (f[key] || []).forEach(v => add(FILTER_LABELS[name][v] || v, name, v));
@@ -771,7 +799,7 @@ function removeFilter(kind, enc) {
     case 'subcategory': set('f-subcategory'); break;
     case 'model':       set('f-model'); break;
     case 'year':        set('f-year-from'); set('f-year-to'); break;
-    case 'price':       set('f-price-min'); set('f-price-max'); renderPricePresets(); break;
+    case 'price':       set('f-price-min'); set('f-price-max'); syncPriceSlider(); break;
     case 'mileage':     set('f-mileage-max'); break;
     case 'steering': {
       const r = document.querySelector('input[name="f-steering"][value=""]'); if (r) r.checked = true; break;
@@ -867,7 +895,7 @@ function resetFilters() {
   const st = document.querySelector('input[name="f-steering"][value=""]'); if (st) st.checked = true;
   document.getElementById('sort-select').value = 'newest';
   _searchFilters = {};
-  renderPricePresets();
+  syncPriceSlider();
   loadSearchResults(true);
 }
 

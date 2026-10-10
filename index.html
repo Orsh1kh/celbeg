@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=26">
+<link rel="stylesheet" href="css/style.css?v=27">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -383,11 +383,16 @@
             </div>
             <div class="filter-group">
               <label class="filter-label">Үнэ</label>
-              <div class="chip-group" id="f-price-presets"></div>
-              <div class="filter-range" style="margin-top:8px">
+              <div class="filter-range">
                 <input class="filter-input" id="f-price-min" type="number" min="0" placeholder="Доод ₮">
                 <input class="filter-input" id="f-price-max" type="number" min="0" placeholder="Дээд ₮">
               </div>
+              <div class="price-slider" id="price-slider">
+                <div class="ps-track"><div class="ps-fill" id="ps-fill"></div></div>
+                <input type="range" id="ps-min" min="0" max="20" step="1" value="0"  aria-label="Доод үнэ">
+                <input type="range" id="ps-max" min="0" max="20" step="1" value="20" aria-label="Дээд үнэ">
+              </div>
+              <div class="ps-labels"><span id="ps-label-min">0 ₮</span><span id="ps-label-max">Хязгааргүй</span></div>
             </div>
             <div class="filter-group">
               <label class="filter-label" id="f-year-label">Он</label>
@@ -1141,12 +1146,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=26"></script>
-<script src="js/data-manager.js?v=26"></script>
-<script src="js/auth.js?v=26"></script>
-<script src="js/listings.js?v=26"></script>
-<script src="js/upload.js?v=26"></script>
-<script src="js/admin.js?v=26"></script>
-<script src="js/main.js?v=26"></script>
+<script src="js/supabase-client.js?v=27"></script>
+<script src="js/data-manager.js?v=27"></script>
+<script src="js/auth.js?v=27"></script>
+<script src="js/listings.js?v=27"></script>
+<script src="js/upload.js?v=27"></script>
+<script src="js/admin.js?v=27"></script>
+<script src="js/main.js?v=27"></script>
 </body>
 </html>

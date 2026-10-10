@@ -1027,6 +1027,38 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 .chip input:focus-visible + span { outline: 2px solid var(--red); outline-offset: 2px; }
 .chip-btn { cursor: pointer; font-family: inherit; }
 
+/* ── Price dual-range slider ─────────────────────────────── */
+.price-slider { position: relative; height: 30px; margin: 12px 6px 4px; }
+.ps-track {
+  position: absolute; left: 0; right: 0; top: 50%; height: 5px; transform: translateY(-50%);
+  background: var(--border); border-radius: 3px;
+}
+.ps-fill { position: absolute; top: 0; bottom: 0; left: 0; right: 0; background: var(--red); border-radius: 3px; }
+.price-slider input[type="range"] {
+  position: absolute; left: -6px; top: 0; width: calc(100% + 12px); height: 30px; margin: 0;
+  background: none; pointer-events: none; -webkit-appearance: none; appearance: none; z-index: 3;
+}
+.price-slider input[type="range"]:focus { outline: none; }
+.price-slider input[type="range"]::-webkit-slider-runnable-track { height: 30px; background: transparent; }
+.price-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; pointer-events: auto;
+  width: 24px; height: 24px; margin-top: 3px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--red); box-shadow: 0 1px 5px rgba(0,0,0,.3);
+  cursor: grab;
+}
+.price-slider input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.1); }
+.price-slider input[type="range"]::-moz-range-track { background: transparent; }
+.price-slider input[type="range"]::-moz-range-thumb {
+  pointer-events: auto; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--red); box-shadow: 0 1px 5px rgba(0,0,0,.3); cursor: grab;
+}
+.price-slider input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(192,57,43,.3); }
+.ps-labels {
+  display: flex; justify-content: space-between;
+  font-size: 12.5px; font-weight: 600; color: var(--text);
+  margin: 2px 0 4px;
+}
+
 /* Хайлтын хуудсанд ангиллын дээд цэс давхардахгүй */
 body.on-search .cat-nav { display: none; }
 
