@@ -241,15 +241,6 @@ function populateCategoryNavAndGrid() {
     ? getVehicleCategories()
     : getMainCategories();
 
-  const catNav = document.getElementById('cat-nav-inner');
-  if (catNav) {
-    catNav.innerHTML =
-      `<button class="cat-nav-btn active" data-cat="" onclick="selectCatNav(this,'')">Бүгд</button>` +
-      source.map(c =>
-        `<button class="cat-nav-btn" data-cat="${c.name}" onclick="selectCatNav(this,'${c.name}')">${c.icon} ${c.name}</button>`
-      ).join('');
-  }
-
   const catGrid = document.getElementById('home-cat-grid');
   if (catGrid) {
     catGrid.innerHTML = source.map(c =>

@@ -21,8 +21,6 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + id);
   if (el) el.classList.add('active');
-  // Хайлтын хуудсанд ангиллыг зөвхөн chip мөрөөр сонгоно — дээд цэсийг нууна
-  document.body.classList.toggle('on-search', id === 'search');
   window.scrollTo(0, 0);
   closeMobileNav();
 
@@ -43,13 +41,6 @@ function toggleMobileNav() {
 function closeMobileNav() {
   document.getElementById('mobile-nav').classList.remove('open');
   document.getElementById('mobile-overlay').classList.remove('open');
-}
-
-// ── Category nav bar ───────────────────────────────────────
-function selectCatNav(btn, cat) {
-  document.querySelectorAll('.cat-nav-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  goSearchCat(cat);
 }
 
 // ── Listing type nav (Part / Vehicle) ─────────────────────

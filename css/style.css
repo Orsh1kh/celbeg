@@ -84,12 +84,6 @@ img { max-width: 100%; display: block; }
 .btn-hamburger span { display: block; width: 22px; height: 2px; background: var(--text); border-radius: 2px; transition: all .25s; }
 
 /* Category nav */
-.cat-nav { background: var(--bg2); border-bottom: 1px solid var(--border); }
-.cat-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 16px; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
-.cat-nav-inner::-webkit-scrollbar { display: none; }
-.cat-nav-btn { padding: 10px 14px; font-size: 13px; color: var(--muted); white-space: nowrap; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.cat-nav-btn:hover { color: var(--text); }
-.cat-nav-btn.active { color: var(--red); border-bottom-color: var(--red); font-weight: 600; }
 
 /* Mobile nav */
 #mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
@@ -1058,9 +1052,6 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
   font-size: 12.5px; font-weight: 600; color: var(--text);
   margin: 2px 0 4px;
 }
-
-/* Хайлтын хуудсанд ангиллын дээд цэс давхардахгүй */
-body.on-search .cat-nav { display: none; }
 
 /* Type-specific sections */
 #page-search[data-lt="part"]    .filter-section[data-section="vehicle"] { display: none; }
