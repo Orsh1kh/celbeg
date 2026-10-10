@@ -825,9 +825,135 @@ async function initPostPage() {
   document.getElementById('post-form-wrap').style.display = 'block';
   document.getElementById('post-success').style.display   = 'none';
   initUploadZone('upload-zone', 'upload-preview');
-  // Header type nav-с автоматаар default type-г сонгоно
   selectListingType(_listingTypeNav || 'part');
+
+  // Хэрэглэгчийн профайл дээрээс утас, дэлгүүрийн нэрийг автомат бөглөнө
+  prefillFromProfile();
+  // Өмнөх зарын байршлыг санана
+  prefillLastLocation();
+  // Хадгалсан draft байвал санамж харуулна
+  checkForDraft();
+  // Form дээр өөрчлөлт болгонд draft-ыг автомат хадгалах
+  attachDraftAutoSave();
+
   await refreshQuotaInfo();
+}
+
+// ── Pre-fill from profile ────────────────────────────────
+function prefillFromProfile() {
+  const user = authGetUser();
+  if (!user) return;
+  const phoneEl = document.getElementById('p-phone');
+  const shopEl  = document.getElementById('p-shop');
+  if (phoneEl && !phoneEl.value && user.phone) phoneEl.value = user.phone;
+  if (shopEl  && !shopEl.value  && user.shop_name) shopEl.value  = user.shop_name;
+}
+
+function prefillLastLocation() {
+  const locEl = document.getElementById('p-location');
+  if (!locEl || locEl.value) return;
+  const last = localStorage.getItem('cb_last_location');
+  if (last) locEl.value = last;
+}
+
+// ── "Үнэ тохиролцоно" toggle ─────────────────────────────
+function toggleNegotiable() {
+  const chk = document.getElementById('p-negotiable');
+  const priceEl = document.getElementById('p-price');
+  if (chk.checked) {
+    priceEl.value = '0';
+    priceEl.disabled = true;
+    priceEl.placeholder = 'Үнэ тохиролцоно';
+  } else {
+    priceEl.value = '';
+    priceEl.disabled = false;
+    priceEl.placeholder = '150000';
+  }
+}
+
+// ── Draft auto-save + restore ────────────────────────────
+const DRAFT_KEY = 'cb_post_draft_v1';
+const DRAFT_FIELDS = [
+  'p-title','p-category','p-subcategory','p-condition','p-model','p-year-from',
+  'p-policy','p-desc','p-price','p-shop','p-location',
+  'v-title','v-body-type','v-model','v-year','v-imported-year','v-mileage',
+  'v-engine','v-fuel','v-transmission','v-drive','v-steering','v-color',
+  'v-color-interior','v-plate-region','v-customs','v-desc',
+];
+
+function _collectDraft() {
+  const data = { listing_type: document.getElementById('p-listing-type')?.value || 'part' };
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value) data[id] = el.value;
+  });
+  // Checkboxes
+  const barter  = document.getElementById('v-barter');
+  const leasing = document.getElementById('v-leasing');
+  if (barter?.checked)  data['v-barter'] = true;
+  if (leasing?.checked) data['v-leasing'] = true;
+  return data;
+}
+
+function _applyDraft(data) {
+  if (!data) return;
+  if (data.listing_type) selectListingType(data.listing_type);
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && data[id] != null) {
+      el.value = data[id];
+      // Category change → sub-category dropdown
+      if (id === 'p-category') onPostCategoryChange();
+    }
+  });
+  if (data['v-barter'])  { const el = document.getElementById('v-barter');  if (el) el.checked = true; }
+  if (data['v-leasing']) { const el = document.getElementById('v-leasing'); if (el) el.checked = true; }
+}
+
+let _draftTimer = null;
+function attachDraftAutoSave() {
+  const wrap = document.getElementById('post-form-wrap');
+  if (!wrap || wrap.dataset.draftWired) return;
+  wrap.dataset.draftWired = '1';
+  wrap.addEventListener('input', () => {
+    clearTimeout(_draftTimer);
+    _draftTimer = setTimeout(() => {
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(_collectDraft())); } catch {}
+    }, 500);
+  });
+}
+
+function checkForDraft() {
+  const banner = document.getElementById('draft-banner');
+  if (!banner) return;
+  let raw;
+  try { raw = localStorage.getItem(DRAFT_KEY); } catch { raw = null; }
+  if (!raw) { banner.style.display = 'none'; return; }
+  try {
+    const data = JSON.parse(raw);
+    // Хэрэв title эсвэл v-title хоосон бол draft утгагүй
+    if (!data['p-title'] && !data['v-title']) { banner.style.display = 'none'; return; }
+    banner.style.display = 'flex';
+  } catch { banner.style.display = 'none'; }
+}
+
+function restoreDraft() {
+  try {
+    const data = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
+    _applyDraft(data);
+    showToast('Хадгалсан зар сэргээгдлээ', 'success');
+  } catch {}
+  document.getElementById('draft-banner').style.display = 'none';
+}
+
+function discardDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  document.getElementById('draft-banner').style.display = 'none';
+  showToast('Хадгалсан зар устгагдлаа', 'info');
+}
+
+function clearDraftAfterSubmit() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch {}
 }
 
 async function refreshQuotaInfo() {
@@ -1036,6 +1162,9 @@ async function submitListing() {
     }, vehiclePayload);
 
     resetUpload();
+    clearDraftAfterSubmit();
+    const locVal = document.getElementById('p-location').value.trim();
+    if (locVal) { try { localStorage.setItem('cb_last_location', locVal); } catch {} }
     document.getElementById('post-form-wrap').style.display = 'none';
     document.getElementById('post-success').style.display   = 'block';
     showToast('Зар амжилттай нийтлэгдлээ!', 'success');

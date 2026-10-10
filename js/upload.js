@@ -13,7 +13,11 @@ function initUploadZone(zoneId, previewId) {
 
   if (!zone || !preview || !input) return;
 
-  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('click', e => {
+    // Button дээр дарсан бол зөвшөөрөхгүй — тэд өөрийн handler-тэй
+    if (e.target.closest('.upload-buttons')) return;
+    input.click();
+  });
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
   zone.addEventListener('drop', e => {
@@ -25,6 +29,24 @@ function initUploadZone(zoneId, previewId) {
     _addFiles(Array.from(input.files), preview);
     input.value = '';
   });
+}
+
+// ── Камер шууд нээх (мобайл дээр ажиллана) ─────────────────
+function pickFromCamera() {
+  const input = document.querySelector('#upload-zone input[type="file"]');
+  if (!input) return;
+  // Capture attribute-г түр нэмж камер нээлгэнэ
+  input.setAttribute('capture', 'environment');
+  input.click();
+  // Дараа устгаад гар утасны галлерейг хэвийн нээдэг болгоно
+  setTimeout(() => input.removeAttribute('capture'), 1000);
+}
+
+function pickFromGallery() {
+  const input = document.querySelector('#upload-zone input[type="file"]');
+  if (!input) return;
+  input.removeAttribute('capture');
+  input.click();
 }
 
 function _addFiles(files, preview) {

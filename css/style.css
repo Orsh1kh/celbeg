@@ -837,6 +837,53 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 .upload-hint strong { font-size: 15px; }
 .upload-icon { font-size: 42px; }
 
+/* Camera / gallery buttons */
+.upload-buttons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-top: 14px;
+}
+.upload-btn-camera, .upload-btn-gallery {
+  padding: 14px 16px; min-height: 50px;
+  border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: transform .12s, box-shadow .12s, background .15s;
+}
+.upload-btn-camera {
+  background: var(--red); color: #fff;
+}
+.upload-btn-gallery {
+  background: var(--bg3); color: var(--text); border: 1.5px solid var(--border);
+}
+.upload-btn-camera:hover { background: var(--red2); transform: translateY(-1px); }
+.upload-btn-gallery:hover { border-color: var(--red); color: var(--red); }
+
+/* Үнэ тохиролцоно checkbox */
+.negotiable-check {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 8px; padding: 8px 10px;
+  background: var(--bg3); border-radius: 8px;
+  font-size: 13px; color: var(--muted); cursor: pointer;
+  user-select: none;
+}
+.negotiable-check:hover { color: var(--text); }
+.negotiable-check input { accent-color: var(--red); cursor: pointer; }
+
+/* Draft restore banner */
+#draft-banner {
+  display: none;
+  padding: 12px 16px; margin-bottom: 14px;
+  background: rgba(240,165,0,.12); border: 1px solid var(--gold); border-radius: 10px;
+  color: var(--text); font-size: 13px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+#draft-banner.hidden { display: none !important; }
+#draft-banner .draft-actions { display: flex; gap: 8px; flex-shrink: 0; }
+#draft-banner button {
+  padding: 6px 12px; font-size: 12px; border-radius: 6px; font-weight: 600;
+  cursor: pointer;
+}
+#draft-banner .btn-restore { background: var(--gold); color: #1a1a1a; }
+#draft-banner .btn-discard { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+
 /* ═══════════════════════════════════════════════════════════
    FILTER CHECKLIST (multi-select mark, location)
 ═══════════════════════════════════════════════════════════ */

@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=21">
+<link rel="stylesheet" href="css/style.css?v=22">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -459,6 +459,15 @@
       <div class="post-page-hint" id="post-page-hint">Хурдан, хялбар. Гол мэдээллийг л бөглөнө үү.</div>
 
       <div id="post-form-wrap">
+        <!-- Draft restore banner -->
+        <div id="draft-banner">
+          <div>📝 Таны хадгалсан зар байна. Үргэлжлүүлэх үү?</div>
+          <div class="draft-actions">
+            <button class="btn-restore" onclick="restoreDraft()">Сэргээх</button>
+            <button class="btn-discard" onclick="discardDraft()">Устгах</button>
+          </div>
+        </div>
+
         <!-- Listing type toggle -->
         <div class="post-card">
           <div class="post-card-title">Ямар зар нийтлэх вэ?</div>
@@ -474,6 +483,10 @@
           <div class="post-card-title">📷 Зурагнууд (хамгийн ихдээ 8)</div>
           <div class="upload-zone" id="upload-zone">
             <input type="file" accept="image/*" multiple style="display:none">
+            <div class="upload-buttons">
+              <button type="button" class="upload-btn-camera" onclick="pickFromCamera()">📷 Камераар авах</button>
+              <button type="button" class="upload-btn-gallery" onclick="pickFromGallery()">🖼 Галлерейгаас сонгох</button>
+            </div>
             <div class="upload-icon">📁</div>
             <div class="upload-hint"><strong>Зураг оруулах</strong><br>Дарах эсвэл чирж оруулна уу</div>
           </div>
@@ -727,6 +740,10 @@
             <div class="form-group">
               <label class="form-label">Үнэ (₮) *</label>
               <input class="form-input" id="p-price" type="number" placeholder="150000">
+              <label class="negotiable-check">
+                <input type="checkbox" id="p-negotiable" onchange="toggleNegotiable()">
+                <span>Үнэ тохиролцоно</span>
+              </label>
               <div class="form-error" id="p-price-err"></div>
             </div>
             <div class="form-group">
@@ -1010,12 +1027,12 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=21"></script>
-<script src="js/data-manager.js?v=21"></script>
-<script src="js/auth.js?v=21"></script>
-<script src="js/listings.js?v=21"></script>
-<script src="js/upload.js?v=21"></script>
-<script src="js/admin.js?v=21"></script>
-<script src="js/main.js?v=21"></script>
+<script src="js/supabase-client.js?v=22"></script>
+<script src="js/data-manager.js?v=22"></script>
+<script src="js/auth.js?v=22"></script>
+<script src="js/listings.js?v=22"></script>
+<script src="js/upload.js?v=22"></script>
+<script src="js/admin.js?v=22"></script>
+<script src="js/main.js?v=22"></script>
 </body>
 </html>
