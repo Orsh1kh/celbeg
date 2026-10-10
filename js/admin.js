@@ -13,8 +13,9 @@ function adminSwitchTab(tab) {
   // Toolbar: "Олноор нэмэх" зөвхөн марк дээр; Дэлгүүр таб дээр нэмэх/буцаах товч хэрэггүй
   const show = (id, on, disp = 'inline-flex') => { const el = document.getElementById(id); if (el) el.style.display = on ? disp : 'none'; };
   show('admin-bulk-btn', tab === 'marks');
-  show('admin-add-btn', tab !== 'shops');
-  document.querySelector('.btn-admin-reset')?.style.setProperty('display', tab === 'shops' ? 'none' : '');
+  const editable = tab === 'categories' || tab === 'marks';
+  show('admin-add-btn', editable);
+  document.querySelector('.btn-admin-reset')?.style.setProperty('display', editable ? '' : 'none');
   renderAdminTable();
 }
 
@@ -33,6 +34,7 @@ function renderAdminTable() {
   if (_adminTab === 'categories') renderCategoryTable(wrap);
   else if (_adminTab === 'marks') renderMarkTable(wrap);
   else if (_adminTab === 'shops') renderShopsTable(wrap);
+  else if (_adminTab === 'reports') renderReportsTable(wrap);
 }
 
 // ── Shops (verified toggle) ──────────────────────────────
@@ -43,11 +45,14 @@ async function renderShopsTable(wrap) {
     return;
   }
   try {
-    const { data: shops, error } = await sb
-      .from('profiles')
-      .select('id,name,phone,email,shop_name,is_verified,created_at')
-      .eq('user_type', 'shop')
-      .order('created_at', { ascending: false });
+    // Email-тэй жагсаалт зөвхөн админ RPC-ээр (014 SQL); байхгүй бол нийтийн багануудаар
+    let { data: shops, error } = await sb.rpc('admin_list_shops');
+    if (error) {
+      ({ data: shops, error } = await sb.from('profiles')
+        .select(PUBLIC_PROFILE_COLS)
+        .eq('user_type', 'shop')
+        .order('created_at', { ascending: false }));
+    }
     if (error) throw error;
     if (!shops || !shops.length) {
       wrap.innerHTML = `<div class="no-results"><div class="no-icon">🏪</div><h3>Дэлгүүр байхгүй</h3><p>Одоогоор дэлгүүрийн бүртгэлтэй хэрэглэгч алга байна.</p></div>`;
@@ -82,6 +87,65 @@ async function renderShopsTable(wrap) {
   } catch(e) {
     wrap.innerHTML = `<div class="no-results"><div class="no-icon">⚠️</div><h3>Алдаа</h3><p>${e.message}</p></div>`;
   }
+}
+
+// ── Reports (мэдээлсэн зарууд) ───────────────────────────
+async function renderReportsTable(wrap) {
+  wrap.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  let groups;
+  try {
+    groups = await fetchOpenReports();
+  } catch (e) {
+    wrap.innerHTML = `<div class="no-results"><div class="no-icon">⚠️</div><h3>Алдаа</h3><p>${escapeHtml(e.message)}. 013_reports.sql ажиллуулсан эсэхийг шалгана уу.</p></div>`;
+    return;
+  }
+  updateReportsBadge(groups.reduce((n, g) => n + g.reports.length, 0));
+  if (!groups.length) {
+    wrap.innerHTML = `<div class="no-results"><div class="no-icon">✅</div><h3>Шинэ мэдээлэл алга</h3><p>Хэрэглэгчид мэдээлсэн зар байхгүй байна.</p></div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="report-groups">${groups.map(g => {
+    const l = g.listing || {};
+    const reasons = g.reports.map(r => `
+      <li><strong>${escapeHtml(REPORT_REASONS[r.reason] || r.reason)}</strong>
+        ${r.comment ? ` — ${escapeHtml(r.comment)}` : ''}
+        <span class="report-date">${formatDate(r.created_at)}</span></li>`).join('');
+    return `
+      <div class="report-group">
+        <div class="report-group-head">
+          <div>
+            <a class="report-listing-title" onclick="openDetail('${g.listing_id}')">${escapeHtml(l.title || '(устгагдсан зар)')}</a>
+            <div class="report-meta">${g.reports.length} мэдээлэл · ${l.is_active === false ? '<span class="report-hidden">Нуугдсан</span>' : 'Идэвхтэй'}</div>
+          </div>
+          <div class="report-actions">
+            <button class="ab-del"  onclick="doResolveReports('${g.listing_id}','hide')">🙈 Зарыг нуух</button>
+            <button class="ab-edit" onclick="doResolveReports('${g.listing_id}','dismiss')">✅ Хэвийн</button>
+          </div>
+        </div>
+        <ul class="report-reasons-list">${reasons}</ul>
+      </div>`;
+  }).join('')}</div>`;
+}
+
+async function doResolveReports(listingId, action) {
+  const msg = action === 'hide'
+    ? 'Зарыг нууж, мэдээллүүдийг шийдвэрлэсэн болгох уу?'
+    : 'Зарыг хэвийн гэж үзэж, дахин нээх үү?';
+  if (!confirm(msg)) return;
+  try {
+    await resolveListingReports(listingId, action);
+    showToast(action === 'hide' ? 'Зар нуугдлаа' : 'Зар хэвийн боллоо', 'success');
+    renderReportsTable(document.getElementById('admin-table-wrap'));
+  } catch (e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+function updateReportsBadge(n) {
+  const b = document.getElementById('admin-reports-badge');
+  if (!b) return;
+  b.textContent = n > 0 ? n : '';
+  b.style.display = n > 0 ? 'inline-flex' : 'none';
 }
 
 async function toggleShopVerified(id, current) {
@@ -335,6 +399,7 @@ function initAdminPage() {
   document.getElementById('admin-stat-marks').textContent = getMarks().length;
 
   renderAdminTable();
+  fetchOpenReports().then(g => updateReportsBadge(g.reduce((n, x) => n + x.reports.length, 0))).catch(() => {});
 }
 
 // ── Emoji picker shortcut ─────────────────────────────────────

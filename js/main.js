@@ -189,6 +189,9 @@ async function submitRegister() {
   if (!name)             { showFieldError('reg-name-err',     'Нэр оруулна уу'); valid=false; }
   if (!_isEmail(email))  { showFieldError('reg-email-err',    'Зөв email оруулна уу'); valid=false; }
   if (!pass || pass.length < 6) { showFieldError('reg-password-err', 'Нууц үг 6+ тэмдэгт'); valid=false; }
+  const consent = document.getElementById('reg-consent');
+  if (consent && !consent.checked) { showFieldError('reg-consent-err', 'Үйлчилгээний нөхцөлийг зөвшөөрнө үү'); valid=false; }
+  else showFieldError('reg-consent-err', '');
   if (!valid) return;
 
   const btn = document.getElementById('reg-submit-btn');
@@ -1096,6 +1099,9 @@ async function openDetail(id) {
     const waBtn   = document.getElementById('detail-wa-btn');
     callBtn.href = phone ? `tel:${phone}` : '#';
     waBtn.href   = phone ? `https://wa.me/${phone.replace('+','')}` : '#';
+    // Өөрийн зарыг мэдээлэх боломжгүй
+    const me = authGetUser();
+    document.getElementById('detail-report-btn').style.display = (me && l.user_id && me.id === l.user_id) ? 'none' : '';
     // Утасгүй зар дээр ажиллахгүй товч харуулахгүй
     callBtn.style.display = phone ? '' : 'none';
     waBtn.style.display   = phone ? '' : 'none';
@@ -1639,6 +1645,52 @@ async function doExtendListing(id) {
 // ── Admin page helpers (called from admin.js) ───────────────
 
 // ═══════════════════════════════════════════════════════════
+// REPORT (зар мэдээлэх) UI
+// ═══════════════════════════════════════════════════════════
+let _reportListingId = null;
+let _reportReason = '';
+
+function openReportModal() {
+  if (!_currentListing) return;
+  if (!authGetUser()) {
+    openAuthModal('login');
+    showToast('Зар мэдээлэхийн тулд нэвтэрнэ үү', 'info');
+    return;
+  }
+  _reportListingId = _currentListing.id;
+  _reportReason = '';
+  document.getElementById('report-target-title').textContent = _currentListing.title || '';
+  document.getElementById('report-comment').value = '';
+  document.getElementById('report-reasons').innerHTML = Object.entries(REPORT_REASONS).map(([k, label]) =>
+    `<label class="chip"><input type="radio" name="report-reason" value="${k}" onchange="_reportReason=this.value"><span>${label}</span></label>`
+  ).join('');
+  document.getElementById('modal-report').classList.add('open');
+}
+
+function closeReportModal() {
+  document.getElementById('modal-report')?.classList.remove('open');
+  _reportListingId = null;
+}
+
+async function sendReport() {
+  if (!_reportListingId) return;
+  if (!_reportReason) { showToast('Шалтгаанаа сонгоно уу', 'info'); return; }
+  const btn = document.getElementById('report-submit-btn');
+  btn.disabled = true;
+  try {
+    await submitReport(_reportListingId, _reportReason, document.getElementById('report-comment').value.trim());
+    showToast('Баярлалаа! Мэдээлэл хүлээн авлаа', 'success');
+    closeReportModal();
+  } catch (e) {
+    showToast(e.message === 'duplicate' ? 'Та энэ зарыг аль хэдийн мэдээлсэн байна' : 'Алдаа: ' + e.message,
+      e.message === 'duplicate' ? 'info' : 'error');
+    if (e.message === 'duplicate') closeReportModal();
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // RATING / REVIEW UI
 // ═══════════════════════════════════════════════════════════
 let _reviewShopId = null;
@@ -1903,7 +1955,8 @@ async function loadShopProfile(userId) {
   let profile = null;
   if (!DEMO_MODE) {
     try {
-      const { data } = await sb.from('profiles').select('*').eq('id', userId).single();
+      // Нийтийн багануудыг л уншина (email орохгүй)
+      const { data } = await sb.from('profiles').select(PUBLIC_PROFILE_COLS).eq('id', userId).maybeSingle();
       profile = data;
     } catch(e) { /* handled below */ }
   }
@@ -2180,6 +2233,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     if (e.key === 'Escape') {
+      closeReportModal();
       closeReviewModal();
       closeDetail();
       closeAuthModal();

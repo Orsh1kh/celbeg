@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=33">
+<link rel="stylesheet" href="css/style.css?v=37">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -209,6 +209,11 @@
         <input class="form-input" id="reg-password" type="password" placeholder="6+ тэмдэгт" autocomplete="new-password">
         <div class="form-error" id="reg-password-err"></div>
       </div>
+      <label class="consent-check">
+        <input type="checkbox" id="reg-consent">
+        <span><a onclick="closeAuthModal();showPage('terms')">Үйлчилгээний нөхцөл</a>, <a onclick="closeAuthModal();showPage('privacy')">Нууцлалын бодлого</a>-г уншиж зөвшөөрч байна</span>
+      </label>
+      <div class="form-error" id="reg-consent-err"></div>
       <button class="btn-submit" id="reg-submit-btn" onclick="submitRegister()">Бүртгүүлэх</button>
     </div>
   </div>
@@ -233,6 +238,30 @@
     <div class="review-footer">
       <button class="btn-cancel" onclick="closeReviewModal()">Цуцлах</button>
       <button class="btn-submit" id="review-submit-btn" onclick="submitReview()">Илгээх</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     REPORT MODAL (зар мэдээлэх)
+════════════════════════════════════════════════════════ -->
+<div id="modal-report" onclick="if(event.target===this)closeReportModal()">
+  <div class="review-panel">
+    <button class="review-close-btn" onclick="closeReportModal()" title="Хаах">✕</button>
+    <h2>🚩 Зар мэдээлэх</h2>
+    <div class="review-target" id="report-target-title">—</div>
+    <div class="review-form-group">
+      <label>Шалтгаан *</label>
+      <div class="report-reasons" id="report-reasons"></div>
+    </div>
+    <div class="review-form-group">
+      <label>Нэмэлт тайлбар (сонголтоор)</label>
+      <textarea id="report-comment" maxlength="500" placeholder="Юу буруу байгааг товч бичнэ үү"></textarea>
+    </div>
+    <div class="report-note">3 хүн мэдээлсэн зар автоматаар түр нуугдаж, админ шалгана.</div>
+    <div class="review-footer">
+      <button class="btn-cancel" onclick="closeReportModal()">Цуцлах</button>
+      <button class="btn-submit" id="report-submit-btn" onclick="sendReport()">Илгээх</button>
     </div>
   </div>
 </div>
@@ -278,6 +307,7 @@
         <span id="detail-date"></span>
         <span id="detail-views"></span>
       </div>
+      <button type="button" class="btn-report" id="detail-report-btn" onclick="openReportModal()">🚩 Зар мэдээлэх</button>
     </div>
   </div>
 </div>
@@ -1041,6 +1071,7 @@
         <div class="admin-tab active" data-tab="categories" onclick="adminSwitchTab('categories')">📂 Ангилал</div>
         <div class="admin-tab" data-tab="marks" onclick="adminSwitchTab('marks')">🚗 Машины марк</div>
         <div class="admin-tab" data-tab="shops" onclick="adminSwitchTab('shops')">🏪 Дэлгүүр</div>
+        <div class="admin-tab" data-tab="reports" onclick="adminSwitchTab('reports')">🚩 Мэдээлэл <span class="admin-tab-badge" id="admin-reports-badge"></span></div>
       </div>
 
       <!-- Toolbar -->
@@ -1055,6 +1086,128 @@
       <!-- Table / grid area -->
       <div id="admin-table-wrap"></div>
     </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────
+       ҮЙЛЧИЛГЭЭНИЙ НӨХЦӨЛ
+  ────────────────────────────────────────────────────────
+       АНХААР: Энэ бол загвар текст. Нийтлэхээс өмнө хуульчаар хянуулна уу. -->
+  <section id="page-terms" class="page">
+    <article class="container legal-page">
+      <h1>Үйлчилгээний нөхцөл</h1>
+      <p class="legal-updated">Сүүлд шинэчилсэн: 2026 оны 10 сарын 10</p>
+
+      <h2>1. Ерөнхий</h2>
+      <p>CELBEG.MN (цаашид «Платформ») нь авто сэлбэг болон тээврийн хэрэгслийн зар байршуулах, хайх онлайн үйлчилгээ юм. Платформыг ашигласнаар та энэхүү нөхцөлийг хүлээн зөвшөөрч байна.</p>
+      <p>Платформ нь худалдан авагч, худалдагчийн хоорондын гэрээ, гүйлгээний тал <strong>биш</strong>. Бараа, үнэ, төлбөр, хүргэлт, буцаалтын асуудлыг талууд өөрсдөө шийднэ.</p>
+
+      <h2>2. Бүртгэл</h2>
+      <ul>
+        <li>Бүртгүүлэхдээ өөрийн үнэн зөв нэр, ажиллаж буй email хаяг ашиглана.</li>
+        <li>Нууц үгээ бусдад дамжуулахгүй. Таны бүртгэлээр хийгдсэн үйлдлийг та хариуцна.</li>
+        <li>Хувь хүн эсвэл дэлгүүр гэсэн төрлөөр бүртгүүлнэ. Дэлгүүрийг админ шалгаж «баталгаажсан» тэмдэг олгож болно.</li>
+      </ul>
+
+      <h2>3. Зар байршуулах</h2>
+      <ul>
+        <li>Зар нь бодит, одоо худалдаалагдаж буй бараанд хамаарах ёстой. Нэг бараанд нэг зар нийтэлнэ.</li>
+        <li>Зураг, тайлбар, үнэ, барааны нөхцөл (шинэ, хэрэглэсэн г.м) үнэн байх ёстой. Бусдын зургийг зөвшөөрөлгүй ашиглахгүй.</li>
+        <li>Зарын хугацаа: хувь хүн 7 хоног, дэлгүүр 30 хоног. Хугацаа дуусахад «Миний хэсэг»-ээс сунгаж болно.</li>
+        <li>Идэвхтэй зарын тоо: хувь хүн 5 хүртэл (өдөрт 3), дэлгүүр 50 хүртэл (өдөрт 20).</li>
+        <li>Зарагдсан бол зараа идэвхгүй болгох эсвэл устгана уу.</li>
+      </ul>
+
+      <h2>4. Хориотой зүйлс</h2>
+      <ul>
+        <li>Хулгайн, хууль бусаар олж авсан, бичиг баримтгүй бараа, тээврийн хэрэгсэл</li>
+        <li>Хуурамч, дуураймал барааг «оригинал» гэж зарлах</li>
+        <li>Залилан, урьдчилгаа мөнгө авч бараа өгөхгүй байх, хуурамч үнэ</li>
+        <li>Спам, ижил зарыг давтан нийтлэх, зарын бус агуулга</li>
+        <li>Бусдыг доромжилсон, садар самуун, хууль зөрчсөн агуулга</li>
+      </ul>
+
+      <h2>5. Аюулгүй худалдаа</h2>
+      <ul>
+        <li>Барааг биечлэн үзэж, шалгаж авахыг зөвлөж байна.</li>
+        <li>Танихгүй хүнд урьдчилж мөнгө шилжүүлэхээс болгоомжилно уу.</li>
+        <li>Буцаан авах нөхцөлийг худалдагч зар бүр дээр тодорхойлно («Буцаана», «Гэмтэлтэй бол», «Буцаахгүй»).</li>
+      </ul>
+
+      <h2>6. Мэдээлэх ба зохицуулалт</h2>
+      <p>Зөрчилтэй зарыг «🚩 Зар мэдээлэх» товчоор мэдээлнэ үү. 3 хэрэглэгч мэдээлсэн зар автоматаар түр нуугдаж, админ шалгана. Платформ нь нөхцөл зөрчсөн зарыг мэдэгдэлгүйгээр нуух, устгах, давтан зөрчсөн бүртгэлийг хаах эрхтэй.</p>
+
+      <h2>7. Хариуцлагын хязгаар</h2>
+      <p>Зарын агуулга, барааны чанар, худалдагч болон худалдан авагчийн хоорондын гүйлгээнд Платформ хариуцлага хүлээхгүй. Үйлчилгээг тасралтгүй, алдаагүй ажиллана гэсэн баталгаа өгөхгүй.</p>
+
+      <h2>8. Төлбөр</h2>
+      <p>Одоогоор зар байршуулах нь үнэгүй. Цаашид VIP зар зэрэг төлбөртэй нэмэлт үйлчилгээ нэвтрүүлбэл үнэ, нөхцөлийг урьдчилан мэдэгдэнэ.</p>
+
+      <h2>9. Нөхцөлийн өөрчлөлт</h2>
+      <p>Энэхүү нөхцөлийг шинэчилж болно. Шинэчилсэн огноог энэ хуудасны эхэнд тэмдэглэнэ. Өөрчлөлтийн дараа үргэлжлүүлэн ашиглах нь шинэ нөхцөлийг зөвшөөрсөнд тооцогдоно.</p>
+
+      <h2>10. Холбоо барих</h2>
+      <p>Асуулт, гомдол: <a href="mailto:info@celbeg.mn">info@celbeg.mn</a></p>
+    </article>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────
+       НУУЦЛАЛЫН БОДЛОГО
+  ────────────────────────────────────────────────────────
+       АНХААР: Энэ бол загвар текст. Нийтлэхээс өмнө хуульчаар хянуулна уу. -->
+  <section id="page-privacy" class="page">
+    <article class="container legal-page">
+      <h1>Нууцлалын бодлого</h1>
+      <p class="legal-updated">Сүүлд шинэчилсэн: 2026 оны 10 сарын 10</p>
+
+      <p>Энэхүү бодлого нь CELBEG.MN таны ямар мэдээллийг цуглуулж, хэрхэн ашиглаж, хадгалдгийг тайлбарлана. Бид Монгол Улсын Хүний хувийн мэдээлэл хамгаалах тухай хуулийг баримтална.</p>
+
+      <h2>1. Бидний цуглуулдаг мэдээлэл</h2>
+      <table class="legal-table">
+        <thead><tr><th>Мэдээлэл</th><th>Хэзээ</th><th>Хэнд харагдах</th></tr></thead>
+        <tbody>
+          <tr><td>Email хаяг</td><td>Бүртгүүлэхэд</td><td>Зөвхөн танд болон админд</td></tr>
+          <tr><td>Нууц үг</td><td>Бүртгүүлэхэд</td><td>Хэнд ч үгүй — нууцлагдсан (hash) хэлбэрээр хадгалагдах тул бид ч харах боломжгүй</td></tr>
+          <tr><td>Нэр, хэрэглэгчийн төрөл, дэлгүүрийн нэр</td><td>Бүртгүүлэхэд</td><td>Нийтэд</td></tr>
+          <tr><td>Зарын мэдээлэл: гарчиг, тайлбар, зураг, үнэ, утас, байршил</td><td>Зар нийтлэхэд</td><td>Нийтэд</td></tr>
+          <tr><td>Үнэлгээ, сэтгэгдэл (таны нэртэй)</td><td>Үнэлгээ бичихэд</td><td>Нийтэд</td></tr>
+          <tr><td>Хадгалсан зарууд</td><td>❤ дарахад</td><td>Зөвхөн танд</td></tr>
+          <tr><td>Зар мэдээлсэн мэдээлэл</td><td>🚩 мэдээлэхэд</td><td>Зөвхөн танд болон админд</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Анхаар:</strong> Зар дээр бичсэн утасны дугаар, байршлыг хэн ч харах боломжтой. Нийтэд ил болгохыг хүсэхгүй мэдээллээ зард бүү оруулна уу.</p>
+
+      <h2>2. Таны төхөөрөмж дээр хадгалагдах зүйл</h2>
+      <p>Сайт таны browser-ийн localStorage-д нэвтрэлтийн төлөв, өнгөний горим (өдөр/шөнө), сүүлд үзсэн зарууд, бичиж дуусаагүй зарын ноорог, сүүлд сонгосон байршлыг хадгална. Эдгээр нь таны төхөөрөмжөөс гарахгүй. Бид зар сурталчилгааны болон хэрэглэгчийг мөрддөг гуравдагч талын cookie ашигладаггүй.</p>
+
+      <h2>3. Ашиглах зорилго</h2>
+      <ul>
+        <li>Бүртгэл, нэвтрэлтийг хангах</li>
+        <li>Таны зарыг нийтэлж, хайлтад харуулах</li>
+        <li>Залилан, спамаас сэргийлэх, мэдээлсэн зарыг шалгах</li>
+        <li>Үйлчилгээтэй холбоотой чухал мэдэгдэл илгээх</li>
+      </ul>
+      <p>Бид таны мэдээллийг худалдахгүй, зар сурталчилгааны зорилгоор гуравдагч этгээдэд дамжуулахгүй.</p>
+
+      <h2>4. Хадгалалт ба гуравдагч үйлчилгээ</h2>
+      <p>Мэдээлэл Supabase (өгөгдлийн сан, нэвтрэлт, зураг хадгалалт) болон Netlify (вэб хостинг) үйлчилгээн дээр хадгалагдана. Үсгийн фонтыг Google Fonts, програмын санг jsDelivr сүлжээнээс ачаалдаг тул эдгээр үйлчилгээ таны IP хаягийг техникийн шаардлагаар хүлээн авна.</p>
+
+      <h2>5. Хадгалах хугацаа</h2>
+      <ul>
+        <li>Таны бүртгэлийг устгах хүртэл бүртгэлийн мэдээллийг хадгална.</li>
+        <li>Зарыг та устгах хүртэл хадгална. Хугацаа нь дууссан зар нийтэд харагдахгүй.</li>
+      </ul>
+
+      <h2>6. Таны эрх</h2>
+      <ul>
+        <li>Өөрийн зарыг хүссэн үедээ засах, идэвхгүй болгох, устгах</li>
+        <li>Бүртгэлээ болон холбогдох мэдээллээ бүрэн устгуулахыг хүсэх</li>
+        <li>Бидэнд хадгалагдаж буй өөрийн мэдээллийн талаар лавлах</li>
+      </ul>
+      <p>Хүсэлтээ <a href="mailto:info@celbeg.mn">info@celbeg.mn</a> хаягаар бүртгэлтэй email-ээсээ илгээнэ үү.</p>
+
+      <h2>7. Өөрчлөлт</h2>
+      <p>Энэхүү бодлогыг шинэчилбэл огноог энэ хуудасны эхэнд тэмдэглэнэ.</p>
+    </article>
   </section>
 
 </main>
@@ -1128,30 +1281,31 @@
         <a onclick="showPage('shops')">Дэлгүүрүүд</a>
         <a onclick="showPage('post')">Зар нийтлэх</a>
         <a onclick="showPage('profile')">Миний хэсэг</a>
+        <a onclick="showPage('terms')">Үйлчилгээний нөхцөл</a>
+        <a onclick="showPage('privacy')">Нууцлалын бодлого</a>
       </div>
     </div>
     <div>
       <div class="footer-col-title">Холбоо барих</div>
       <div class="footer-links">
-        <a>📧 info@celbeg.mn</a>
-        <a>📞 7700-xxxx</a>
+        <a href="mailto:info@celbeg.mn">📧 info@celbeg.mn</a>
         <a>📍 Улаанбаатар, Монгол</a>
       </div>
     </div>
   </div>
-  <div class="footer-bottom">© 2025 CELBEG.MN — Бүх эрх хуулиар хамгаалагдсан</div>
+  <div class="footer-bottom">© 2026 CELBEG.MN — Бүх эрх хуулиар хамгаалагдсан</div>
 </footer>
 
 <!-- ════════════════════════════════════════════════════════
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=33"></script>
-<script src="js/data-manager.js?v=33"></script>
-<script src="js/auth.js?v=33"></script>
-<script src="js/listings.js?v=33"></script>
-<script src="js/upload.js?v=33"></script>
-<script src="js/admin.js?v=33"></script>
-<script src="js/main.js?v=33"></script>
+<script src="js/supabase-client.js?v=37"></script>
+<script src="js/data-manager.js?v=37"></script>
+<script src="js/auth.js?v=37"></script>
+<script src="js/listings.js?v=37"></script>
+<script src="js/upload.js?v=37"></script>
+<script src="js/admin.js?v=37"></script>
+<script src="js/main.js?v=37"></script>
 </body>
 </html>

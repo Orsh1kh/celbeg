@@ -70,11 +70,20 @@ function _isAdminEmail(email) {
   return ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase());
 }
 
+// Өөрийн бүтэн профайл (email-тэй). 014 SQL-ийн дараа email багана нийтэд хаалттай тул
+// my_profile() RPC-ээр авна; RPC байхгүй бол (SQL ажиллаагүй) шууд уншина.
+async function _fetchOwnProfile(userId) {
+  const rpc = await sb.rpc('my_profile');
+  if (!rpc.error) return (rpc.data && rpc.data[0]) || null;
+  const { data } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+  return data || null;
+}
+
 async function _ensureProfile(user, opts = {}) {
   const email   = user.email || '';
   const isAdmin = _isAdminEmail(email);
 
-  const { data: existing } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  const existing = await _fetchOwnProfile(user.id);
   if (!existing) {
     await sb.from('profiles').insert({
       id: user.id,
@@ -87,8 +96,8 @@ async function _ensureProfile(user, opts = {}) {
   } else if (existing.is_admin !== isAdmin || existing.email !== email) {
     await sb.from('profiles').update({ email, is_admin: isAdmin }).eq('id', user.id);
   }
-  const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
-  localStorage.setItem('cb_user', JSON.stringify(profile));
+  const profile = await _fetchOwnProfile(user.id);
+  if (profile) localStorage.setItem('cb_user', JSON.stringify(profile));
   return profile;
 }
 
@@ -106,7 +115,7 @@ async function authLoadSession() {
   if (DEMO_MODE) return authGetUser();
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { localStorage.removeItem('cb_user'); return null; }
-  const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+  const profile = await _fetchOwnProfile(session.user.id);
   if (profile) localStorage.setItem('cb_user', JSON.stringify(profile));
   return profile;
 }

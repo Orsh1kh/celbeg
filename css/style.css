@@ -39,6 +39,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 input, select, textarea { font-family: inherit; }
 img { max-width: 100%; display: block; }
 
+/* Давхаргын дараалал (z-index): header 100 · mobile nav 200 · PWA banner 300 ·
+   detail 500 · review 550 · admin 600 · report 640 · auth 650 · lightbox 700 · toast 9999 */
 /* ── Toast ─────────────────────────────────────────────── */
 #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
 .toast { padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #fff; animation: slideIn .25s ease; max-width: 300px; }
@@ -250,7 +252,7 @@ img { max-width: 100%; display: block; }
 /* ═══════════════════════════════════════════════════════════
    AUTH MODAL
 ═══════════════════════════════════════════════════════════ */
-#modal-auth { display: none; position: fixed; inset: 0; z-index: 500; align-items: center; justify-content: center; }
+#modal-auth { display: none; position: fixed; inset: 0; z-index: 650; align-items: center; justify-content: center; }
 #modal-auth.open { display: flex; }
 .auth-panel { position: relative; z-index: 1; background: var(--bg2); border-radius: 16px; width: 100%; max-width: 420px; padding: 32px; }
 .auth-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
@@ -521,14 +523,15 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 
 /* ── Image lightbox ────────────────────────────────────── */
 #modal-lightbox {
-  display: none; position: fixed; inset: 0; z-index: 200;
+  display: none; position: fixed; inset: 0; z-index: 700;
   background: rgba(0,0,0,.94); align-items: center; justify-content: center;
   animation: fadeIn .18s ease;
 }
 #modal-lightbox.open { display: flex; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.lightbox-img-wrap { max-width: 92vw; max-height: 90vh; display: flex; align-items: center; justify-content: center; }
-.lightbox-img-wrap img { max-width: 92vw; max-height: 90vh; object-fit: contain; user-select: none; box-shadow: 0 8px 40px rgba(0,0,0,.6); }
+/* Тогтмол хэмжээтэй хүрээ: өөрийн өргөнгүй (жш. SVG) зураг ч 0px болж хумигдахгүй */
+.lightbox-img-wrap { width: 92vw; height: 86vh; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.lightbox-img-wrap img { width: 100%; height: 100%; max-width: none; object-fit: contain; user-select: none; pointer-events: auto; filter: drop-shadow(0 8px 30px rgba(0,0,0,.6)); }
 .lightbox-close, .lightbox-nav {
   position: absolute; width: 44px; height: 44px; border-radius: 50%;
   background: rgba(255,255,255,.1); color: #fff; font-size: 22px; cursor: pointer;
@@ -1373,7 +1376,7 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 
 /* Review modal */
 #modal-review {
-  display: none; position: fixed; inset: 0; z-index: 150;
+  display: none; position: fixed; inset: 0; z-index: 550;
   background: rgba(0,0,0,.6); align-items: center; justify-content: center;
   padding: 20px;
 }
@@ -1406,3 +1409,69 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
   color: var(--muted); font-size: 16px;
 }
 .review-close-btn:hover { color: var(--text); }
+
+/* ═══════════════════════════════════════════════════════════
+   REPORT (зар мэдээлэх)
+═══════════════════════════════════════════════════════════ */
+#modal-report {
+  display: none; position: fixed; inset: 0; z-index: 640;
+  background: rgba(0,0,0,.6); align-items: center; justify-content: center;
+  padding: 20px;
+}
+#modal-report.open { display: flex; }
+.report-reasons { display: flex; flex-direction: column; gap: 8px; }
+.report-reasons .chip span { width: 100%; justify-content: flex-start; padding: 10px 14px; font-size: 13.5px; }
+.report-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.btn-report {
+  display: block; margin: 14px auto 0; padding: 6px 10px;
+  background: none; border: none; color: var(--muted); font-size: 12.5px;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.btn-report:hover { color: var(--red); }
+
+/* Admin reports tab */
+.admin-tab-badge {
+  display: none; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; margin-left: 4px;
+  background: var(--red); color: #fff; border-radius: 9px; font-size: 11px; font-weight: 700;
+}
+.report-groups { display: flex; flex-direction: column; gap: 12px; }
+.report-group { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.report-group-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.report-listing-title { font-weight: 700; font-size: 14px; color: var(--text); cursor: pointer; }
+.report-listing-title:hover { color: var(--red); }
+.report-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.report-hidden { color: var(--gold); font-weight: 600; }
+.report-actions { display: flex; gap: 6px; }
+.report-actions button { padding: 6px 10px; font-size: 12px; border-radius: 6px; }
+.report-reasons-list { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--text); }
+.report-reasons-list li { margin-bottom: 4px; }
+.report-date { color: var(--muted); font-size: 11px; margin-left: 6px; }
+
+/* Signup consent */
+.consent-check {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 4px 0 6px; font-size: 12.5px; color: var(--muted); line-height: 1.5; cursor: pointer;
+}
+.consent-check input { margin-top: 3px; accent-color: var(--red); flex-shrink: 0; width: 16px; height: 16px; }
+.consent-check a { color: var(--red); cursor: pointer; text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════════════
+   LEGAL PAGES
+═══════════════════════════════════════════════════════════ */
+.legal-page { max-width: 760px; padding-top: 32px; padding-bottom: 56px; line-height: 1.7; font-size: 15px; }
+.legal-page h1 { font-size: 28px; margin-bottom: 4px; }
+.legal-page h2 { font-size: 17px; margin: 28px 0 8px; color: var(--text); }
+.legal-page p, .legal-page li { color: var(--text); }
+.legal-page ul { padding-left: 22px; margin: 6px 0; }
+.legal-page li { margin-bottom: 4px; }
+.legal-page a { color: var(--red); text-decoration: underline; }
+.legal-updated { color: var(--muted) !important; font-size: 13px; margin-bottom: 20px; }
+.legal-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13.5px; }
+.legal-table th, .legal-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+.legal-table th { background: var(--bg2); font-weight: 700; }
+@media (max-width: 600px) {
+  .legal-page { font-size: 14px; }
+  .legal-table { font-size: 12px; }
+  .legal-table th, .legal-table td { padding: 6px; }
+}

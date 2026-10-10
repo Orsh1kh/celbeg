@@ -4,6 +4,9 @@
 
 const PAGE_SIZE = 12;
 
+// Бусдын профайлаас уншиж болох багана (email нууц)
+const PUBLIC_PROFILE_COLS = 'id,name,phone,user_type,shop_name,is_admin,is_verified,created_at';
+
 // ── Байршил жагсаалт (checkbox шүүлт + post-form dropdown) ─
 // УБ 9 дүүрэг + Монгол 21 аймгийн төв + Дархан/Эрдэнэт хот
 const LOCATIONS = [
@@ -180,7 +183,8 @@ function _countDemo(f) {
 }
 
 function _filterDemoAll({ listing_type, category, subcategory, car_makes, car_model, year_from, year_to, price_min, price_max, part_types = [], conditions = [], policies = [], fuels = [], transmissions = [], drives = [], mileage_max, steering, locations, keyword }) {
-  let list = [...DEMO_LISTINGS];
+  // Production query-тэй адил: идэвхгүй зарыг харуулахгүй
+  let list = DEMO_LISTINGS.filter(l => l.is_active !== false);
   if (listing_type) list = list.filter(l => (l.listing_type || 'part') === listing_type);
   if (category)    list = list.filter(l => l.category === category);
   if (subcategory) list = list.filter(l => l.subcategory === subcategory);
@@ -213,7 +217,7 @@ function _filterDemoAll({ listing_type, category, subcategory, car_makes, car_mo
 }
 
 async function fetchVipListings() {
-  if (DEMO_MODE) return DEMO_LISTINGS.filter(l => l.is_vip);
+  if (DEMO_MODE) return DEMO_LISTINGS.filter(l => l.is_vip && l.is_active !== false);
   const { data } = await sb.from('listings').select('*').eq('is_vip', true).eq('is_active', true).order('created_at', { ascending: false }).limit(4);
   return data || [];
 }
@@ -363,6 +367,77 @@ async function toggleFavorite(listingId, nextOn) {
     const { error } = await sb.from('favorites').delete().eq('user_id', user.id).eq('listing_id', listingId);
     if (error) throw error;
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// REPORTS (зар мэдээлэх)
+// ═══════════════════════════════════════════════════════════
+const REPORT_REASONS = {
+  scam:       '🚨 Залилан, луйвар',
+  wrong_info: '❌ Буруу мэдээлэл, зураг',
+  spam:       '🔁 Спам, давхар зар',
+  sold:       '✅ Аль хэдийн зарагдсан',
+  prohibited: '⛔ Хориотой бараа',
+  other:      '💬 Бусад',
+};
+
+const DEMO_REPORTS_KEY = 'cb_demo_reports';
+
+async function submitReport(listingId, reason, comment = '') {
+  const user = authGetUser();
+  if (!user) throw new Error('Нэвтэрнэ үү');
+  if (DEMO_MODE || !sb) {
+    const list = JSON.parse(localStorage.getItem(DEMO_REPORTS_KEY) || '[]');
+    if (list.some(r => r.listing_id === listingId && r.reporter_id === user.id)) throw new Error('duplicate');
+    list.push({ id: 'r-' + Date.now(), listing_id: listingId, reporter_id: user.id, reason, comment, status: 'open', created_at: new Date().toISOString() });
+    localStorage.setItem(DEMO_REPORTS_KEY, JSON.stringify(list));
+    return;
+  }
+  const { error } = await sb.from('reports').insert({
+    listing_id: listingId, reporter_id: user.id, reason, comment: comment || null,
+  });
+  if (error) throw (/duplicate|unique/i.test(error.message) ? new Error('duplicate') : error);
+}
+
+// Админд: нээлттэй мэдээллүүдийг зараар бүлэглэж буцаана
+async function fetchOpenReports() {
+  let rows = [];
+  if (DEMO_MODE || !sb) {
+    rows = JSON.parse(localStorage.getItem(DEMO_REPORTS_KEY) || '[]')
+      .filter(r => r.status === 'open')
+      .map(r => ({ ...r, listings: DEMO_LISTINGS.find(l => l.id === r.listing_id) || null }));
+  } else {
+    const { data, error } = await sb.from('reports')
+      .select('id, listing_id, reason, comment, created_at, listings(title, is_active, user_id, phone)')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    rows = data || [];
+  }
+  const byListing = new Map();
+  rows.forEach(r => {
+    if (!byListing.has(r.listing_id)) byListing.set(r.listing_id, { listing_id: r.listing_id, listing: r.listings, reports: [] });
+    byListing.get(r.listing_id).reports.push(r);
+  });
+  return [...byListing.values()].sort((a, b) => b.reports.length - a.reports.length);
+}
+
+// action: 'hide' → зарыг нууж мэдээллийг шийдвэрлэсэн болгоно
+//         'dismiss' → зарыг сэргээж мэдээллийг хэрэгсэхгүй болгоно
+async function resolveListingReports(listingId, action) {
+  const status = action === 'hide' ? 'resolved' : 'dismissed';
+  const active = action !== 'hide';
+  if (DEMO_MODE || !sb) {
+    const list = JSON.parse(localStorage.getItem(DEMO_REPORTS_KEY) || '[]');
+    list.forEach(r => { if (r.listing_id === listingId && r.status === 'open') r.status = status; });
+    localStorage.setItem(DEMO_REPORTS_KEY, JSON.stringify(list));
+    const l = DEMO_LISTINGS.find(x => x.id === listingId); if (l) l.is_active = active;
+    return;
+  }
+  const { error: e1 } = await sb.from('listings').update({ is_active: active }).eq('id', listingId);
+  if (e1) throw e1;
+  const { error: e2 } = await sb.from('reports').update({ status }).eq('listing_id', listingId).eq('status', 'open');
+  if (e2) throw e2;
 }
 
 async function fetchShops() {

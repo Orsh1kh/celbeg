@@ -19,8 +19,8 @@ Supabase Dashboard → **SQL Editor** дээр дараах файлуудыг *
 2. `supabase/002_marketplace_policies.sql` — хугацаа, rate limit
 3. `supabase/007_vehicles.sql` — машины зар
 4. `supabase/008_email_auth.sql` — email нэвтрэлт
-5. `supabase/RUN_PENDING_003_to_012.sql` — үнэлгээ, дэлгүүр, дэд ангилал,
-   хадгалах, хамгаалалт, ангиллын тоо (003–012 нэг дор)
+5. `supabase/RUN_PENDING_003_to_014.sql` — үнэлгээ, дэлгүүр, дэд ангилал,
+   хадгалах, хамгаалалт, ангиллын тоо, зар мэдээлэх, email нуух (003–014 нэг дор)
 
 ### 3. Нэвтрэлт (Email + нууц үг)
 
@@ -83,10 +83,8 @@ npx serve
 ## Дараагийн алхмууд (P1)
 
 - Зар засах (edit) функц
-- Report/гомдол систем
 - VIP төлбөр — QPay/SocialPay
 - Мессеж/чат
-- Үйлчилгээний нөхцөл, Нууцлалын бодлого
 
 ## Файлын бүтэц
 
@@ -106,7 +104,7 @@ celbeg-main/
 ├── supabase/
 │   ├── schema.sql          — Үндсэн schema
 │   ├── 0NN_*.sql           — Дараалсан migration-ууд
-│   └── RUN_PENDING_003_to_012.sql — 003–012-г нэг дор
+│   └── RUN_PENDING_003_to_014.sql — 003–014-г нэг дор
 ├── sw.js, manifest.json    — PWA
 ├── netlify.toml
 ├── robots.txt
