@@ -656,6 +656,7 @@ const DUAL_SLIDERS = {
     steps: () => PRICE_STEPS[_listingTypeNav] || PRICE_STEPS.part,
     labelMin: (v, atEdge) => atEdge ? '0 ₮' : formatPriceShort(v),
     labelMax: (v, atEdge) => atEdge ? 'Хязгааргүй' : formatPriceShort(v),
+    toInput: v => formatThousands(v),
   },
   year: {
     inMin: 'f-year-from', inMax: 'f-year-to',
@@ -675,8 +676,8 @@ function syncDualSlider(key) {
   const steps = c.steps();
   const N = steps.length - 1;
   sMin.max = sMax.max = N;
-  const vMin = parseInt(document.getElementById(c.inMin).value) || 0;
-  const vMax = parseInt(document.getElementById(c.inMax).value) || 0;
+  const vMin = parseInt(priceDigits(document.getElementById(c.inMin).value)) || 0;
+  const vMax = parseInt(priceDigits(document.getElementById(c.inMax).value)) || 0;
   let a = 0, b = N;
   if (vMin > 0) { a = steps.findIndex(s => s >= vMin); if (a < 0) a = N; }
   if (vMax > 0) { b = 0; for (let i = N; i >= 0; i--) { if (steps[i] <= vMax) { b = i; break; } } }
@@ -698,8 +699,9 @@ function onDualSliderInput(key, which) {
     if (which === 'min') { a = b; sMin.value = a; } else { b = a; sMax.value = b; }
   }
   // Захад байвал шүүлтгүй гэсэн үг
-  document.getElementById(c.inMin).value = a === 0 ? '' : steps[a];
-  document.getElementById(c.inMax).value = b === N ? '' : steps[b];
+  const out = c.toInput || String;
+  document.getElementById(c.inMin).value = a === 0 ? '' : out(steps[a]);
+  document.getElementById(c.inMax).value = b === N ? '' : out(steps[b]);
   _paintDualSlider(key);
 }
 
@@ -738,6 +740,8 @@ function wireFilterAutoApply() {
   const side = document.getElementById('filter-sidebar');
   if (!side || side.dataset.autoWired) return;
   side.dataset.autoWired = '1';
+  attachPriceInput(document.getElementById('f-price-min'));
+  attachPriceInput(document.getElementById('f-price-max'));
   // Чирэх үед зөвхөн тоо/шугам шинэчилнэ; суллахад (change) шүүлт ажиллана
   for (const key of Object.keys(DUAL_SLIDERS)) {
     const c = DUAL_SLIDERS[key];
@@ -763,8 +767,8 @@ function getFilters() {
     car_model:       document.getElementById('f-model').value.trim(),
     year_from:       document.getElementById('f-year-from').value,
     year_to:         document.getElementById('f-year-to').value,
-    price_min:       document.getElementById('f-price-min').value,
-    price_max:       document.getElementById('f-price-max').value,
+    price_min:       priceDigits(document.getElementById('f-price-min').value),
+    price_max:       priceDigits(document.getElementById('f-price-max').value),
     part_type:       isV ? [] : vals('f-type'),
     condition:       isV ? [] : vals('f-condition'),
     exchange_policy: isV ? [] : vals('f-policy'),
@@ -1152,6 +1156,8 @@ async function initPostPage() {
   checkForDraft();
   // Form дээр өөрчлөлт болгонд draft-ыг автомат хадгалах
   attachDraftAutoSave();
+  attachPriceInput(document.getElementById('p-price'), updatePriceHint);
+  updatePriceHint();
   refreshModelSuggestions('p');
   refreshModelSuggestions('v');
 
@@ -1175,19 +1181,50 @@ function prefillLastLocation() {
   if (last) locEl.value = last;
 }
 
+// ── Үнийн талбар: 100000000 → 100,000,000 ─────────────────
+// type="text" + inputmode="numeric": бичих явцад мянгатын таслал автоматаар нэмнэ.
+// Утгыг уншихдаа priceDigits()-ээр таслалгүй болгоно.
+const MAX_PRICE = 2000000000;   // DB багана: integer
+function priceDigits(v) { return String(v ?? '').replace(/\D/g, ''); }
+function formatThousands(d) { return String(d).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+function attachPriceInput(el, onChange) {
+  if (!el || el.dataset.priceWired) return;
+  el.dataset.priceWired = '1';
+  el.addEventListener('input', () => {
+    const caret = el.selectionStart ?? el.value.length;
+    const digitsBefore = priceDigits(el.value.slice(0, caret)).length;
+    const formatted = formatThousands(priceDigits(el.value).replace(/^0+(?=\d)/, '').slice(0, 10));
+    if (formatted !== el.value) {
+      el.value = formatted;
+      // Курсорыг өмнөх цифрийнх нь ард буцааж тавина
+      let pos = 0, seen = 0;
+      while (pos < formatted.length && seen < digitsBefore) { if (/\d/.test(formatted[pos])) seen++; pos++; }
+      if (document.activeElement === el) el.setSelectionRange(pos, pos);
+    }
+    onChange?.();
+  });
+}
+
+// Post form: таслалтай болгож, доор нь "100 сая ₮" гэж үгээр харуулна
+function updatePriceHint() {
+  const el   = document.getElementById('p-price');
+  const hint = document.getElementById('p-price-hint');
+  if (!el || !hint) return;
+  const d = priceDigits(el.value);
+  if (!el.disabled) el.value = d ? formatThousands(d) : '';
+  const n = parseInt(d, 10) || 0;
+  hint.textContent = !el.disabled && n >= 10000 ? formatPriceShort(n) : '';
+}
+
 // ── "Үнэ тохиролцоно" toggle ─────────────────────────────
 function toggleNegotiable() {
   const chk = document.getElementById('p-negotiable');
   const priceEl = document.getElementById('p-price');
-  if (chk.checked) {
-    priceEl.value = '0';
-    priceEl.disabled = true;
-    priceEl.placeholder = 'Үнэ тохиролцоно';
-  } else {
-    priceEl.value = '';
-    priceEl.disabled = false;
-    priceEl.placeholder = '150000';
-  }
+  priceEl.value = '';
+  priceEl.disabled = chk.checked;
+  priceEl.placeholder = chk.checked ? 'Үнэ тохиролцоно' : '150,000';
+  updatePriceHint();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1270,7 +1307,8 @@ function resetPostForm() {
   });
   // Үнэ тохиролцоно → идэвхгүй болсон үнийн талбарыг сэргээнэ
   const price = document.getElementById('p-price');
-  price.disabled = false; price.placeholder = '150000';
+  price.disabled = false; price.placeholder = '150,000';
+  updatePriceHint();
   selectType('original');
   document.getElementById('p-subcategory-group').style.display = 'none';
   // Нээлттэй "Дэлгэрэнгүй" хэсгүүдийг хураана
@@ -1300,6 +1338,7 @@ function _collectDraft() {
   // Checkboxes
   const barter  = document.getElementById('v-barter');
   const leasing = document.getElementById('v-leasing');
+  if (document.getElementById('p-negotiable')?.checked) data['p-negotiable'] = true;
   if (barter?.checked)  data['v-barter'] = true;
   if (leasing?.checked) data['v-leasing'] = true;
   return data;
@@ -1318,6 +1357,9 @@ function _applyDraft(data) {
   });
   if (data['v-barter'])  { const el = document.getElementById('v-barter');  if (el) el.checked = true; }
   if (data['v-leasing']) { const el = document.getElementById('v-leasing'); if (el) el.checked = true; }
+  const neg = document.getElementById('p-negotiable');
+  if (neg) { neg.checked = !!data['p-negotiable']; if (neg.checked) toggleNegotiable(); }
+  updatePriceHint();
   refreshModelSuggestions('p');
   refreshModelSuggestions('v');
 }
@@ -1481,12 +1523,14 @@ async function submitListing() {
   if (!user) { openAuthModal('login'); showToast('Эхлээд нэвтэрнэ үү', 'info'); return; }
 
   const listingType = document.getElementById('p-listing-type')?.value || 'part';
-  const price       = document.getElementById('p-price').value;
+  const negotiable  = document.getElementById('p-negotiable')?.checked;
+  const price       = negotiable ? 0 : (parseInt(priceDigits(document.getElementById('p-price').value), 10) || 0);
   const phone       = document.getElementById('p-phone').value.trim();
   let valid = true;
 
   // Common validation
-  if (!price) { showFieldError('p-price-err', 'Үнэ оруулна уу'); valid=false; }
+  if (!negotiable && price <= 0) { showFieldError('p-price-err', 'Үнэ оруулна уу, эсвэл «Үнэ тохиролцоно»-г чагтална уу'); valid=false; }
+  else if (price > MAX_PRICE)   { showFieldError('p-price-err', 'Үнэ хэт их байна (2 тэрбум ₮-өөс ихгүй)'); valid=false; }
   if (!phone) { showFieldError('p-phone-err', 'Утасны дугаар оруулна уу'); valid=false; }
 
   let payload = null, vehiclePayload = null;
@@ -1566,7 +1610,7 @@ async function submitListing() {
 
     await postListing({
       ...payload,
-      price:     parseInt(price),
+      price,
       phone,
       shop_name: document.getElementById('p-shop').value.trim(),
       location:  document.getElementById('p-location').value.trim(),

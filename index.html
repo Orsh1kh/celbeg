@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=38">
+<link rel="stylesheet" href="css/style.css?v=39">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -409,8 +409,8 @@
             <div class="filter-group">
               <label class="filter-label">Үнэ</label>
               <div class="filter-range">
-                <input class="filter-input" id="f-price-min" type="number" min="0" placeholder="Доод ₮">
-                <input class="filter-input" id="f-price-max" type="number" min="0" placeholder="Дээд ₮">
+                <input class="filter-input" id="f-price-min" type="text" inputmode="numeric" autocomplete="off" placeholder="Доод ₮">
+                <input class="filter-input" id="f-price-max" type="text" inputmode="numeric" autocomplete="off" placeholder="Дээд ₮">
               </div>
               <div class="dual-slider" id="price-slider">
                 <div class="ps-track"><div class="ps-fill" id="ps-fill"></div></div>
@@ -884,7 +884,8 @@
           <div class="post-grid">
             <div class="form-group">
               <label class="form-label">Үнэ (₮) *</label>
-              <input class="form-input" id="p-price" type="number" placeholder="150000">
+              <input class="form-input" id="p-price" type="text" inputmode="numeric" autocomplete="off" placeholder="150,000">
+              <div class="price-hint" id="p-price-hint"></div>
               <label class="negotiable-check">
                 <input type="checkbox" id="p-negotiable" onchange="toggleNegotiable()">
                 <span>Үнэ тохиролцоно</span>
@@ -1306,13 +1307,13 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=38"></script>
-<script src="js/car-models.js?v=38"></script>
-<script src="js/data-manager.js?v=38"></script>
-<script src="js/auth.js?v=38"></script>
-<script src="js/listings.js?v=38"></script>
-<script src="js/upload.js?v=38"></script>
-<script src="js/admin.js?v=38"></script>
-<script src="js/main.js?v=38"></script>
+<script src="js/supabase-client.js?v=39"></script>
+<script src="js/car-models.js?v=39"></script>
+<script src="js/data-manager.js?v=39"></script>
+<script src="js/auth.js?v=39"></script>
+<script src="js/listings.js?v=39"></script>
+<script src="js/upload.js?v=39"></script>
+<script src="js/admin.js?v=39"></script>
+<script src="js/main.js?v=39"></script>
 </body>
 </html>

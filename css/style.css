@@ -855,6 +855,9 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 }
 .negotiable-check:hover { color: var(--text); }
 .negotiable-check input { accent-color: var(--red); cursor: pointer; }
+/* Үнийг үгээр: "100 сая ₮" */
+.price-hint { margin-top: 6px; font-size: 14px; font-weight: 600; color: var(--red); }
+.price-hint:empty { display: none; }
 
 /* Draft restore banner */
 #draft-banner {
