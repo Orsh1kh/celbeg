@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=39">
+<link rel="stylesheet" href="css/style.css?v=40">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -95,12 +95,12 @@
   <div class="mobile-nav-link admin-nav-link" id="mob-admin-link" onclick="showPage('admin');closeMobileNav()">⚙️ Удирдлага</div>
   <div class="mobile-nav-sep"></div>
   <div id="mob-auth-area">
-    <div class="mobile-nav-btn outline" onclick="openAuthModal('login');closeMobileNav()">Нэвтрэх</div>
-    <div class="mobile-nav-btn red" style="margin-top:8px" onclick="openAuthModal('register');closeMobileNav()">Бүртгүүлэх</div>
+    <div class="mobile-nav-btn outline" onclick="closeMobileNav();openAuthModal('login')">Нэвтрэх</div>
+    <div class="mobile-nav-btn red" style="margin-top:8px" onclick="closeMobileNav();openAuthModal('register')">Бүртгүүлэх</div>
   </div>
   <div id="mob-user-area" style="display:none">
     <div class="mobile-nav-link" id="mob-user-name">Хэрэглэгч</div>
-    <div class="mobile-nav-btn outline" onclick="doLogout();closeMobileNav()">Гарах</div>
+    <div class="mobile-nav-btn outline" onclick="closeMobileNav();doLogout()">Гарах</div>
   </div>
 </nav>
 
@@ -303,6 +303,7 @@
         <a class="btn-call" id="detail-call-btn" href="#">📞 Залгах</a>
         <a class="btn-whatsapp" id="detail-wa-btn" href="#" target="_blank">💬 WhatsApp</a>
       </div>
+      <button type="button" class="btn-share" onclick="shareListing()">🔗 Линк хуваалцах</button>
       <div class="detail-meta-footer">
         <span id="detail-date"></span>
         <span id="detail-views"></span>
@@ -1307,13 +1308,13 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=39"></script>
-<script src="js/car-models.js?v=39"></script>
-<script src="js/data-manager.js?v=39"></script>
-<script src="js/auth.js?v=39"></script>
-<script src="js/listings.js?v=39"></script>
-<script src="js/upload.js?v=39"></script>
-<script src="js/admin.js?v=39"></script>
-<script src="js/main.js?v=39"></script>
+<script src="js/supabase-client.js?v=40"></script>
+<script src="js/car-models.js?v=40"></script>
+<script src="js/data-manager.js?v=40"></script>
+<script src="js/auth.js?v=40"></script>
+<script src="js/listings.js?v=40"></script>
+<script src="js/upload.js?v=40"></script>
+<script src="js/admin.js?v=40"></script>
+<script src="js/main.js?v=40"></script>
 </body>
 </html>

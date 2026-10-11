@@ -17,12 +17,18 @@ let _favoriteIds      = new Set();
 // ═══════════════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════
-function showPage(id) {
+// opts.fromHistory: "Буцах/Урагшлах" товчоос ирсэн бол URL-д дахин бичихгүй
+function showPage(id, opts = {}) {
+  if (!ROUTE_PAGES.has(id)) id = 'home';
+  // Зар нээлттэй байхад өөр хуудас руу шилжвэл зарыг нууна.
+  // History-д зарын мөр үлдэх тул "Буцах" дарахад зар дахин нээгдэнэ.
+  if (!opts.fromHistory && isDetailOpen()) _hideDetail();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + id);
   if (el) el.classList.add('active');
   window.scrollTo(0, 0);
   closeMobileNav();
+  if (!opts.fromHistory) _routePageShown(id);
 
   if (id === 'home')    initHomePage();
   if (id === 'search')  initSearchPage();
@@ -35,12 +41,170 @@ function showPage(id) {
 
 // ── Mobile nav ─────────────────────────────────────────────
 function toggleMobileNav() {
-  document.getElementById('mobile-nav').classList.toggle('open');
-  document.getElementById('mobile-overlay').classList.toggle('open');
+  const open = document.getElementById('mobile-nav').classList.toggle('open');
+  document.getElementById('mobile-overlay').classList.toggle('open', open);
+  open ? routeOverlayOpened('nav') : routeOverlayClosed('nav');
 }
 function closeMobileNav() {
+  const wasOpen = _isOpen('mobile-nav');
   document.getElementById('mobile-nav').classList.remove('open');
   document.getElementById('mobile-overlay').classList.remove('open');
+  if (wasOpen) routeOverlayClosed('nav');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ROUTER — хуудас бүр, зар бүр өөрийн URL-тай.
+// Утасны "Буцах" товч эхлээд нээлттэй цонхыг хааж, дараа нь өмнөх хуудас руу буцна.
+//   /                   → нүүр
+//   /?p=search          → хуудас
+//   /?p=shop&id=<uuid>  → дэлгүүр
+//   ...&zar=<id>        → зарын дэлгэрэнгүй (энэ линкийг хуваалцаж болно)
+// history.state = { p, id, zar, ov: [нээлттэй цонхнууд], pushed }
+//   pushed=false нь сайтад орж ирсэн анхны мөр — түүнээс цааш back хийхгүй.
+// ═══════════════════════════════════════════════════════════
+const ROUTE_PAGES = new Set(['home','search','post','shops','shop','profile','admin','terms','privacy']);
+const ROUTE_ID_RE = /^[A-Za-z0-9-]{1,64}$/;
+const BASE_TITLE  = document.title;
+
+// "Буцах" товчоор хаагдах цонхнууд
+const ROUTE_OVERLAYS = {
+  nav:      { isOpen: () => _isOpen('mobile-nav'),     close: () => closeMobileNav() },
+  auth:     { isOpen: () => _isOpen('modal-auth'),     close: () => closeAuthModal() },
+  report:   { isOpen: () => _isOpen('modal-report'),   close: () => closeReportModal() },
+  review:   { isOpen: () => _isOpen('modal-review'),   close: () => closeReviewModal() },
+  lightbox: { isOpen: () => _isOpen('modal-lightbox'), close: () => closeLightbox() },
+};
+function _isOpen(id) { return !!document.getElementById(id)?.classList.contains('open'); }
+function isDetailOpen() { return _isOpen('modal-detail'); }
+
+function _routeUrl(st) {
+  const q = new URLSearchParams();
+  if (st.p && st.p !== 'home') q.set('p', st.p);
+  if (st.p === 'shop' && st.id) q.set('id', st.id);
+  if (st.zar) q.set('zar', st.zar);
+  const s = q.toString();
+  return location.pathname + (s ? '?' + s : '');
+}
+function _routeWrite(st, replace) {
+  history[replace ? 'replaceState' : 'pushState'](st, '', _routeUrl(st));
+}
+
+function parseRouteUrl() {
+  const q = new URLSearchParams(location.search);
+  // Хуучин ?action=post (manifest shortcut) хэлбэрийг дэмжинэ
+  const legacy = { post: 'post', shops: 'shops', search: 'search', profile: 'profile' }[q.get('action')];
+  let p = legacy || q.get('p') || 'home';
+  if (!ROUTE_PAGES.has(p)) p = 'home';
+  const id  = q.get('id'),  zar = q.get('zar');
+  const st = {
+    p,
+    id:  p === 'shop' && ROUTE_ID_RE.test(id || '') ? id : undefined,
+    zar: ROUTE_ID_RE.test(zar || '') ? zar : undefined,
+    ov: [], pushed: false,
+  };
+  if (st.p === 'shop' && !st.id) st.p = 'home';
+  return st;
+}
+
+// ── History үйлдлийг дараалуулна ─────────────────────────
+// history.back() асинхрон: дараагийн push-ийг popstate ирсний дараа хийнэ,
+// эс бөгөөс шинэ мөр буруу байранд орно.
+const _routeQueue = [];
+let _routing = false;           // popstate-оос UI шинэчилж байх үед history-д бичихгүй
+let _routeWaitingBack = false;
+let _routeBackTimer = null;
+
+function _routeEnqueue(op) {
+  if (_routing) return;
+  _routeQueue.push(op);
+  _routeFlush();
+}
+function _routeFlush() {
+  while (_routeQueue.length && !_routeWaitingBack) {
+    const op = _routeQueue.shift();
+    if (op(history.state || {}) === 'back') {
+      _routeWaitingBack = true;
+      history.back();
+      _routeBackTimer = setTimeout(_routeBackDone, 1000);   // popstate ирэхгүй бол гацахгүй
+    }
+  }
+}
+function _routeBackDone() {
+  clearTimeout(_routeBackTimer);
+  _routeWaitingBack = false;
+  _routeFlush();
+}
+
+window.addEventListener('popstate', e => {
+  if (_routeWaitingBack) { _routeBackDone(); return; }   // өөрсдийн хийсэн back — UI аль хэдийн шинэчлэгдсэн
+  _routing = true;
+  try { applyRoute(e.state || parseRouteUrl()); }
+  finally { _routing = false; }
+});
+
+// Хэрэглэгч Буцах/Урагшлах дарахад URL-д тааруулж UI-г шинэчилнэ
+function applyRoute(st) {
+  const keep = new Set(st.ov || []);
+  for (const [name, o] of Object.entries(ROUTE_OVERLAYS)) {
+    if (!keep.has(name) && o.isOpen()) o.close();
+  }
+  if (!st.zar && isDetailOpen()) _hideDetail();
+  const page = ROUTE_PAGES.has(st.p) ? st.p : 'home';
+  const cur  = document.querySelector('.page.active')?.id.replace('page-', '');
+  if (page !== cur || (page === 'shop' && st.id !== _currentShopId)) {
+    if (page === 'shop') _currentShopId = st.id || null;
+    showPage(page, { fromHistory: true });
+  }
+  if (st.zar && (!isDetailOpen() || String(_currentListing?.id) !== String(st.zar))) {
+    openDetail(st.zar, { fromHistory: true });
+  }
+}
+
+function routeOverlayOpened(name) {
+  _routeEnqueue(st => {
+    const ov = st.ov || [];
+    if (ov[ov.length - 1] === name) return;
+    _routeWrite({ ...st, ov: [...ov, name], pushed: true });
+  });
+}
+function routeOverlayClosed(name) {
+  _routeEnqueue(st => {
+    const ov = st.ov || [];
+    if (ov[ov.length - 1] === name) return 'back';
+    if (ov.includes(name)) _routeWrite({ ...st, ov: ov.filter(n => n !== name) }, true);
+  });
+}
+
+function _routePageShown(id) {
+  const next = { p: id, id: id === 'shop' ? (_currentShopId || undefined) : undefined, ov: [], pushed: true };
+  _routeEnqueue(st => {
+    if ((st.p || 'home') === next.p && st.id === next.id && !st.zar && !(st.ov || []).length) return;
+    _routeWrite(next);
+  });
+}
+function _routeDetailOpened(id) {
+  _routeEnqueue(st => {
+    if (String(st.zar) === String(id)) return;
+    // Нэг зараас нөгөө рүү шилжвэл мөрийг сольж бичнэ (pushed хэвээр)
+    _routeWrite({ p: st.p || 'home', id: st.id, zar: String(id), ov: [], pushed: st.zar ? !!st.pushed : true }, !!st.zar);
+  });
+}
+function _routeDetailClosed() {
+  _routeEnqueue(st => {
+    if (!st.zar) return;
+    if (st.pushed) return 'back';
+    _routeWrite({ ...st, zar: undefined }, true);   // линкээр шууд орж ирсэн — сайтаас гаргахгүй
+  });
+}
+
+// Хуудас ачаалахад URL-ыг уншиж тохирох хуудас/зарыг нээнэ
+function routeInit() {
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const st = parseRouteUrl();
+  _routeWrite(st, true);
+  if (st.p === 'shop') _currentShopId = st.id;
+  showPage(st.p, { fromHistory: true });
+  if (st.zar) openDetail(st.zar, { fromHistory: true });
 }
 
 // ── Listing type nav (Part / Vehicle) ─────────────────────
@@ -115,10 +279,13 @@ window.addEventListener('scroll', () => {
 function openAuthModal(tab) {
   document.getElementById('modal-auth').classList.add('open');
   switchAuthTab(tab || 'login');
+  routeOverlayOpened('auth');
 }
 function closeAuthModal() {
+  const wasOpen = _isOpen('modal-auth');
   document.getElementById('modal-auth').classList.remove('open');
   resetAuthForms();
+  if (wasOpen) routeOverlayClosed('auth');
 }
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -487,10 +654,14 @@ function openLightbox(images, startIdx = 0) {
   renderLightbox();
   document.getElementById('modal-lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
+  routeOverlayOpened('lightbox');
 }
 function closeLightbox() {
+  const wasOpen = _isOpen('modal-lightbox');
   document.getElementById('modal-lightbox').classList.remove('open');
-  document.body.style.overflow = '';
+  // Зарын цонх ард нь нээлттэй бол хуудсыг гүйлгэхгүй хэвээр үлдээнэ
+  document.body.style.overflow = isDetailOpen() ? 'hidden' : '';
+  if (wasOpen) routeOverlayClosed('lightbox');
 }
 function lightboxNav(dir) {
   _lightboxIdx = (_lightboxIdx + dir + _lightboxImages.length) % _lightboxImages.length;
@@ -993,10 +1164,15 @@ function doHeroSearch() {
 // ═══════════════════════════════════════════════════════════
 // LISTING DETAIL
 // ═══════════════════════════════════════════════════════════
-async function openDetail(id) {
+// opts.fromHistory: URL/Буцах товчоос нээгдсэн бол history-д дахин бичихгүй
+async function openDetail(id, opts = {}) {
   try {
     const l = await fetchListingById(id);
-    if (!l) return;
+    if (!l) {
+      showToast('Энэ зар устгагдсан эсвэл хугацаа нь дууссан байна', 'info');
+      if (opts.fromHistory) _routeDropZar();
+      return;
+    }
     _currentListing = l;
     incrementView(id);
     addToRecentlyViewed(l);
@@ -1077,7 +1253,7 @@ async function openDetail(id) {
     const shopInitial = (l.shop_name || l.phone || 'Х').charAt(0).toUpperCase();
     const verifiedIcon = l.is_verified ? '<span class="verified-badge" title="Баталгаажсан дэлгүүр"></span>' : '';
     const shopClickHandler = (l.user_id && l.shop_name)
-      ? `onclick="closeDetail();openShop('${l.user_id}')" class="detail-shop-info clickable"`
+      ? `onclick="openShop('${l.user_id}')" class="detail-shop-info clickable"`
       : 'class="detail-shop-info"';
     document.getElementById('detail-shop').innerHTML = `
       <div class="detail-shop-avatar">${escapeHtml(shopInitial)}</div>
@@ -1116,8 +1292,11 @@ async function openDetail(id) {
 
     document.getElementById('modal-detail').classList.add('open');
     document.body.style.overflow = 'hidden';
+    document.title = `${l.title || 'Зар'} — CELBEG.MN`;
+    if (!opts.fromHistory) _routeDetailOpened(l.id);
   } catch(e) {
     showToast('Зар ачаалахад алдаа гарлаа', 'error');
+    if (opts.fromHistory) _routeDropZar();
   }
 }
 
@@ -1134,9 +1313,40 @@ function switchDetailImg(thumb, url, idx) {
 }
 
 function closeDetail() {
+  if (!isDetailOpen()) return;
+  _hideDetail();
+  _routeDetailClosed();
+}
+
+// History-д бичихгүйгээр зарын цонхыг нууна (Буцах товч, хуудас солих үед)
+function _hideDetail() {
   document.getElementById('modal-detail').classList.remove('open');
   document.body.style.overflow = '';
+  document.title = BASE_TITLE;
   _currentListing = null;
+}
+
+// Нээгдэж чадаагүй зарын id-г URL-аас авна
+function _routeDropZar() {
+  _routeEnqueue(st => { if (st.zar) _routeWrite({ ...st, zar: undefined }, true); });
+}
+
+// ── Зарын линк хуваалцах ───────────────────────────────────
+// Утсан дээр Messenger/Viber г.м-ээр илгээх цонх нээгдэнэ, компьютер дээр линк хуулна.
+async function shareListing() {
+  const l = _currentListing;
+  if (!l) return;
+  const url = `${location.origin}/?zar=${encodeURIComponent(l.id)}`;
+  if (navigator.share) {
+    try { await navigator.share({ title: l.title, text: `${l.title} — ${formatPrice(l.price)}`, url }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }   // хэрэглэгч цуцалсан
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('Линк хуулагдлаа. Messenger, Facebook-т буулгаж (paste) илгээнэ үү', 'success');
+  } catch {
+    window.prompt('Энэ линкийг хуулж авна уу:', url);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1778,11 +1988,14 @@ function openReportModal() {
     `<label class="chip"><input type="radio" name="report-reason" value="${k}" onchange="_reportReason=this.value"><span>${label}</span></label>`
   ).join('');
   document.getElementById('modal-report').classList.add('open');
+  routeOverlayOpened('report');
 }
 
 function closeReportModal() {
+  const wasOpen = _isOpen('modal-report');
   document.getElementById('modal-report')?.classList.remove('open');
   _reportListingId = null;
+  if (wasOpen) routeOverlayClosed('report');
 }
 
 async function sendReport() {
@@ -1854,12 +2067,15 @@ function openReviewModal() {
   document.getElementById('review-comment').value = '';
   document.getElementById('review-star-input').innerHTML = renderStarInput(0);
   document.getElementById('modal-review').classList.add('open');
+  routeOverlayOpened('review');
 }
 
 function closeReviewModal() {
+  const wasOpen = _isOpen('modal-review');
   document.getElementById('modal-review').classList.remove('open');
   _reviewShopId = null;
   _reviewSelected = 0;
+  if (wasOpen) routeOverlayClosed('review');
 }
 
 async function submitReview() {
@@ -2050,7 +2266,7 @@ async function openShop(userId, shopName) {
     return;
   }
   _currentShopId = userId;
-  showPage('shop');
+  showPage('shop');   // зар нээлттэй байсан бол showPage нууна; Буцах дарахад зар руу эргэнэ
 }
 
 function initShopPage() {
@@ -2290,19 +2506,6 @@ function dismissPWA() {
   localStorage.setItem('cb_pwa_dismiss', String(count + 1));
 }
 
-// URL shortcut handler (?action=post|shops|search)
-function handleUrlAction() {
-  const params = new URLSearchParams(location.search);
-  const action = params.get('action');
-  if (!action) return;
-  const map = { post: 'post', shops: 'shops', search: 'search', profile: 'profile' };
-  if (map[action]) {
-    // clean URL so refresh doesn't loop
-    history.replaceState({}, '', location.pathname);
-    setTimeout(() => showPage(map[action]), 100);
-  }
-}
-
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
@@ -2328,13 +2531,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Render icon picker in admin modal
   renderIconPicker();
 
-  initHomePage();
+  // URL-аас хуудас/зарыг нээнэ (?p=search, ?zar=<id>, хуучин ?action=post)
+  routeInit();
 
   // PWA registration + install prompt
   initPWA();
-
-  // Handle ?action= URL shortcut (from manifest shortcuts)
-  handleUrlAction();
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
@@ -2346,11 +2547,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     if (e.key === 'Escape') {
-      closeReportModal();
-      closeReviewModal();
-      closeDetail();
-      closeAuthModal();
+      // Буцах товчтой адил: зөвхөн хамгийн дээд талын цонхыг хаана
       closeAdminModal();
+      if (_isOpen('modal-auth'))        closeAuthModal();
+      else if (_isOpen('modal-report')) closeReportModal();
+      else if (_isOpen('modal-review')) closeReviewModal();
+      else if (isDetailOpen())          closeDetail();
+      else                              closeMobileNav();
     }
   });
 });
