@@ -316,7 +316,10 @@ img { max-width: 100%; display: block; }
 .post-success .success-icon { font-size: 56px; margin-bottom: 16px; }
 .post-success h2 { font-size: 22px; margin-bottom: 8px; }
 .post-success p { color: var(--muted); margin-bottom: 24px; }
-.post-success button { padding: 12px 32px; background: var(--red); color: #fff; border-radius: 8px; font-size: 14px; font-weight: 700; }
+.post-success button { padding: 12px 32px; background: var(--red); color: #fff; border-radius: 8px; font-size: 14px; font-weight: 700; margin: 4px; }
+.post-success button.secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.btn-cancel-edit { width: 100%; margin-top: 10px; padding: 13px; background: none; border: 1.5px solid var(--border); border-radius: 10px; color: var(--muted); font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-cancel-edit:hover { color: var(--text); border-color: var(--muted); }
 
 /* ═══════════════════════════════════════════════════════════
    PROFILE PAGE
@@ -337,8 +340,14 @@ img { max-width: 100%; display: block; }
 .my-listing-title { font-size: 14px; font-weight: 600; }
 .my-listing-meta  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .my-listing-price { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--red); flex-shrink: 0; }
-.my-listing-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.my-listing-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .my-listing-actions button { padding: 6px 10px; border-radius: 6px; font-size: 12px; border: 1px solid var(--border); color: var(--muted); transition: all .15s; }
+.my-listing-actions .btn-edit { padding: 8px 14px; font-size: 13px; font-weight: 700; color: #fff; background: var(--red); border-color: var(--red); }
+.my-listing-actions .btn-edit:hover { background: var(--red2); }
+.my-listing-actions .btn-sold { padding: 8px 14px; font-size: 13px; font-weight: 700; color: var(--green); border-color: var(--green); }
+.my-listing-actions .btn-sold:hover { background: var(--green); color: #fff; }
+.my-listing-card.is-sold .my-listing-img,
+.my-listing-card.is-sold .my-listing-price { opacity: .5; }
 .btn-del:hover { border-color: var(--red) !important; color: var(--red) !important; }
 .btn-toggle:hover { border-color: var(--green) !important; color: var(--green) !important; }
 .btn-view-listing { border-color: var(--border) !important; }
@@ -647,6 +656,7 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
 .expiry-tag.warning { background: rgba(240,165,0,.15);  color: var(--gold); }
 .expiry-tag.danger  { background: rgba(192,57,43,.15);  color: var(--red); }
 .expiry-tag.expired { background: rgba(0,0,0,.25);      color: var(--muted); }
+.expiry-tag.sold    { background: rgba(29,158,117,.15); color: var(--green); }
 .btn-extend {
   padding: 6px 12px; border: 1px solid var(--gold); color: var(--gold);
   border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;

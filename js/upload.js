@@ -5,6 +5,7 @@
 const MAX_PHOTOS = 8;
 let _uploadedFiles = [];
 let _uploadedUrls  = [];
+let _existingUrls  = [];   // Зар засах үед аль хэдийн байршуулсан зургууд
 
 function initUploadZone(zoneId, previewId) {
   const zone    = document.getElementById(zoneId);
@@ -12,6 +13,8 @@ function initUploadZone(zoneId, previewId) {
   const input   = zone.querySelector('input[type="file"]');
 
   if (!zone || !preview || !input) return;
+  if (zone.dataset.wired) return;   // хуудсанд дахин ороход listener давхардуулахгүй
+  zone.dataset.wired = '1';
 
   zone.addEventListener('click', e => {
     // Button дээр дарсан бол зөвшөөрөхгүй — тэд өөрийн handler-тэй
@@ -64,7 +67,7 @@ function _addFiles(files, preview) {
     f.type.startsWith('image/') &&
     f.size <= MAX_FILE_SIZE_MB * 1024 * 1024
   );
-  const remaining = MAX_PHOTOS - _uploadedFiles.length;
+  const remaining = MAX_PHOTOS - _existingUrls.length - _uploadedFiles.length;
   const toAdd = allowed.slice(0, remaining);
 
   toAdd.forEach(file => {
@@ -87,10 +90,30 @@ function removeUploadFile(idx) {
   _rebuildPreview();
 }
 
+function removeExistingImage(idx) {
+  _existingUrls.splice(idx, 1);
+  _rebuildPreview();
+}
+
+// Зар засах: хуучин зургуудыг preview-д харуулна
+function setExistingImages(urls) {
+  _existingUrls = (urls || []).map(safeImgUrl).filter(Boolean).slice(0, MAX_PHOTOS);
+  _uploadedFiles = [];
+  _rebuildPreview();
+}
+
+function getExistingImages() { return [..._existingUrls]; }
+
 function _rebuildPreview() {
   const preview = document.getElementById('upload-preview');
   if (!preview) return;
   preview.innerHTML = '';
+  _existingUrls.forEach((url, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'upload-thumb';
+    thumb.innerHTML = `<img src="${escapeHtml(url)}" alt=""><button type="button" class="thumb-remove" onclick="removeExistingImage(${i})">×</button>`;
+    preview.appendChild(thumb);
+  });
   _uploadedFiles.forEach((file, i) => {
     const reader = new FileReader();
     reader.onload = e => {
@@ -127,6 +150,7 @@ async function uploadAllFiles(userId) {
 function resetUpload() {
   _uploadedFiles = [];
   _uploadedUrls  = [];
+  _existingUrls  = [];
   const preview = document.getElementById('upload-preview');
   if (preview) preview.innerHTML = '';
 }

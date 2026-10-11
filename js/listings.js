@@ -292,8 +292,58 @@ async function deleteListing(id) {
     return;
   }
 
-  const { error } = await sb.from('listings').delete().eq('id', id).eq('user_id', user.id);
+  const { data: rows, error } = await sb.from('listings').delete().eq('id', id).eq('user_id', user.id).select('images');
   if (error) throw error;
+  removeStorageImages(rows?.[0]?.images || []);
+}
+
+// Зарыг засна. Машины зар бол vehicle_details-г мөн шинэчилнэ.
+async function updateListing(id, data, vehicleData = null) {
+  const user = authGetUser();
+  if (!user) throw new Error('Нэвтэрнэ үү');
+
+  if (DEMO_MODE) {
+    const l = DEMO_LISTINGS.find(x => x.id === id);
+    if (!l) throw new Error('Зар олдсонгүй');
+    Object.assign(l, data);
+    if (vehicleData) l.vehicle = { ...(l.vehicle || {}), ...vehicleData };
+    return l;
+  }
+
+  const { data: result, error } = await sb.from('listings').update(data).eq('id', id).select().single();
+  if (error) throw error;
+  if (vehicleData) {
+    const { error: vErr } = await sb.from('vehicle_details')
+      .upsert({ ...vehicleData, listing_id: id }, { onConflict: 'listing_id' });
+    if (vErr) throw vErr;
+  }
+  return result;
+}
+
+// Зарагдсан гэж тэмдэглэнэ (нийтэд харагдахаа болино) эсвэл буцааж нээнэ
+async function setListingSold(id, sold) {
+  const patch = sold
+    ? { sold_at: new Date().toISOString(), is_active: false }
+    : { sold_at: null, is_active: true };
+  if (DEMO_MODE) {
+    const l = DEMO_LISTINGS.find(x => x.id === id);
+    if (l) Object.assign(l, patch);
+    return;
+  }
+  const { error } = await sb.from('listings').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+// Устгасан/сольсон зургийг Storage-аас цэвэрлэнэ (алдаа гарвал зарын үйлдлийг зогсоохгүй)
+async function removeStorageImages(urls) {
+  if (DEMO_MODE || !urls?.length) return;
+  const marker = '/listing-images/';
+  const paths = urls
+    .map(u => { const i = String(u).indexOf(marker); return i >= 0 ? decodeURIComponent(String(u).slice(i + marker.length)) : null; })
+    .filter(Boolean);
+  if (!paths.length) return;
+  try { await sb.storage.from('listing-images').remove(paths); }
+  catch (e) { console.warn('Image cleanup failed:', e.message); }
 }
 
 async function toggleListingActive(id, current) {
@@ -302,7 +352,8 @@ async function toggleListingActive(id, current) {
     if (l) l.is_active = !current;
     return;
   }
-  await sb.from('listings').update({ is_active: !current }).eq('id', id);
+  const { error } = await sb.from('listings').update({ is_active: !current }).eq('id', id);
+  if (error) throw error;
 }
 
 async function extendListing(id) {

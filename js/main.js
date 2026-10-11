@@ -18,8 +18,11 @@ let _favoriteIds      = new Set();
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════
 // opts.fromHistory: "Буцах/Урагшлах" товчоос ирсэн бол URL-д дахин бичихгүй
+// opts.edit: зар засахаар нээж байна (startEditListing)
+// opts.replace: history-д шинэ мөр нэмэхгүй, одоогийнхыг солино
 function showPage(id, opts = {}) {
   if (!ROUTE_PAGES.has(id)) id = 'home';
+  if (id === 'post' && !opts.fromHistory && !opts.edit) _editListingId = null;
   // Зар нээлттэй байхад өөр хуудас руу шилжвэл зарыг нууна.
   // History-д зарын мөр үлдэх тул "Буцах" дарахад зар дахин нээгдэнэ.
   if (!opts.fromHistory && isDetailOpen()) _hideDetail();
@@ -28,7 +31,7 @@ function showPage(id, opts = {}) {
   if (el) el.classList.add('active');
   window.scrollTo(0, 0);
   closeMobileNav();
-  if (!opts.fromHistory) _routePageShown(id);
+  if (!opts.fromHistory) _routePageShown(id, opts.replace);
 
   if (id === 'home')    initHomePage();
   if (id === 'search')  initSearchPage();
@@ -58,6 +61,7 @@ function closeMobileNav() {
 //   /                   → нүүр
 //   /?p=search          → хуудас
 //   /?p=shop&id=<uuid>  → дэлгүүр
+//   /?p=post&id=<uuid>  → зар засах
 //   ...&zar=<id>        → зарын дэлгэрэнгүй (энэ линкийг хуваалцаж болно)
 // history.state = { p, id, zar, ov: [нээлттэй цонхнууд], pushed }
 //   pushed=false нь сайтад орж ирсэн анхны мөр — түүнээс цааш back хийхгүй.
@@ -80,7 +84,7 @@ function isDetailOpen() { return _isOpen('modal-detail'); }
 function _routeUrl(st) {
   const q = new URLSearchParams();
   if (st.p && st.p !== 'home') q.set('p', st.p);
-  if (st.p === 'shop' && st.id) q.set('id', st.id);
+  if ((st.p === 'shop' || st.p === 'post') && st.id) q.set('id', st.id);
   if (st.zar) q.set('zar', st.zar);
   const s = q.toString();
   return location.pathname + (s ? '?' + s : '');
@@ -98,7 +102,7 @@ function parseRouteUrl() {
   const id  = q.get('id'),  zar = q.get('zar');
   const st = {
     p,
-    id:  p === 'shop' && ROUTE_ID_RE.test(id || '') ? id : undefined,
+    id:  (p === 'shop' || p === 'post') && ROUTE_ID_RE.test(id || '') ? id : undefined,
     zar: ROUTE_ID_RE.test(zar || '') ? zar : undefined,
     ov: [], pushed: false,
   };
@@ -151,8 +155,12 @@ function applyRoute(st) {
   if (!st.zar && isDetailOpen()) _hideDetail();
   const page = ROUTE_PAGES.has(st.p) ? st.p : 'home';
   const cur  = document.querySelector('.page.active')?.id.replace('page-', '');
-  if (page !== cur || (page === 'shop' && st.id !== _currentShopId)) {
-    if (page === 'shop') _currentShopId = st.id || null;
+  const want = st.id || null;
+  if (page !== cur
+      || (page === 'shop' && want !== _currentShopId)
+      || (page === 'post' && want !== _editListingId)) {
+    if (page === 'shop') _currentShopId = want;
+    if (page === 'post') _editListingId = want;
     showPage(page, { fromHistory: true });
   }
   if (st.zar && (!isDetailOpen() || String(_currentListing?.id) !== String(st.zar))) {
@@ -175,11 +183,13 @@ function routeOverlayClosed(name) {
   });
 }
 
-function _routePageShown(id) {
-  const next = { p: id, id: id === 'shop' ? (_currentShopId || undefined) : undefined, ov: [], pushed: true };
+function _routePageShown(id, replace = false) {
+  const pid  = id === 'shop' ? _currentShopId : id === 'post' ? _editListingId : null;
+  const next = { p: id, id: pid || undefined, ov: [], pushed: true };
   _routeEnqueue(st => {
     if ((st.p || 'home') === next.p && st.id === next.id && !st.zar && !(st.ov || []).length) return;
-    _routeWrite(next);
+    if (replace) next.pushed = !!st.pushed;
+    _routeWrite(next, replace);
   });
 }
 function _routeDetailOpened(id) {
@@ -203,6 +213,7 @@ function routeInit() {
   const st = parseRouteUrl();
   _routeWrite(st, true);
   if (st.p === 'shop') _currentShopId = st.id;
+  if (st.p === 'post') _editListingId = st.id || null;
   showPage(st.p, { fromHistory: true });
   if (st.zar) openDetail(st.zar, { fromHistory: true });
 }
@@ -1282,7 +1293,9 @@ async function openDetail(id, opts = {}) {
     waBtn.href   = phone ? `https://wa.me/${phone.replace('+','')}` : '#';
     // Өөрийн зарыг мэдээлэх боломжгүй
     const me = authGetUser();
-    document.getElementById('detail-report-btn').style.display = (me && l.user_id && me.id === l.user_id) ? 'none' : '';
+    const mine = !!(me && l.user_id && me.id === l.user_id);
+    document.getElementById('detail-report-btn').style.display = mine ? 'none' : '';
+    document.getElementById('detail-edit-btn').style.display   = mine ? '' : 'none';
     // Утасгүй зар дээр ажиллахгүй товч харуулахгүй
     callBtn.style.display = phone ? '' : 'none';
     waBtn.style.display   = phone ? '' : 'none';
@@ -1356,6 +1369,14 @@ async function initPostPage() {
   document.getElementById('post-form-wrap').style.display = 'block';
   document.getElementById('post-success').style.display   = 'none';
   initUploadZone('upload-zone', 'upload-preview');
+  attachDraftAutoSave();
+  attachPriceInput(document.getElementById('p-price'), updatePriceHint);
+
+  if (_editListingId) {
+    if (_postFormMode !== _editListingId) await _enterEditMode(_editListingId);
+    return;
+  }
+  _leaveEditMode();
   selectListingType(_listingTypeNav || 'part');
 
   // Хэрэглэгчийн профайл дээрээс утас, дэлгүүрийн нэрийг автомат бөглөнө
@@ -1364,9 +1385,6 @@ async function initPostPage() {
   prefillLastLocation();
   // Хадгалсан draft байвал санамж харуулна
   checkForDraft();
-  // Form дээр өөрчлөлт болгонд draft-ыг автомат хадгалах
-  attachDraftAutoSave();
-  attachPriceInput(document.getElementById('p-price'), updatePriceHint);
   updatePriceHint();
   refreshModelSuggestions('p');
   refreshModelSuggestions('v');
@@ -1580,6 +1598,7 @@ function attachDraftAutoSave() {
   if (!wrap || wrap.dataset.draftWired) return;
   wrap.dataset.draftWired = '1';
   wrap.addEventListener('input', () => {
+    if (_postFormMode !== 'new') return;   // засах үед шинэ зарын ноорогт хадгалахгүй
     clearTimeout(_draftTimer);
     _draftTimer = setTimeout(() => {
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(_collectDraft())); } catch {}
@@ -1711,7 +1730,7 @@ function onPostCategoryChange() {
   const subs = getSubcategoriesFor(cat);
   if (!subs.length) { wrap.style.display = 'none'; sel.value = ''; return; }
   sel.innerHTML = '<option value="">Сонгоно уу</option>' +
-    subs.map(s => `<option value="${s.name}">${s.icon || ''} ${s.name}</option>`).join('');
+    subs.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.icon || '')} ${escapeHtml(s.name)}</option>`).join('');
   wrap.style.display = 'block';
 }
 
@@ -1724,7 +1743,7 @@ function onSearchCategoryChange() {
   const subs = getSubcategoriesFor(cat);
   if (!subs.length) { wrap.style.display = 'none'; sel.value = ''; return; }
   sel.innerHTML = '<option value="">Бүгд</option>' +
-    subs.map(s => `<option value="${s.name}">${s.icon || ''} ${s.name}</option>`).join('');
+    subs.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.icon || '')} ${escapeHtml(s.name)}</option>`).join('');
   wrap.style.display = 'block';
 }
 
@@ -1811,21 +1830,36 @@ async function submitListing() {
     };
   }
 
+  const editingId = _postFormMode !== 'new' ? _postFormMode : null;
   const btn = document.getElementById('post-submit-btn');
   btn.disabled = true; btn.textContent = 'Зураг upload хийж байна...';
 
   try {
-    const imageUrls = await uploadAllFiles(user.id);
-    btn.textContent = 'Зар нийтлэж байна...';
+    const newUrls   = await uploadAllFiles(user.id);
+    const imageUrls = editingId ? [...getExistingImages(), ...newUrls] : newUrls;
+    btn.textContent = editingId ? 'Хадгалж байна...' : 'Зар нийтлэж байна...';
 
-    await postListing({
+    const record = {
       ...payload,
       price,
       phone,
       shop_name: document.getElementById('p-shop').value.trim(),
       location:  document.getElementById('p-location').value.trim(),
       images:    imageUrls,
-    }, vehiclePayload);
+    };
+
+    if (editingId) {
+      await updateListing(editingId, record, vehiclePayload);
+      // Хассан зургийг Storage-аас цэвэрлэнэ
+      removeStorageImages((_editingOriginal?.images || []).filter(u => !imageUrls.includes(u)));
+      _editListingId = null;
+      _leaveEditMode();
+      showToast('Зар шинэчлэгдлээ', 'success');
+      showPage('profile', { replace: true });
+      return;
+    }
+
+    await postListing(record, vehiclePayload);
 
     resetUpload();
     clearDraftAfterSubmit();
@@ -1838,8 +1872,148 @@ async function submitListing() {
   } catch(e) {
     showToast('Алдаа: ' + e.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Зар нийтлэх';
+    btn.disabled = false;
+    btn.textContent = _postFormMode !== 'new' ? '💾 Хадгалах' : 'Зар нийтлэх';
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ЗАР ЗАСАХ — нийтлэх form-ыг дахин ашиглана
+// ═══════════════════════════════════════════════════════════
+let _editListingId   = null;    // URL: ?p=post&id=<зарын id>
+let _postFormMode    = 'new';   // 'new' эсвэл form-д ачаалсан зарын id
+let _editingOriginal = null;    // засахын өмнөх зар (хассан зургийг цэвэрлэхэд)
+
+function startEditListing(id) {
+  if (!id) return;
+  _editListingId = String(id);
+  showPage('post', { edit: true });
+}
+function editCurrentListing() {
+  if (_currentListing) startEditListing(_currentListing.id);
+}
+function cancelEditListing() {
+  _editListingId = null;
+  _leaveEditMode();
+  showPage('profile', { replace: true });
+}
+
+async function _enterEditMode(id) {
+  const user = authGetUser();
+  if (!user) {
+    _setPostModeUI(false);
+    openAuthModal('login');
+    showToast('Зар засахын тулд нэвтэрнэ үү', 'info');
+    return;
+  }
+  let l = null;
+  try { l = await fetchListingById(id); } catch {}
+  if (_editListingId !== id) return;   // хүлээх зуур өөр хуудас руу шилжсэн
+  if (!l || l.user_id !== user.id) {
+    showToast('Зар олдсонгүй эсвэл таных биш байна', 'error');
+    _editListingId = null;
+    showPage('profile', { replace: true });
+    return;
+  }
+  const vd = l.listing_type === 'vehicle' ? await fetchVehicleDetails(l.id) : null;
+  if (_editListingId !== id) return;
+  resetPostForm();
+  resetUpload();
+  _postFormMode    = String(l.id);
+  _editingOriginal = l;
+  _fillPostForm(l, vd);
+  _setPostModeUI(true);
+}
+
+function _leaveEditMode() {
+  if (_postFormMode === 'new') { _setPostModeUI(false); return; }
+  _postFormMode    = 'new';
+  _editingOriginal = null;
+  resetPostForm();
+  resetUpload();
+  _setPostModeUI(false);
+}
+
+// Гарчиг, товч, нийтлэх үеийн хэсгүүдийг горимд тааруулна
+function _setPostModeUI(editing) {
+  const type = document.getElementById('p-listing-type')?.value || 'part';
+  document.getElementById('post-type-card').style.display = editing ? 'none' : '';
+  document.getElementById('post-cancel-edit').style.display = editing ? '' : 'none';
+  const btn = document.getElementById('post-submit-btn');
+  btn.textContent = editing ? '💾 Хадгалах' : 'Зар нийтлэх';
+  if (editing) {
+    btn.disabled = false;   // хязгаар зөвхөн шинэ зарт хамаарна
+    document.getElementById('draft-banner').style.display = 'none';
+    document.getElementById('quota-info').style.display   = 'none';
+    document.getElementById('post-page-title').textContent = type === 'vehicle' ? 'Машины зар засах' : 'Сэлбэгийн зар засах';
+    document.getElementById('post-page-hint').textContent  = 'Өөрчлөх зүйлээ засаад доорх «Хадгалах» товчийг дарна уу.';
+  } else {
+    selectListingType(type);   // гарчиг, тайлбарыг сэргээнэ
+  }
+}
+
+// Жагсаалтаас хасагдсан утга (жш: админ устгасан марк) байвал түр нэмж сонгоно
+function _setFieldValue(id, v) {
+  const el = document.getElementById(id);
+  if (!el || v == null || v === '') return;
+  if (el.tagName === 'SELECT' && ![...el.options].some(o => o.value === String(v))) {
+    el.add(new Option(String(v), String(v)));
+  }
+  el.value = String(v);
+}
+
+function _fillPostForm(l, vd) {
+  const isV = l.listing_type === 'vehicle';
+  selectListingType(isV ? 'vehicle' : 'part');
+  if (isV) {
+    _setFieldValue('v-title',     l.title);
+    _setFieldValue('v-body-type', l.category);
+    _setFieldValue('v-make',      vd?.make  || l.car_make);
+    _setFieldValue('v-model',     vd?.model || l.car_model);
+    _setFieldValue('v-year',      vd?.year  || l.year_from);
+    _setFieldValue('v-desc',      l.description);
+    if (vd) {
+      _setFieldValue('v-imported-year',  vd.imported_year);
+      _setFieldValue('v-mileage',        vd.mileage_km);
+      _setFieldValue('v-engine',         vd.engine_cc);
+      _setFieldValue('v-fuel',           vd.fuel_type);
+      _setFieldValue('v-transmission',   vd.transmission);
+      _setFieldValue('v-drive',          vd.drive);
+      _setFieldValue('v-steering',       vd.steering);
+      _setFieldValue('v-color',          vd.color);
+      _setFieldValue('v-color-interior', vd.color_interior);
+      _setFieldValue('v-plate-region',   vd.plate_region);
+      _setFieldValue('v-customs',        vd.customs_cleared === false ? 'false' : 'true');
+      document.getElementById('v-barter').checked  = !!vd.is_barter;
+      document.getElementById('v-leasing').checked = !!vd.is_leasing;
+    }
+    if (document.getElementById('v-advanced-fields').style.display === 'none') toggleVehicleAdvanced();
+  } else {
+    _setFieldValue('p-title',    l.title);
+    _setFieldValue('p-category', l.category);
+    onPostCategoryChange();
+    _setFieldValue('p-subcategory', l.subcategory);
+    _setFieldValue('p-make',      l.car_make);
+    _setFieldValue('p-model',     l.car_model);
+    _setFieldValue('p-condition', l.condition);
+    _setFieldValue('p-year-from', l.year_from);
+    _setFieldValue('p-policy',    l.exchange_policy);
+    _setFieldValue('p-desc',      l.description);
+    selectType(l.part_type === 'substitute' ? 'substitute' : 'original');
+    if (document.getElementById('p-advanced-fields').style.display === 'none') togglePartAdvanced();
+  }
+  // Үнэ, холбоо барих
+  const neg = document.getElementById('p-negotiable');
+  neg.checked = !(Number(l.price) > 0);
+  if (neg.checked) toggleNegotiable();
+  else document.getElementById('p-price').value = String(l.price);
+  updatePriceHint();
+  _setFieldValue('p-phone',    l.phone);
+  document.getElementById('p-shop').value = l.shop_name || '';
+  _setFieldValue('p-location', l.location);
+  setExistingImages(l.images);
+  refreshModelSuggestions('p');
+  refreshModelSuggestions('v');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1903,26 +2077,34 @@ async function loadMyListings() {
       const thumb = l.images?.[0]
         ? `<img src="${escapeHtml(safeImgUrl(l.images[0]))}" alt="${escapeHtml(l.title)}" loading="lazy">`
         : '';
-      const expTag = expiryTag(l.expires_at);
+      const sold    = !!l.sold_at;
       const expired = l.expires_at && new Date(l.expires_at) < new Date();
-      const extendBtn = (l.expires_at)
+      const status  = sold        ? '<span class="expiry-tag sold">✅ Зарагдсан</span>'
+                    : !l.is_active ? '<span class="expiry-tag expired">⏸ Нуусан</span>'
+                    : expiryTag(l.expires_at);
+      const extendBtn = (!sold && l.expires_at)
         ? `<button class="btn-extend" onclick="doExtendListing('${l.id}')">${expired ? '🔄 Дахин нээх' : '⏱ Сунгах'}</button>`
         : '';
+      const actions = sold
+        ? `<button class="btn-view-listing" onclick="openDetail('${l.id}')">Харах</button>
+           <button class="btn-toggle" onclick="doSetSold('${l.id}',false)">↩ Дахин зарах</button>
+           <button class="btn-del" onclick="doDeleteListing('${l.id}')">Устгах</button>`
+        : `<button class="btn-edit" onclick="startEditListing('${l.id}')">✏️ Засах</button>
+           <button class="btn-sold" onclick="doSetSold('${l.id}',true)">✅ Зарагдсан</button>
+           <button class="btn-view-listing" onclick="openDetail('${l.id}')">Харах</button>
+           ${extendBtn}
+           <button class="btn-toggle" onclick="doToggleActive('${l.id}',${l.is_active})">${l.is_active ? '⏸ Түр нуух' : '▶ Нээх'}</button>
+           <button class="btn-del" onclick="doDeleteListing('${l.id}')">Устгах</button>`;
       return `
-        <div class="my-listing-card" id="mlc-${l.id}">
+        <div class="my-listing-card${sold ? ' is-sold' : ''}" id="mlc-${l.id}">
           <div class="my-listing-img">${thumb}</div>
           <div class="my-listing-body">
             <div class="my-listing-info">
-              <div class="my-listing-title">${escapeHtml(l.title)} ${expTag}</div>
+              <div class="my-listing-title">${escapeHtml(l.title)} ${status}</div>
               <div class="my-listing-meta">${escapeHtml(l.car_make || '')} ${escapeHtml(l.car_model || '')} • ${escapeHtml(l.category || '')}</div>
             </div>
             <div class="my-listing-price">${formatPrice(l.price)}</div>
-            <div class="my-listing-actions">
-              <button class="btn-view-listing" onclick="openDetail('${l.id}')">Харах</button>
-              ${extendBtn}
-              <button class="btn-toggle" onclick="doToggleActive('${l.id}',${l.is_active})">${l.is_active ? 'Идэвхгүй' : 'Идэвхтэй'}</button>
-              <button class="btn-del" onclick="doDeleteListing('${l.id}')">Устгах</button>
-            </div>
+            <div class="my-listing-actions">${actions}</div>
           </div>
         </div>`;
     }).join('');
@@ -1937,6 +2119,17 @@ async function doDeleteListing(id) {
     await deleteListing(id);
     document.getElementById('mlc-' + id)?.remove();
     showToast('Устгагдлаа', 'success');
+  } catch(e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+async function doSetSold(id, sold) {
+  if (sold && !confirm('Энэ зарыг «Зарагдсан» гэж тэмдэглэх үү?\nЗар хайлтаас хасагдана. Дараа нь «Дахин зарах» дарж сэргээж болно.')) return;
+  try {
+    await setListingSold(id, sold);
+    showToast(sold ? 'Баяр хүргэе! Зар «Зарагдсан» боллоо' : 'Зар дахин нийтлэгдлээ', 'success');
+    await loadMyListings();
   } catch(e) {
     showToast('Алдаа: ' + e.message, 'error');
   }

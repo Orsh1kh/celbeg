@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=40">
+<link rel="stylesheet" href="css/style.css?v=41">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -304,6 +304,7 @@
         <a class="btn-whatsapp" id="detail-wa-btn" href="#" target="_blank">💬 WhatsApp</a>
       </div>
       <button type="button" class="btn-share" onclick="shareListing()">🔗 Линк хуваалцах</button>
+      <button type="button" class="btn-share" id="detail-edit-btn" style="display:none" onclick="editCurrentListing()">✏️ Зараа засах</button>
       <div class="detail-meta-footer">
         <span id="detail-date"></span>
         <span id="detail-views"></span>
@@ -611,7 +612,7 @@
         </div>
 
         <!-- Listing type toggle -->
-        <div class="post-card">
+        <div class="post-card" id="post-type-card">
           <div class="post-card-title">Ямар зар нийтлэх вэ?</div>
           <div class="type-toggle listing-type-toggle">
             <div class="type-btn active" id="lt-part"    onclick="selectListingType('part')">⚙️ Сэлбэг</div>
@@ -912,14 +913,16 @@
         </div>
 
         <button class="btn-post-submit" id="post-submit-btn" onclick="submitListing()">Зар нийтлэх</button>
+        <button type="button" class="btn-cancel-edit" id="post-cancel-edit" style="display:none" onclick="cancelEditListing()">Цуцлах</button>
       </div>
 
       <!-- Success screen -->
       <div class="post-success" id="post-success">
         <div class="success-icon">🎉</div>
         <h2>Зар амжилттай нийтлэгдлээ!</h2>
-        <p>Таны зар шалгагдаж удахгүй харагдах болно.</p>
-        <button onclick="showPage('home')">Нүүр хуудас руу</button>
+        <p>Таны зар одоо хайлтад харагдаж байна. Засах, «Зарагдсан» гэж тэмдэглэхийг «Миний хэсэг»-ээс хийнэ.</p>
+        <button onclick="showPage('profile')">Миний зарууд</button>
+        <button class="secondary" onclick="showPage('home')">Нүүр хуудас руу</button>
       </div>
     </div>
   </section>
@@ -1308,13 +1311,13 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=40"></script>
-<script src="js/car-models.js?v=40"></script>
-<script src="js/data-manager.js?v=40"></script>
-<script src="js/auth.js?v=40"></script>
-<script src="js/listings.js?v=40"></script>
-<script src="js/upload.js?v=40"></script>
-<script src="js/admin.js?v=40"></script>
-<script src="js/main.js?v=40"></script>
+<script src="js/supabase-client.js?v=41"></script>
+<script src="js/car-models.js?v=41"></script>
+<script src="js/data-manager.js?v=41"></script>
+<script src="js/auth.js?v=41"></script>
+<script src="js/listings.js?v=41"></script>
+<script src="js/upload.js?v=41"></script>
+<script src="js/admin.js?v=41"></script>
+<script src="js/main.js?v=41"></script>
 </body>
 </html>
