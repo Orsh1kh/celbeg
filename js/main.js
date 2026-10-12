@@ -233,6 +233,10 @@ function selectListingTypeNav(t) {
   if (priceMax) priceMax.value = '';
   syncSearchTypeUI();
   syncTypeTexts();
+  // Солигдсоныг анзаарагдахуйц зөөлөн шилжилт
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelector('main')?.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
+  }
   // Home page-т байвал шинэчилнэ, эсрэг тохиолдолд Search руу
   const activePage = document.querySelector('.page.active')?.id;
   if (activePage === 'page-home')       initHomePage();
@@ -240,7 +244,8 @@ function selectListingTypeNav(t) {
   else showPage('home');
 }
 
-// Сэлбэг / Машин сонголтод тааруулж нүүрний гарчиг, хайлтын бичвэрийг солино
+// Сэлбэг / Машин сонголтод тааруулж өнгө (CSS: html[data-mode]), нүүрний гарчиг,
+// хайлтын бичвэрийг солино. Машин хэсэг цэнхэр, сэлбэг улаан.
 const TYPE_TEXTS = {
   part: {
     title: 'АВТО СЭЛБЭГИЙН <span>ЗАХ</span>',
@@ -257,10 +262,25 @@ const TYPE_TEXTS = {
 };
 function syncTypeTexts() {
   const t = TYPE_TEXTS[_listingTypeNav] || TYPE_TEXTS.part;
+  document.documentElement.dataset.mode = _listingTypeNav === 'vehicle' ? 'vehicle' : 'part';
+  fillHeroVehicleOptions();
   document.getElementById('hero-title').innerHTML = t.title;
   document.getElementById('hero-sub').textContent = t.sub;
   document.getElementById('hero-keyword').placeholder = t.kw;
   document.getElementById('header-search-input').placeholder = t.head;
+}
+
+// Машины нүүр хайлт: "Он (хэдээс)", "Үнэ (хүртэл)" сонголтууд
+const HERO_VEHICLE_PRICES = [10, 15, 20, 30, 40, 50, 70, 100, 150, 200].map(m => m * 1000000);
+function fillHeroVehicleOptions() {
+  const yearSel  = document.getElementById('hero-year');
+  const priceSel = document.getElementById('hero-price');
+  if (yearSel && yearSel.options.length <= 1) {
+    for (let y = new Date().getFullYear(); y >= YEAR_FIRST; y--) yearSel.add(new Option(`${y} оноос хойш`, y));
+  }
+  if (priceSel && priceSel.options.length <= 1) {
+    HERO_VEHICLE_PRICES.forEach(p => priceSel.add(new Option(`${formatPriceShort(p)} хүртэл`, p)));
+  }
 }
 
 function goSearchCat(cat) {
@@ -1150,15 +1170,21 @@ function applyFilters() {
   loadSearchResults(true);
 }
 
-function resetFilters() {
+// Sidebar-ын бүх шүүлтийг анхны байдалд нь оруулна (хайлт ажиллуулахгүй)
+function _clearFilterInputs() {
   ['f-category','f-subcategory','f-model','f-year-from','f-year-to','f-price-min','f-price-max','f-mileage-max']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('f-subcategory-group').style.display = 'none';
   document.querySelectorAll('#filter-sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
   const st = document.querySelector('input[name="f-steering"][value=""]'); if (st) st.checked = true;
   document.getElementById('sort-select').value = 'newest';
-  _searchFilters = {};
   syncPriceSlider();
+  syncYearSlider();
+}
+
+function resetFilters() {
+  _clearFilterInputs();
+  _searchFilters = {};
   loadSearchResults(true);
 }
 
@@ -1178,22 +1204,32 @@ function doHeaderSearch() {
 
 // ── Hero search ─────────────────────────────────────────────
 function doHeroSearch() {
+  const isV      = _listingTypeNav === 'vehicle';
   const heroMake = document.getElementById('hero-mark').value;
+  // Өмнөх хайлтын шүүлт үлдэхгүй — шинэ хайлт цэвэрхэн эхэлнэ
+  _clearFilterInputs();
   _searchFilters = {
     car_makes: heroMake ? [heroMake] : [],
     car_model: document.getElementById('hero-model').value.trim(),
-    category:  document.getElementById('hero-cat').value,
-    keyword:   document.getElementById('hero-keyword').value.trim(),
+    category:  isV ? '' : document.getElementById('hero-cat').value,
+    keyword:   isV ? '' : document.getElementById('hero-keyword').value.trim(),
   };
-  showPage('search');
-  // sync sidebar
+  // Sidebar-т тусгана (идэвхтэй шүүлтийн chip-үүд, гулсагч зөв харагдана)
   if (heroMake) {
     const cb = document.querySelector(`input[name="f-make-cb"][value="${CSS.escape(heroMake)}"]`);
     if (cb) cb.checked = true;
   }
   if (_searchFilters.car_model) document.getElementById('f-model').value    = _searchFilters.car_model;
   if (_searchFilters.category)  document.getElementById('f-category').value = _searchFilters.category;
-  loadSearchResults(true);
+  if (isV) {
+    const year  = document.getElementById('hero-year').value;
+    const price = document.getElementById('hero-price').value;
+    if (year)  document.getElementById('f-year-from').value = year;
+    if (price) document.getElementById('f-price-max').value = formatThousands(price);
+    syncYearSlider();
+    syncPriceSlider();
+  }
+  showPage('search');   // initSearchPage нэг удаа хайна
 }
 
 // ═══════════════════════════════════════════════════════════

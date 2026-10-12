@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=43">
+<link rel="stylesheet" href="css/style.css?v=44">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -337,8 +337,10 @@
         <select id="hero-mark" data-dropdown="mark" onchange="refreshModelSuggestions('hero')"><option value="">Машины марк</option></select>
         <input type="text" id="hero-model" list="dl-hero-model" autocomplete="off" placeholder="Загвар (жш: Camry)">
         <datalist id="dl-hero-model"></datalist>
-        <select id="hero-cat" data-dropdown="category"><option value="">Ангилал</option></select>
-        <input type="text" id="hero-keyword" placeholder="Сэлбэгийн нэр...">
+        <select id="hero-cat" class="hero-part-only" data-dropdown="category"><option value="">Ангилал</option></select>
+        <input type="text" id="hero-keyword" class="hero-part-only" placeholder="Сэлбэгийн нэр...">
+        <select id="hero-year" class="hero-vehicle-only" aria-label="Үйлдвэрлэсэн он"><option value="">Он (хэдээс)</option></select>
+        <select id="hero-price" class="hero-vehicle-only" aria-label="Үнэ"><option value="">Үнэ (хүртэл)</option></select>
         <button class="btn-search" onclick="doHeroSearch()">🔍 Хайх</button>
       </div>
     </div>
@@ -1312,13 +1314,13 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=43"></script>
-<script src="js/car-models.js?v=43"></script>
-<script src="js/data-manager.js?v=43"></script>
-<script src="js/auth.js?v=43"></script>
-<script src="js/listings.js?v=43"></script>
-<script src="js/upload.js?v=43"></script>
-<script src="js/admin.js?v=43"></script>
-<script src="js/main.js?v=43"></script>
+<script src="js/supabase-client.js?v=44"></script>
+<script src="js/car-models.js?v=44"></script>
+<script src="js/data-manager.js?v=44"></script>
+<script src="js/auth.js?v=44"></script>
+<script src="js/listings.js?v=44"></script>
+<script src="js/upload.js?v=44"></script>
+<script src="js/admin.js?v=44"></script>
+<script src="js/main.js?v=44"></script>
 </body>
 </html>
