@@ -2139,7 +2139,8 @@ async function loadMyListings() {
         : '';
       const sold    = !!l.sold_at;
       const expired = l.expires_at && new Date(l.expires_at) < new Date();
-      const status  = sold        ? '<span class="expiry-tag sold">✅ Зарагдсан</span>'
+      const status  = l.admin_hidden ? '<span class="expiry-tag danger">🚫 Админ нуусан</span>'
+                    : sold        ? '<span class="expiry-tag sold">✅ Зарагдсан</span>'
                     : !l.is_active ? '<span class="expiry-tag expired">⏸ Нуусан</span>'
                     : expiryTag(l.expires_at);
       const extendBtn = (!sold && l.expires_at)
@@ -2152,8 +2153,8 @@ async function loadMyListings() {
         : `<button class="btn-edit" onclick="startEditListing('${l.id}')">✏️ Засах</button>
            <button class="btn-sold" onclick="doSetSold('${l.id}',true)">✅ Зарагдсан</button>
            <button class="btn-view-listing" onclick="openDetail('${l.id}')">Харах</button>
-           ${extendBtn}
-           <button class="btn-toggle" onclick="doToggleActive('${l.id}',${l.is_active})">${l.is_active ? '⏸ Түр нуух' : '▶ Нээх'}</button>
+           ${l.admin_hidden ? '' : extendBtn}
+           ${l.admin_hidden ? '' : `<button class="btn-toggle" onclick="doToggleActive('${l.id}',${l.is_active})">${l.is_active ? '⏸ Түр нуух' : '▶ Нээх'}</button>`}
            <button class="btn-del" onclick="doDeleteListing('${l.id}')">Устгах</button>`;
       return `
         <div class="my-listing-card${sold ? ' is-sold' : ''}" id="mlc-${l.id}">

@@ -2,7 +2,7 @@
 // ADMIN DASHBOARD — Categories & Car Marks Management
 // ═══════════════════════════════════════════════════════════
 
-let _adminTab = 'categories'; // 'categories' | 'marks'
+let _adminTab = 'new';        // 'new' | 'categories' | 'marks' | 'shops' | 'reports'
 let _editingId = null;        // id of item being edited
 
 // ── Switch tab ──────────────────────────────────────────────
@@ -31,10 +31,108 @@ function adminResetDefaults() {
 // ── Render table ────────────────────────────────────────────
 function renderAdminTable() {
   const wrap = document.getElementById('admin-table-wrap');
-  if (_adminTab === 'categories') renderCategoryTable(wrap);
+  if (_adminTab === 'new') renderNewListingsTable(wrap);
+  else if (_adminTab === 'categories') renderCategoryTable(wrap);
   else if (_adminTab === 'marks') renderMarkTable(wrap);
   else if (_adminTab === 'shops') renderShopsTable(wrap);
   else if (_adminTab === 'reports') renderReportsTable(wrap);
+}
+
+// ── Шинэ зарууд (дараа нь хянах) ───────────────────────────
+// Зар шууд нийтлэгдэнэ; админ энд өдөр бүр шинэ зарыг харж, асуудалтайг нь нууна/устгана.
+// «Хянасан» цагийг энэ төхөөрөмж дээр хадгална.
+const ADMIN_REVIEWED_KEY = 'cb_admin_reviewed_at';
+function _adminReviewedAt() {
+  try { return localStorage.getItem(ADMIN_REVIEWED_KEY) || ''; } catch { return ''; }
+}
+
+async function renderNewListingsTable(wrap) {
+  wrap.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  let list;
+  try {
+    list = await fetchRecentListingsAdmin();
+  } catch (e) {
+    wrap.innerHTML = `<div class="no-results"><div class="no-icon">⚠️</div><h3>Алдаа</h3><p>${escapeHtml(e.message)}</p></div>`;
+    return;
+  }
+  const seen   = _adminReviewedAt();
+  const unseen = list.filter(l => (l.created_at || '') > seen).length;
+  updateNewListingsBadge(unseen);
+  if (!list.length) {
+    wrap.innerHTML = `<div class="no-results"><div class="no-icon">📭</div><h3>Шинэ зар алга</h3><p>Сүүлийн ${ADMIN_NEW_DAYS} хоногт зар нэмэгдээгүй байна.</p></div>`;
+    return;
+  }
+  const rows = list.map(l => {
+    const p      = l.profiles || {};
+    const seller = escapeHtml(l.shop_name || p.shop_name || p.name || 'Хувь хүн') + (p.is_verified ? ' <span class="verified-badge" title="Баталгаажсан"></span>' : '');
+    const isNew  = (l.created_at || '') > seen;
+    const expired = l.expires_at && new Date(l.expires_at) < new Date();
+    const status = l.admin_hidden ? '<span class="expiry-tag danger">🚫 Админ нуусан</span>'
+                 : l.sold_at      ? '<span class="expiry-tag sold">✅ Зарагдсан</span>'
+                 : l.is_active === false ? '<span class="expiry-tag expired">⏸ Нуусан</span>'
+                 : expired        ? '<span class="expiry-tag expired">⏰ Хугацаа дууссан</span>'
+                 : '<span class="expiry-tag ok">🟢 Идэвхтэй</span>';
+    const hideBtn = l.admin_hidden
+      ? `<button class="btn-toggle" onclick="doAdminHide('${l.id}',false)">↩ Сэргээх</button>`
+      : `<button class="btn-del" onclick="doAdminHide('${l.id}',true)">🙈 Нуух</button>`;
+    return `
+      <div class="my-listing-card${isNew ? ' is-new' : ''}" id="anl-${l.id}">
+        <div class="my-listing-img">${l.images?.[0] ? cardImg(l.images[0], l.title) : ''}</div>
+        <div class="my-listing-body">
+          <div class="my-listing-info">
+            <div class="my-listing-title">${isNew ? '<span class="expiry-tag new">ШИНЭ</span> ' : ''}${escapeHtml(l.title)} ${status}</div>
+            <div class="my-listing-meta">${l.listing_type === 'vehicle' ? '🚗' : '⚙️'} ${escapeHtml(l.car_make || '')} ${escapeHtml(l.car_model || '')} • ${escapeHtml(l.category || '')}</div>
+            <div class="my-listing-meta">👤 ${seller} · 📞 ${escapeHtml(l.phone || '—')} · ${formatDate(l.created_at)}</div>
+          </div>
+          <div class="my-listing-price">${formatPrice(l.price)}</div>
+          <div class="my-listing-actions">
+            <button class="btn-view-listing" onclick="openDetail('${l.id}')">Харах</button>
+            ${hideBtn}
+            <button class="btn-del" onclick="doAdminDelete('${l.id}')">🗑 Устгах</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  wrap.innerHTML = `
+    <div class="admin-new-head">
+      <span>Сүүлийн ${ADMIN_NEW_DAYS} хоногт <strong>${list.length}</strong> зар · хянаагүй <strong>${unseen}</strong></span>
+      ${unseen ? '<button class="btn-admin-add" onclick="markNewListingsReviewed()">✅ Бүгдийг хянасан</button>' : ''}
+    </div>
+    ${rows}`;
+}
+
+function markNewListingsReviewed() {
+  try { localStorage.setItem(ADMIN_REVIEWED_KEY, new Date().toISOString()); } catch {}
+  renderNewListingsTable(document.getElementById('admin-table-wrap'));
+}
+
+async function doAdminHide(id, hidden) {
+  if (hidden && !confirm('Энэ зарыг нуух уу? Эзэн нь өөрөө буцааж нээх боломжгүй болно.')) return;
+  try {
+    await adminSetListingHidden(id, hidden);
+    showToast(hidden ? 'Зар нуугдлаа' : 'Зар сэргээгдлээ', 'success');
+    renderNewListingsTable(document.getElementById('admin-table-wrap'));
+  } catch (e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+async function doAdminDelete(id) {
+  if (!confirm('Энэ зарыг бүр мөсөн устгах уу? Буцаах боломжгүй.')) return;
+  try {
+    await adminDeleteListing(id);
+    document.getElementById('anl-' + id)?.remove();
+    showToast('Зар устгагдлаа', 'success');
+  } catch (e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+function updateNewListingsBadge(n) {
+  const b = document.getElementById('admin-new-badge');
+  if (!b) return;
+  b.textContent = n > 0 ? n : '';
+  b.style.display = n > 0 ? 'inline-flex' : 'none';
 }
 
 // ── Shops (verified toggle) ──────────────────────────────
@@ -398,8 +496,12 @@ function initAdminPage() {
   document.getElementById('admin-stat-cats').textContent  = getMainCategories().length;
   document.getElementById('admin-stat-marks').textContent = getMarks().length;
 
-  renderAdminTable();
+  adminSwitchTab(_adminTab);
   fetchOpenReports().then(g => updateReportsBadge(g.reduce((n, x) => n + x.reports.length, 0))).catch(() => {});
+  if (_adminTab !== 'new') {
+    const seen = _adminReviewedAt();
+    fetchRecentListingsAdmin().then(list => updateNewListingsBadge(list.filter(l => (l.created_at || '') > seen).length)).catch(() => {});
+  }
 }
 
 // ── Emoji picker shortcut ─────────────────────────────────────

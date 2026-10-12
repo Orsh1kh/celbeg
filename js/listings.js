@@ -492,10 +492,57 @@ async function resolveListingReports(listingId, action) {
     const l = DEMO_LISTINGS.find(x => x.id === listingId); if (l) l.is_active = active;
     return;
   }
-  const { error: e1 } = await sb.from('listings').update({ is_active: active }).eq('id', listingId);
+  // admin_hidden: эзэн нь өөрөө буцааж нээх боломжгүй (016 SQL)
+  let { error: e1 } = await sb.from('listings').update({ is_active: active, admin_hidden: !active }).eq('id', listingId);
+  if (e1 && /admin_hidden/.test(e1.message)) ({ error: e1 } = await sb.from('listings').update({ is_active: active }).eq('id', listingId));
   if (e1) throw e1;
   const { error: e2 } = await sb.from('reports').update({ status }).eq('listing_id', listingId).eq('status', 'open');
   if (e2) throw e2;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN: шинэ зарын хяналт
+// ═══════════════════════════════════════════════════════════
+const ADMIN_NEW_DAYS = 7;
+
+// Сүүлийн 7 хоногт нэмэгдсэн бүх зар (нуусан, хугацаа дууссан ч) + зар оруулагч
+async function fetchRecentListingsAdmin() {
+  const since = new Date(Date.now() - ADMIN_NEW_DAYS * 864e5).toISOString();
+  if (DEMO_MODE || !sb) {
+    return DEMO_LISTINGS
+      .filter(l => (l.created_at || '') >= since)
+      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  }
+  const { data, error } = await sb.from('listings')
+    .select('*, profiles(name, shop_name, user_type, is_verified)')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return data || [];
+}
+
+// Админ нуух / сэргээх. Нуусныг эзэн нь өөрөө нээж чадахгүй.
+async function adminSetListingHidden(id, hidden) {
+  if (DEMO_MODE || !sb) {
+    const l = DEMO_LISTINGS.find(x => x.id === id);
+    if (l) Object.assign(l, { is_active: !hidden, admin_hidden: hidden });
+    return;
+  }
+  const { error } = await sb.from('listings').update({ is_active: !hidden, admin_hidden: hidden }).eq('id', id);
+  if (error) throw error;
+}
+
+async function adminDeleteListing(id) {
+  if (DEMO_MODE || !sb) {
+    const idx = DEMO_LISTINGS.findIndex(l => l.id === id);
+    if (idx !== -1) DEMO_LISTINGS.splice(idx, 1);
+    return;
+  }
+  const { data: rows, error } = await sb.from('listings').delete().eq('id', id).select('images');
+  if (error) throw error;
+  if (!rows?.length) throw new Error('Устгах эрх алга (016 SQL ажиллуулсан эсэхийг шалгана уу)');
+  removeStorageImages(rows[0].images || []);
 }
 
 async function fetchShops() {
