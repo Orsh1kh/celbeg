@@ -52,15 +52,18 @@ const SUPABASE_ANON_KEY = 'sb_publishable_...';
 
 - **URL & publishable key** — Dashboard → Settings → API Keys
 
-### 6. Netlify руу deploy хийх
+### 6. Cloudflare Pages руу deploy хийх
 
-1. https://app.netlify.com/ → **Add new site → Import from Git**
-2. Repository сонгож import
-3. `netlify.toml` автоматаар уншигдаж, `publish = "."` болно
-4. Deploy амжилттай болмогц:
-   - Site settings → **Domain management** → `celbeg.mn` custom domain нэмнэ
-   - DNS-ийн A record эсвэл CNAME-ыг Netlify-н өгсөн утга руу заана
-   - HTTPS автоматаар үүснэ
+Дэлгэрэнгүй алхам: [CLOUDFLARE.md](CLOUDFLARE.md)
+
+1. Cloudflare → **Workers & Pages → Create → Pages → Import an existing Git repository**
+2. Repository: `Orsh1kh/celbeg`, branch `main`
+3. Framework preset: **None** · Build command: `sh scripts/build.sh` · Build output directory: `dist`
+4. Header (хамгаалалт, кэш) — `_headers` файлаас уншигдана
+5. Custom domain: Pages → **Custom domains** → `celbeg.mn`, `www.celbeg.mn`
+
+`scripts/build.sh` зөвхөн сайтын файлуудыг `dist/`-д хуулна — `supabase/*.sql`, README зэрэг нийтэд гарахгүй.
+Сайтад шинэ файл/хавтас нэмбэл тэр скриптийн жагсаалтад нэмнэ.
 
 ### 7. Эхний туршилт
 
@@ -107,7 +110,9 @@ celbeg-main/
 │   ├── 0NN_*.sql           — Дараалсан migration-ууд
 │   └── RUN_PENDING_003_to_016.sql — 003–016-г нэг дор
 ├── sw.js, manifest.json    — PWA
-├── netlify.toml
+├── _headers               — Cloudflare Pages header (CSP, кэш)
+├── scripts/build.sh        — Cloudflare Pages build (dist/)
+├── netlify.toml            — хуучин Netlify тохиргоо (шилжүүлсний дараа устгана)
 ├── robots.txt
 └── sitemap.xml
 ```

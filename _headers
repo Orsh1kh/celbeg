@@ -1,0 +1,37 @@
+# ═══════════════════════════════════════════════════════════
+# CELBEG.MN — Cloudflare Pages header тохиргоо (netlify.toml-ийн оронд)
+# https://developers.cloudflare.com/pages/configuration/headers/
+# ═══════════════════════════════════════════════════════════
+
+# ── Хамгаалалтын header (бүх хуудас) ───────────────────────
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(self)
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+  Cross-Origin-Opener-Policy: same-origin
+
+# ── HTML: кэшлэхгүй (шинэ хувилбар шууд хүрнэ) ─────────────
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# ── JS/CSS: ?v= дугаартай тул богино кэш ────────────────────
+/css/*
+  Cache-Control: public, max-age=300, must-revalidate
+/js/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+# ── Зураг/икон: өөрчлөгдөх нь ховор ─────────────────────────
+/img/*
+  Cache-Control: public, max-age=604800
+
+# ── PWA ────────────────────────────────────────────────────
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
+/manifest.json
+  Cache-Control: public, max-age=300, must-revalidate
