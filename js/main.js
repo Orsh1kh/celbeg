@@ -504,7 +504,7 @@ async function doLogout() {
 // ═══════════════════════════════════════════════════════════
 function buildListingCard(l) {
   const img = l.images?.[0]
-    ? `<img src="${escapeHtml(safeImgUrl(l.images[0]))}" alt="${escapeHtml(l.title)}" loading="lazy">`
+    ? cardImg(l.images[0], l.title)
     : `<div class="card-img-placeholder"><span>📦</span><small>Зураг байхгүй</small></div>`;
 
   const badgeClass = l.part_type === 'original' ? 'original' : 'substitute';
@@ -1256,7 +1256,7 @@ async function openDetail(id, opts = {}) {
       mainWrap.innerHTML = `<img src="${escapeHtml(_currentListingImages[0] || '')}" alt="${escapeHtml(l.title)}">`;
       mainWrap.querySelector('img').onclick = () => openLightbox(_currentListingImages, 0);
       thumbsWrap.innerHTML = _currentListingImages.map((url, i) =>
-        `<div class="gallery-thumb ${i===0?'active':''}" data-idx="${i}"><img src="${escapeHtml(url)}" loading="lazy" alt=""></div>`
+        `<div class="gallery-thumb ${i===0?'active':''}" data-idx="${i}">${cardImg(url, '')}</div>`
       ).join('');
       thumbsWrap.querySelectorAll('.gallery-thumb').forEach(t => {
         t.onclick = () => switchDetailImg(t, _currentListingImages[+t.dataset.idx], +t.dataset.idx);
@@ -2135,7 +2135,7 @@ async function loadMyListings() {
     }
     container.innerHTML = listings.map(l => {
       const thumb = l.images?.[0]
-        ? `<img src="${escapeHtml(safeImgUrl(l.images[0]))}" alt="${escapeHtml(l.title)}" loading="lazy">`
+        ? cardImg(l.images[0], l.title)
         : '';
       const sold    = !!l.sold_at;
       const expired = l.expires_at && new Date(l.expires_at) < new Date();
@@ -2430,6 +2430,22 @@ async function loadShopRatingAndReviews(shopId) {
 }
 
 // Зөвхөн http(s), blob, локал img/ эсвэл data:image URL-г зөвшөөрнө
+// Жижиг хувилбараар (thumbnail) харуулна; олдохгүй бол том зураг руу шилжинэ (initThumbFallback)
+function cardImg(url, alt) {
+  const full = safeImgUrl(url);
+  if (!full) return '';
+  return `<img src="${escapeHtml(thumbUrl(full))}" data-full="${escapeHtml(full)}" alt="${escapeHtml(alt || '')}" loading="lazy">`;
+}
+function initThumbFallback() {
+  // error event bubble хийдэггүй тул capture-аар барина
+  document.addEventListener('error', e => {
+    const img = e.target;
+    if (img?.tagName === 'IMG' && img.dataset.full && img.getAttribute('src') !== img.dataset.full) {
+      img.src = img.dataset.full;
+    }
+  }, true);
+}
+
 function safeImgUrl(u) {
   const str = String(u || '').trim();
   return /^(https?:\/\/|blob:|img\/|data:image\/)/i.test(str) ? str : '';
@@ -2764,6 +2780,7 @@ function dismissPWA() {
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
+  initThumbFallback();
 
   // Init data defaults and populate all dropdowns + dynamic UI
   initDataDefaults();

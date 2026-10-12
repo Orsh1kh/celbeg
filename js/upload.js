@@ -62,8 +62,12 @@ const ALLOWED_MIME = new Set(['image/jpeg','image/png','image/webp','image/gif',
 // • EXIF мэдээлэл (GPS байршил г.м) устана
 // • Утсыг эргүүлж авсан зургийн чиглэлийг зөв болгоно
 // • iPhone-ий HEIC → JPG (бүх browser дээр харагдана)
-const IMG_MAX_SIDE = 1600;
-const IMG_QUALITY  = 0.82;
+// • Картанд зориулж 512px жижиг хувилбар (thumbnail, ~30–50KB) давхар үүсгэнэ
+const IMG_MAX_SIDE   = 1600;
+const IMG_QUALITY    = 0.82;
+const THUMB_MAX_SIDE = 512;
+const THUMB_QUALITY  = 0.72;
+const _thumbFor = new WeakMap();   // том зураг (File) → жижиг хувилбар (File)
 
 async function _decodeImage(file) {
   if ('createImageBitmap' in window) {
@@ -81,10 +85,8 @@ async function _decodeImage(file) {
   }
 }
 
-async function compressImage(file) {
-  const src = await _decodeImage(file);   // уншиж чадахгүй бол алдаа шиднэ
-  const w0 = src.width || src.naturalWidth, h0 = src.height || src.naturalHeight;
-  const scale = Math.min(1, IMG_MAX_SIDE / Math.max(w0, h0));
+async function _renderJpeg(src, w0, h0, maxSide, quality) {
+  const scale = Math.min(1, maxSide / Math.max(w0, h0));
   const w = Math.max(1, Math.round(w0 * scale)), h = Math.max(1, Math.round(h0 * scale));
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
@@ -93,11 +95,25 @@ async function compressImage(file) {
   ctx.fillRect(0, 0, w, h);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(src, 0, 0, w, h);
-  src.close?.();
-  const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', IMG_QUALITY));
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
   if (!blob) throw new Error('encode failed');
-  const base = (file.name || 'photo').replace(/\.[^.]+$/, '') || 'photo';
-  return new File([blob], base + '.jpg', { type: 'image/jpeg', lastModified: Date.now() });
+  return blob;
+}
+
+// Буцаах утга: том зураг (File). Жижиг хувилбарыг _thumbFor-т хадгална.
+async function compressImage(file) {
+  const src = await _decodeImage(file);   // уншиж чадахгүй бол алдаа шиднэ
+  const w0 = src.width || src.naturalWidth, h0 = src.height || src.naturalHeight;
+  try {
+    const full  = await _renderJpeg(src, w0, h0, IMG_MAX_SIDE, IMG_QUALITY);
+    const thumb = await _renderJpeg(src, w0, h0, THUMB_MAX_SIDE, THUMB_QUALITY);
+    const base = (file.name || 'photo').replace(/\.[^.]+$/, '') || 'photo';
+    const out = new File([full], base + '.jpg', { type: 'image/jpeg', lastModified: Date.now() });
+    _thumbFor.set(out, new File([thumb], base + '_t.jpg', { type: 'image/jpeg', lastModified: Date.now() }));
+    return out;
+  } finally {
+    src.close?.();
+  }
 }
 
 // Шахалтыг нэг нэгээр нь дараалуулна (хуучин утасны санах ой дүүргэхгүй)
@@ -183,7 +199,7 @@ function _rebuildPreview() {
   }
   preview.innerHTML =
     _existingUrls.map((url, i) =>
-      `<div class="upload-thumb"><img src="${escapeHtml(url)}" alt=""><button type="button" class="thumb-remove" onclick="removeExistingImage(${i})">×</button></div>`
+      `<div class="upload-thumb"><img src="${escapeHtml(thumbUrl(url))}" data-full="${escapeHtml(url)}" alt=""><button type="button" class="thumb-remove" onclick="removeExistingImage(${i})">×</button></div>`
     ).join('') +
     _uploadedFiles.map((file, i) =>
       `<div class="upload-thumb"><img src="${_thumbUrl(file)}" alt=""><button type="button" class="thumb-remove" onclick="removeUploadFile(${i})">×</button></div>`
@@ -207,11 +223,24 @@ async function uploadAllFiles(userId) {
     return _uploadedUrls;
   }
 
+  // Файлын нэр давхардахгүй тул өөрчлөгдөхгүй → browser 1 жил кэшлэнэ (дахин татахгүй)
+  const opts = { cacheControl: '31536000', upsert: false };
   for (const file of _uploadedFiles) {
-    const ext  = file.name.split('.').pop();
-    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { data, error } = await sb.storage.from('listing-images').upload(path, file, { cacheControl: '3600', upsert: false });
+    const id    = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const thumb = _thumbFor.get(file);
+    // Шахсан зураг: <id>.w.jpg (том) + <id>.t.jpg (жижиг). Шахаж чадаагүй бол эх өргөтгөлөөр.
+    let ext = 'w.jpg';
+    if (!thumb) {
+      ext = (file.name.split('.').pop() || '').toLowerCase();
+      if (!/^[a-z0-9]{2,5}$/.test(ext)) ext = 'jpg';
+    }
+    const path = `${userId}/${id}.${ext}`;
+    const { data, error } = await sb.storage.from('listing-images').upload(path, file, opts);
     if (error) { showToast('Зураг upload алдаа: ' + error.message, 'error'); continue; }
+    if (thumb) {
+      const { error: tErr } = await sb.storage.from('listing-images').upload(`${userId}/${id}.t.jpg`, thumb, opts);
+      if (tErr) console.warn('Thumbnail upload failed (том зургийг харуулна):', tErr.message);
+    }
     const { data: pub } = sb.storage.from('listing-images').getPublicUrl(data.path);
     _uploadedUrls.push(pub.publicUrl);
   }

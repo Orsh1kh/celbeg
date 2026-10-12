@@ -334,12 +334,19 @@ async function setListingSold(id, sold) {
   if (error) throw error;
 }
 
+// Шахсан зургийн жижиг хувилбар: <id>.w.jpg → <id>.t.jpg. Бусад (хуучин) зурагт өөрөө.
+const _FULL_IMG_RE = /\.w\.jpg$/;
+function thumbUrl(url) {
+  return _FULL_IMG_RE.test(url || '') ? url.replace(_FULL_IMG_RE, '.t.jpg') : url;
+}
+
 // Устгасан/сольсон зургийг Storage-аас цэвэрлэнэ (алдаа гарвал зарын үйлдлийг зогсоохгүй)
 async function removeStorageImages(urls) {
   if (DEMO_MODE || !urls?.length) return;
   const marker = '/listing-images/';
   const paths = urls
-    .map(u => { const i = String(u).indexOf(marker); return i >= 0 ? decodeURIComponent(String(u).slice(i + marker.length)) : null; })
+    .flatMap(u => { u = String(u); return thumbUrl(u) !== u ? [u, thumbUrl(u)] : [u]; })
+    .map(u => { const i = u.indexOf(marker); return i >= 0 ? decodeURIComponent(u.slice(i + marker.length)) : null; })
     .filter(Boolean);
   if (!paths.length) return;
   try { await sb.storage.from('listing-images').remove(paths); }
