@@ -232,11 +232,35 @@ function selectListingTypeNav(t) {
   if (priceMin) priceMin.value = '';
   if (priceMax) priceMax.value = '';
   syncSearchTypeUI();
+  syncTypeTexts();
   // Home page-т байвал шинэчилнэ, эсрэг тохиолдолд Search руу
   const activePage = document.querySelector('.page.active')?.id;
   if (activePage === 'page-home')       initHomePage();
   else if (activePage === 'page-search') { _searchPage = 0; loadSearchResults(true); }
   else showPage('home');
+}
+
+// Сэлбэг / Машин сонголтод тааруулж нүүрний гарчиг, хайлтын бичвэрийг солино
+const TYPE_TEXTS = {
+  part: {
+    title: 'АВТО СЭЛБЭГИЙН <span>ЗАХ</span>',
+    sub:   'Монголын хамгийн том авто сэлбэгийн зах зээл',
+    kw:    'Сэлбэгийн нэр...',
+    head:  'Сэлбэг хайх...',
+  },
+  vehicle: {
+    title: 'АВТО МАШИНЫ <span>ЗАХ</span>',
+    sub:   'Шинэ, хуучин машинаа хялбар зарж, худалдан аваарай',
+    kw:    'Түлхүүр үг...',
+    head:  'Машин хайх...',
+  },
+};
+function syncTypeTexts() {
+  const t = TYPE_TEXTS[_listingTypeNav] || TYPE_TEXTS.part;
+  document.getElementById('hero-title').innerHTML = t.title;
+  document.getElementById('hero-sub').textContent = t.sub;
+  document.getElementById('hero-keyword').placeholder = t.kw;
+  document.getElementById('header-search-input').placeholder = t.head;
 }
 
 function goSearchCat(cat) {
