@@ -52,37 +52,100 @@ function pickFromGallery() {
   input.click();
 }
 
-const MAX_FILE_SIZE_MB = 8;
+// Утасны эх зураг 8MB-аас их байж болно — шахсаны дараа хэдэн зуун KB болно
+const MAX_SOURCE_SIZE_MB = 30;
 const ALLOWED_MIME = new Set(['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']);
 
+// ── Зураг шахах ────────────────────────────────────────────
+// Хуулахаас өмнө хэрэглэгчийн төхөөрөмж дээр урт талыг нь 1600px болгож JPG-ээр хадгална.
+// • 3–5MB зураг → 200–400KB (хуулах, ачаалах 10+ дахин хурдан)
+// • EXIF мэдээлэл (GPS байршил г.м) устана
+// • Утсыг эргүүлж авсан зургийн чиглэлийг зөв болгоно
+// • iPhone-ий HEIC → JPG (бүх browser дээр харагдана)
+const IMG_MAX_SIDE = 1600;
+const IMG_QUALITY  = 0.82;
+
+async function _decodeImage(file) {
+  if ('createImageBitmap' in window) {
+    try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch {}
+  }
+  // Хуучин browser: <img>-ээр уншина
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return img;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function compressImage(file) {
+  const src = await _decodeImage(file);   // уншиж чадахгүй бол алдаа шиднэ
+  const w0 = src.width || src.naturalWidth, h0 = src.height || src.naturalHeight;
+  const scale = Math.min(1, IMG_MAX_SIDE / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * scale)), h = Math.max(1, Math.round(h0 * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';               // PNG-ийн ил тод хэсгийг цагаан болгоно
+  ctx.fillRect(0, 0, w, h);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, w, h);
+  src.close?.();
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', IMG_QUALITY));
+  if (!blob) throw new Error('encode failed');
+  const base = (file.name || 'photo').replace(/\.[^.]+$/, '') || 'photo';
+  return new File([blob], base + '.jpg', { type: 'image/jpeg', lastModified: Date.now() });
+}
+
+// Шахалтыг нэг нэгээр нь дараалуулна (хуучин утасны санах ой дүүргэхгүй)
+let _processing   = Promise.resolve();
+let _pendingCount = 0;
+let _uploadGen    = 0;   // reset хийсний дараа дуусах хуучин шахалтыг хаяна
+
+function _setUploadStatus() {
+  const el = document.getElementById('upload-status');
+  if (!el) return;
+  el.textContent = _pendingCount > 0 ? `⏳ Зураг бэлдэж байна… (${_pendingCount} үлдсэн)` : '';
+}
+
 function _addFiles(files, preview) {
-  // Хамгаалалт: зөвхөн image, хэмжээ 8MB-с хэтрэхгүй
-  const invalid = files.filter(f => !ALLOWED_MIME.has(f.type) || !f.type.startsWith('image/'));
+  const invalid = files.filter(f => !ALLOWED_MIME.has(f.type));
   if (invalid.length) showToast('Зөвхөн JPG, PNG, WebP зураг оруулна уу', 'error');
-  const oversized = files.filter(f => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
-  if (oversized.length) showToast(`Зураг ${MAX_FILE_SIZE_MB}MB-с бага байх ёстой`, 'error');
+  const oversized = files.filter(f => f.size > MAX_SOURCE_SIZE_MB * 1024 * 1024);
+  if (oversized.length) showToast(`Зураг ${MAX_SOURCE_SIZE_MB}MB-с бага байх ёстой`, 'error');
 
-  const allowed = files.filter(f =>
-    ALLOWED_MIME.has(f.type) &&
-    f.type.startsWith('image/') &&
-    f.size <= MAX_FILE_SIZE_MB * 1024 * 1024
-  );
-  const remaining = MAX_PHOTOS - _existingUrls.length - _uploadedFiles.length;
-  const toAdd = allowed.slice(0, remaining);
+  const allowed = files.filter(f => ALLOWED_MIME.has(f.type) && f.size <= MAX_SOURCE_SIZE_MB * 1024 * 1024);
+  const remaining = MAX_PHOTOS - _existingUrls.length - _uploadedFiles.length - _pendingCount;
+  const toAdd = allowed.slice(0, Math.max(0, remaining));
+  if (allowed.length > toAdd.length) showToast(`Хамгийн ихдээ ${MAX_PHOTOS} зураг оруулна уу`, 'info');
+  if (!toAdd.length) return;
 
-  toAdd.forEach(file => {
-    _uploadedFiles.push(file);
-    const reader = new FileReader();
-    reader.onload = e => {
-      const thumb = document.createElement('div');
-      thumb.className = 'upload-thumb';
-      thumb.innerHTML = `<img src="${e.target.result}" alt=""><button type="button" class="thumb-remove" onclick="removeUploadFile(${_uploadedFiles.indexOf(file)})">×</button>`;
-      preview.appendChild(thumb);
-    };
-    reader.readAsDataURL(file);
-  });
-
-  if (allowed.length > remaining) showToast(`Хамгийн ихдээ ${MAX_PHOTOS} зураг оруулна уу`, 'info');
+  const gen = _uploadGen;
+  _pendingCount += toAdd.length;
+  _setUploadStatus();
+  _processing = _processing.then(async () => {
+    for (const file of toAdd) {
+      let out = null;
+      try {
+        out = await compressImage(file);
+      } catch (e) {
+        // HEIC-г уншиж чадахгүй browser → хэнд ч харагдахгүй тул оруулахгүй
+        if (/hei[cf]/.test(file.type)) {
+          showToast('Энэ зургийн төрөл (HEIC) дэмжигдэхгүй байна. Утсаараа шууд авсан зураг эсвэл JPG оруулна уу', 'error');
+        } else {
+          out = file;   // уншиж чадаагүй ч JPG/PNG бол эх файлаар нь
+        }
+      }
+      if (gen !== _uploadGen) return;   // энэ хооронд form цэвэрлэгдсэн
+      _pendingCount--;
+      if (out) _uploadedFiles.push(out);
+      _rebuildPreview();
+      _setUploadStatus();
+    }
+  }).catch(e => console.warn('Image processing failed:', e));
 }
 
 function removeUploadFile(idx) {
@@ -97,6 +160,7 @@ function removeExistingImage(idx) {
 
 // Зар засах: хуучин зургуудыг preview-д харуулна
 function setExistingImages(urls) {
+  _cancelProcessing();
   _existingUrls = (urls || []).map(safeImgUrl).filter(Boolean).slice(0, MAX_PHOTOS);
   _uploadedFiles = [];
   _rebuildPreview();
@@ -104,29 +168,36 @@ function setExistingImages(urls) {
 
 function getExistingImages() { return [..._existingUrls]; }
 
+// Preview-ийн objectURL-уудыг дахин ашиглаж, хэрэггүй болсныг чөлөөлнө
+const _thumbUrls = new Map();
+function _thumbUrl(file) {
+  if (!_thumbUrls.has(file)) _thumbUrls.set(file, URL.createObjectURL(file));
+  return _thumbUrls.get(file);
+}
+
 function _rebuildPreview() {
   const preview = document.getElementById('upload-preview');
   if (!preview) return;
-  preview.innerHTML = '';
-  _existingUrls.forEach((url, i) => {
-    const thumb = document.createElement('div');
-    thumb.className = 'upload-thumb';
-    thumb.innerHTML = `<img src="${escapeHtml(url)}" alt=""><button type="button" class="thumb-remove" onclick="removeExistingImage(${i})">×</button>`;
-    preview.appendChild(thumb);
-  });
-  _uploadedFiles.forEach((file, i) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const thumb = document.createElement('div');
-      thumb.className = 'upload-thumb';
-      thumb.innerHTML = `<img src="${e.target.result}" alt=""><button type="button" class="thumb-remove" onclick="removeUploadFile(${i})">×</button>`;
-      preview.appendChild(thumb);
-    };
-    reader.readAsDataURL(file);
-  });
+  for (const [file, url] of _thumbUrls) {
+    if (!_uploadedFiles.includes(file)) { URL.revokeObjectURL(url); _thumbUrls.delete(file); }
+  }
+  preview.innerHTML =
+    _existingUrls.map((url, i) =>
+      `<div class="upload-thumb"><img src="${escapeHtml(url)}" alt=""><button type="button" class="thumb-remove" onclick="removeExistingImage(${i})">×</button></div>`
+    ).join('') +
+    _uploadedFiles.map((file, i) =>
+      `<div class="upload-thumb"><img src="${_thumbUrl(file)}" alt=""><button type="button" class="thumb-remove" onclick="removeUploadFile(${i})">×</button></div>`
+    ).join('');
+}
+
+function _cancelProcessing() {
+  _uploadGen++;
+  _pendingCount = 0;
+  _setUploadStatus();
 }
 
 async function uploadAllFiles(userId) {
+  await _processing;   // шахагдаж байгаа зураг дуустал хүлээнэ
   _uploadedUrls = [];
   if (_uploadedFiles.length === 0) return [];
 
@@ -148,9 +219,9 @@ async function uploadAllFiles(userId) {
 }
 
 function resetUpload() {
+  _cancelProcessing();
   _uploadedFiles = [];
   _uploadedUrls  = [];
   _existingUrls  = [];
-  const preview = document.getElementById('upload-preview');
-  if (preview) preview.innerHTML = '';
+  _rebuildPreview();
 }
