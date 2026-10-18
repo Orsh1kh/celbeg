@@ -494,6 +494,7 @@ function updateAuthUI(user) {
 async function doLogout() {
   await authLogout();
   _favoriteIds = new Set();
+  _blockedUserIds = new Set();
   updateAuthUI(null);
   showToast('Гарлаа', 'info');
   showPage('home');
@@ -1355,6 +1356,7 @@ async function openDetail(id, opts = {}) {
     const me = authGetUser();
     const mine = !!(me && l.user_id && me.id === l.user_id);
     document.getElementById('detail-report-btn').style.display = mine ? 'none' : '';
+    document.getElementById('detail-block-btn').style.display  = (mine || !l.user_id) ? 'none' : '';
     document.getElementById('detail-edit-btn').style.display   = mine ? '' : 'none';
     // Утасгүй зар дээр ажиллахгүй товч харуулахгүй
     callBtn.style.display = phone ? '' : 'none';
@@ -2105,8 +2107,89 @@ function switchProfileTab(tab) {
   document.querySelectorAll('.profile-tab').forEach(b => b.classList.toggle('active', b.dataset.ptab === tab));
   document.getElementById('ptab-listings').style.display  = tab === 'listings'  ? 'block' : 'none';
   document.getElementById('ptab-favorites').style.display = tab === 'favorites' ? 'block' : 'none';
+  document.getElementById('ptab-settings').style.display  = tab === 'settings'  ? 'block' : 'none';
   if (tab === 'listings')  loadMyListings();
   if (tab === 'favorites') loadMyFavorites();
+  if (tab === 'settings')  loadBlockedList();
+}
+
+// ── Хэрэглэгч хаах ─────────────────────────────────────────
+async function blockCurrentSeller() {
+  const l = _currentListing;
+  if (!l?.user_id) return;
+  if (!authGetUser()) { openAuthModal('login'); showToast('Эхлээд нэвтэрнэ үү', 'info'); return; }
+  const who = l.shop_name || 'энэ худалдагч';
+  if (!confirm(`«${who}»-ийг хаах уу?\nТүүний бүх зар танд харагдахаа болино. «Миний хэсэг → Тохиргоо»-оос буцааж болно.`)) return;
+  try {
+    await setUserBlocked(l.user_id, true);
+    closeDetail();
+    showToast('Хаалаа. Түүний зар танд харагдахгүй', 'success');
+    _refreshCurrentListings();
+  } catch (e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+async function doUnblockUser(userId) {
+  try {
+    await setUserBlocked(userId, false);
+    showToast('Хаалтыг болиуллаа', 'success');
+    const page = document.querySelector('.page.active')?.id;
+    if (page === 'page-shop') initShopPage();
+    else loadBlockedList();
+  } catch (e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  }
+}
+
+// Хаалт солигдсоны дараа одоогийн жагсаалтыг шинэчилнэ
+function _refreshCurrentListings() {
+  const page = document.querySelector('.page.active')?.id;
+  if (page === 'page-home')    initHomePage();
+  if (page === 'page-search')  loadSearchResults(true);
+  if (page === 'page-shop')    initShopPage();
+  if (page === 'page-profile') switchProfileTab(document.querySelector('.profile-tab.active')?.dataset.ptab || 'listings');
+}
+
+async function loadBlockedList() {
+  const box = document.getElementById('blocked-list');
+  if (!box) return;
+  box.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const people = await fetchBlockedProfiles();
+    box.innerHTML = people.length
+      ? people.map(p => `
+          <div class="blocked-row">
+            <span>🚫 ${escapeHtml(p.shop_name || p.name || 'Хэрэглэгч')}</span>
+            <button class="btn-toggle" onclick="doUnblockUser('${escapeHtml(p.id)}')">Хаалтыг болиулах</button>
+          </div>`).join('')
+      : '<p class="settings-note">Та хэнийг ч хаагаагүй байна.</p>';
+  } catch (e) {
+    box.innerHTML = `<p class="settings-note">Алдаа: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+// ── Бүртгэл устгах ─────────────────────────────────────────
+async function confirmDeleteAccount() {
+  if (!authGetUser()) return;
+  if (!confirm('Бүртгэлээ бүр мөсөн устгах уу?\n\nТаны бүх зар, зураг, хадгалсан зар, үнэлгээ устгагдана. Буцаах боломжгүй.')) return;
+  const typed = prompt('Баталгаажуулахын тулд УСТГАХ гэж бичнэ үү:');
+  if ((typed || '').trim().toUpperCase() !== 'УСТГАХ') { showToast('Устгалт цуцлагдлаа', 'info'); return; }
+  const btn = document.getElementById('delete-account-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Устгаж байна...'; }
+  try {
+    await deleteMyAccount();
+    ['cb_user', DRAFT_KEY, RECENT_KEY, 'cb_last_location', 'cb_pending_profile'].forEach(k => { try { localStorage.removeItem(k); } catch {} });
+    _favoriteIds = new Set();
+    _blockedUserIds = new Set();
+    updateAuthUI(null);
+    showToast('Таны бүртгэл устгагдлаа', 'success');
+    showPage('home', { replace: true });
+  } catch (e) {
+    showToast('Алдаа: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Бүртгэлээ устгах'; }
+  }
 }
 
 async function loadMyFavorites() {
@@ -2462,7 +2545,7 @@ function escapeHtml(s) {
 // FAVORITES
 // ═══════════════════════════════════════════════════════════
 async function initFavorites() {
-  _favoriteIds = await fetchFavoriteIds();
+  [_favoriteIds] = await Promise.all([fetchFavoriteIds(), loadBlockedUsers()]);
 }
 
 async function doToggleFavorite(listingId, btn) {
@@ -2506,7 +2589,7 @@ function addToRecentlyViewed(listing) {
     part_type: listing.part_type, exchange_policy: listing.exchange_policy,
     condition: listing.condition, shop_name: listing.shop_name,
     is_vip: listing.is_vip, is_verified: listing.is_verified,
-    created_at: listing.created_at,
+    created_at: listing.created_at, user_id: listing.user_id,
   };
   list.unshift(slim);
   list = list.slice(0, RECENT_LIMIT);
@@ -2518,7 +2601,7 @@ function getRecentlyViewed() {
 }
 
 function loadRecentlyViewed() {
-  const list = getRecentlyViewed();
+  const list = withoutBlocked(getRecentlyViewed());
   const section = document.getElementById('recent-section');
   const grid    = document.getElementById('recent-grid');
   if (!section || !grid) return;
@@ -2630,7 +2713,14 @@ async function loadShopProfile(userId) {
   document.getElementById('shop-stat-views').textContent  = totalViews;
 
   // ── Listings grid ──────────────────────────────────────
-  renderGrid(listings, 'shop-listings-container', { emptyType: 'search' });
+  if (_blockedUserIds.has(userId)) {
+    document.getElementById('shop-listings-container').innerHTML = `
+      <div class="no-results"><div class="no-icon">🚫</div><h3>Та энэ худалдагчийг хаасан байна</h3>
+      <p>Түүний зарууд танд харагдахгүй.</p>
+      <button class="btn-load-more" onclick="doUnblockUser('${escapeHtml(userId)}')">Хаалтыг болиулах</button></div>`;
+  } else {
+    renderGrid(listings, 'shop-listings-container', { emptyType: 'search' });
+  }
 
   // ── Rating + reviews (async, doesn't block listings) ───
   loadShopRatingAndReviews(userId);

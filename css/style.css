@@ -1483,6 +1483,19 @@ html[data-mode="vehicle"][data-theme="light"] .hero { background: linear-gradien
   cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
 }
 .btn-report:hover { color: var(--red); }
+.detail-safety-links { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.detail-safety-links .btn-report { margin: 14px 0 0; }
+
+/* ── Профайл: тохиргоо ──────────────────────────────────── */
+.settings-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+.settings-card h3 { font-size: 16px; margin: 0 0 6px; }
+.settings-card.danger { border-color: rgba(192,57,43,.45); }
+.settings-note { font-size: 13.5px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
+.blocked-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.blocked-row .btn-toggle { padding: 7px 12px; border-radius: 6px; font-size: 13px; border: 1px solid var(--border); color: var(--text); background: none; cursor: pointer; }
+.btn-delete-account { padding: 12px 20px; border-radius: 8px; background: none; border: 1.5px solid var(--red); color: var(--red); font-size: 14px; font-weight: 700; cursor: pointer; }
+.btn-delete-account:hover { background: var(--red); color: #fff; }
+.btn-delete-account:disabled { opacity: .5; cursor: wait; }
 
 /* Admin reports tab */
 .admin-tab-badge {

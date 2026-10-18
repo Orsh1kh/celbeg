@@ -87,7 +87,7 @@ async function fetchListings(f = {}) {
   const norm = { ...f, listing_type, part_types, conditions, policies, fuels, transmissions, drives, mileage_max, steering };
 
   if (DEMO_MODE) {
-    const data = _filterDemo({ ...norm, sort, page });
+    const data = withoutBlocked(_filterDemo({ ...norm, sort, page }));
     if (withCount) return { data, count: _countDemo(norm) };
     return data;
   }
@@ -105,6 +105,8 @@ async function fetchListings(f = {}) {
     const selectOpts = withCount ? { count: 'exact' } : undefined;
     let q = sb.from('listings').select(sel, selectOpts).eq('is_active', true)
       .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+    // Хаасан хэрэглэгчийн зар харагдахгүй (id нь DB-ийн uuid)
+    if (_blockedUserIds.size) q = q.not('user_id', 'in', `(${[..._blockedUserIds].join(',')})`);
 
     if (listing_type)        q = q.eq('listing_type', listing_type);
     if (category)            q = q.eq('category', category);
@@ -217,9 +219,9 @@ function _filterDemoAll({ listing_type, category, subcategory, car_makes, car_mo
 }
 
 async function fetchVipListings() {
-  if (DEMO_MODE) return DEMO_LISTINGS.filter(l => l.is_vip && l.is_active !== false);
+  if (DEMO_MODE) return withoutBlocked(DEMO_LISTINGS.filter(l => l.is_vip && l.is_active !== false));
   const { data } = await sb.from('listings').select('*').eq('is_vip', true).eq('is_active', true).order('created_at', { ascending: false }).limit(4);
-  return data || [];
+  return withoutBlocked(data || []);
 }
 
 async function fetchListingById(id) {
@@ -378,6 +380,91 @@ async function extendListing(id) {
 // REVIEWS / RATINGS
 // ═══════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════
+// ХЭРЭГЛЭГЧ ХААХ (017 SQL) — хаасан хүний зар танд хаана ч харагдахгүй
+// ═══════════════════════════════════════════════════════════
+let _blockedUserIds = new Set();
+const DEMO_BLOCKS_KEY = 'cb_demo_blocks';
+
+async function loadBlockedUsers() {
+  const user = authGetUser();
+  _blockedUserIds = new Set();
+  if (!user) return _blockedUserIds;
+  if (DEMO_MODE || !sb) {
+    try { _blockedUserIds = new Set(JSON.parse(localStorage.getItem(DEMO_BLOCKS_KEY) || '[]')); } catch {}
+    return _blockedUserIds;
+  }
+  try {
+    const { data, error } = await sb.from('user_blocks').select('blocked_id').eq('blocker_id', user.id);
+    if (error) throw error;
+    _blockedUserIds = new Set((data || []).map(r => r.blocked_id));
+  } catch (e) { console.warn('Blocks load failed:', e.message); }   // 017 ажиллаагүй бол хаалтгүй
+  return _blockedUserIds;
+}
+
+async function setUserBlocked(userId, blocked) {
+  const user = authGetUser();
+  if (!user) throw new Error('Нэвтэрнэ үү');
+  if (!userId || userId === user.id) throw new Error('Өөрийгөө хаах боломжгүй');
+  if (DEMO_MODE || !sb) {
+    const set = new Set(_blockedUserIds);
+    blocked ? set.add(userId) : set.delete(userId);
+    localStorage.setItem(DEMO_BLOCKS_KEY, JSON.stringify([...set]));
+  } else if (blocked) {
+    const { error } = await sb.from('user_blocks').insert({ blocker_id: user.id, blocked_id: userId });
+    if (error && !/duplicate/i.test(error.message)) throw error;
+  } else {
+    const { error } = await sb.from('user_blocks').delete().eq('blocker_id', user.id).eq('blocked_id', userId);
+    if (error) throw error;
+  }
+  blocked ? _blockedUserIds.add(userId) : _blockedUserIds.delete(userId);
+}
+
+// Хаасан хүмүүсийн нэр (тохиргоо хэсэгт харуулахад)
+async function fetchBlockedProfiles() {
+  const ids = [..._blockedUserIds];
+  if (!ids.length) return [];
+  if (DEMO_MODE || !sb) {
+    return ids.map(id => {
+      const l = DEMO_LISTINGS.find(x => x.user_id === id);
+      return { id, name: l?.shop_name || 'Хэрэглэгч', shop_name: l?.shop_name || '' };
+    });
+  }
+  const { data, error } = await sb.from('profiles').select(PUBLIC_PROFILE_COLS).in('id', ids);
+  if (error) throw error;
+  return data || [];
+}
+
+// Сервер шүүлтгүй жагсаалтаас (VIP, хадгалсан, сүүлд үзсэн) хаасан хүний зарыг хасна
+function withoutBlocked(list) {
+  return _blockedUserIds.size ? list.filter(l => !_blockedUserIds.has(l.user_id)) : list;
+}
+
+// ═══════════════════════════════════════════════════════════
+// БҮРТГЭЛ УСТГАХ (017 SQL) — зураг → бүртгэл (зар, үнэлгээ г.м cascade)
+// ═══════════════════════════════════════════════════════════
+async function deleteMyAccount() {
+  const user = authGetUser();
+  if (!user) throw new Error('Нэвтэрнэ үү');
+  if (DEMO_MODE || !sb) {
+    for (let i = DEMO_LISTINGS.length - 1; i >= 0; i--) if (DEMO_LISTINGS[i].user_id === user.id) DEMO_LISTINGS.splice(i, 1);
+    ['cb_demo_favs', DEMO_BLOCKS_KEY].forEach(k => localStorage.removeItem(k));
+    return;
+  }
+  // 1) Өөрийн хавтас дахь бүх зураг (нэг дуудлагад 1000 хүртэл)
+  const bucket = sb.storage.from('listing-images');
+  for (let guard = 0; guard < 50; guard++) {
+    const { data: files, error } = await bucket.list(user.id, { limit: 1000 });
+    if (error || !files?.length) break;
+    const { error: rmErr } = await bucket.remove(files.map(f => `${user.id}/${f.name}`));
+    if (rmErr) { console.warn('Image cleanup failed:', rmErr.message); break; }
+  }
+  // 2) Бүртгэл
+  const { error } = await sb.rpc('delete_my_account');
+  if (error) throw error;
+  try { await sb.auth.signOut(); } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════
 // FAVORITES
 // ═══════════════════════════════════════════════════════════
 async function fetchFavoriteIds() {
@@ -397,14 +484,14 @@ async function fetchMyFavorites() {
   if (!user) return [];
   if (DEMO_MODE || !sb) {
     let ids = []; try { ids = JSON.parse(localStorage.getItem('cb_demo_favs') || '[]'); } catch {}
-    return DEMO_LISTINGS.filter(l => ids.includes(l.id));
+    return withoutBlocked(DEMO_LISTINGS.filter(l => ids.includes(l.id)));
   }
   try {
     const { data } = await sb.from('favorites')
       .select('listing_id, listings!inner(*)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
-    return (data || []).map(r => r.listings).filter(Boolean);
+    return withoutBlocked((data || []).map(r => r.listings).filter(Boolean));
   } catch { return []; }
 }
 

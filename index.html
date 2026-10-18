@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=47">
+<link rel="stylesheet" href="css/style.css?v=48">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -309,7 +309,10 @@
         <span id="detail-date"></span>
         <span id="detail-views"></span>
       </div>
-      <button type="button" class="btn-report" id="detail-report-btn" onclick="openReportModal()">🚩 Зар мэдээлэх</button>
+      <div class="detail-safety-links">
+        <button type="button" class="btn-report" id="detail-report-btn" onclick="openReportModal()">🚩 Зар мэдээлэх</button>
+        <button type="button" class="btn-report" id="detail-block-btn" onclick="blockCurrentSeller()">🚫 Худалдагчийг хаах</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1039,6 +1042,7 @@
       <div class="profile-tabs">
         <button class="profile-tab active" data-ptab="listings" onclick="switchProfileTab('listings')">📦 Миний зарууд</button>
         <button class="profile-tab" data-ptab="favorites" onclick="switchProfileTab('favorites')">❤ Хадгалсан</button>
+        <button class="profile-tab" data-ptab="settings" onclick="switchProfileTab('settings')">⚙️ Тохиргоо</button>
       </div>
       <div class="profile-tab-content" id="ptab-listings">
         <div id="my-listings-container">
@@ -1048,6 +1052,18 @@
       <div class="profile-tab-content" id="ptab-favorites" style="display:none">
         <div id="favorites-container">
           <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+      </div>
+      <div class="profile-tab-content" id="ptab-settings" style="display:none">
+        <div class="settings-card">
+          <h3>🚫 Хаасан хэрэглэгчид</h3>
+          <p class="settings-note">Хаасан хүний зар танд харагдахгүй. Зар дээрх «Худалдагчийг хаах» товчоор нэмнэ.</p>
+          <div id="blocked-list"></div>
+        </div>
+        <div class="settings-card danger">
+          <h3>⚠️ Бүртгэл устгах</h3>
+          <p class="settings-note">Таны бүртгэл, бүх зар, зураг, хадгалсан зар, үнэлгээ бүр мөсөн устгагдана. Буцаах боломжгүй.</p>
+          <button class="btn-delete-account" id="delete-account-btn" onclick="confirmDeleteAccount()">Бүртгэлээ устгах</button>
         </div>
       </div>
     </div>
@@ -1215,7 +1231,7 @@
       <h2>6. Таны эрх</h2>
       <ul>
         <li>Өөрийн зарыг хүссэн үедээ засах, идэвхгүй болгох, устгах</li>
-        <li>Бүртгэлээ болон холбогдох мэдээллээ бүрэн устгуулахыг хүсэх</li>
+        <li>«Миний хэсэг → ⚙️ Тохиргоо → Бүртгэлээ устгах» товчоор бүртгэл болон холбогдох бүх мэдээллээ өөрөө бүрэн устгах</li>
         <li>Бидэнд хадгалагдаж буй өөрийн мэдээллийн талаар лавлах</li>
       </ul>
       <p>Хүсэлтээ <a href="mailto:info@celbeg.mn">info@celbeg.mn</a> хаягаар бүртгэлтэй email-ээсээ илгээнэ үү.</p>
@@ -1315,13 +1331,13 @@
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js?v=47"></script>
-<script src="js/car-models.js?v=47"></script>
-<script src="js/data-manager.js?v=47"></script>
-<script src="js/auth.js?v=47"></script>
-<script src="js/listings.js?v=47"></script>
-<script src="js/upload.js?v=47"></script>
-<script src="js/admin.js?v=47"></script>
-<script src="js/main.js?v=47"></script>
+<script src="js/supabase-client.js?v=48"></script>
+<script src="js/car-models.js?v=48"></script>
+<script src="js/data-manager.js?v=48"></script>
+<script src="js/auth.js?v=48"></script>
+<script src="js/listings.js?v=48"></script>
+<script src="js/upload.js?v=48"></script>
+<script src="js/admin.js?v=48"></script>
+<script src="js/main.js?v=48"></script>
 </body>
 </html>
