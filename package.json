@@ -1,4 +1,24 @@
 {
   "name": "celbeg",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "private": true,
+  "description": "CELBEG.MN — авто сэлбэг, машины зарын вэб + Android/iOS апп (Capacitor)",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "vendor": "node scripts/vendor.mjs",
+    "sync": "node scripts/build.mjs && npx cap sync",
+    "android": "node scripts/build.mjs && npx cap sync android && npx cap open android"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/cli": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4",
+    "@supabase/supabase-js": "2.118.0",
+    "sharp": "^0.35.5"
+  }
 }

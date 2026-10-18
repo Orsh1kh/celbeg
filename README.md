@@ -58,11 +58,11 @@ const SUPABASE_ANON_KEY = 'sb_publishable_...';
 
 1. Cloudflare → **Workers & Pages → Create → Pages → Import an existing Git repository**
 2. Repository: `Orsh1kh/celbeg`, branch `main`
-3. Framework preset: **None** · Build command: `sh scripts/build.sh` · Build output directory: `dist`
+3. Framework preset: **None** · Build command: `node scripts/build.mjs` · Build output directory: `dist`
 4. Header (хамгаалалт, кэш) — `_headers` файлаас уншигдана
 5. Custom domain: Pages → **Custom domains** → `celbeg.mn`, `www.celbeg.mn`
 
-`scripts/build.sh` зөвхөн сайтын файлуудыг `dist/`-д хуулна — `supabase/*.sql`, README зэрэг нийтэд гарахгүй.
+`scripts/build.mjs` зөвхөн сайтын файлуудыг `dist/`-д хуулна — `supabase/*.sql`, README зэрэг нийтэд гарахгүй.
 Сайтад шинэ файл/хавтас нэмбэл тэр скриптийн жагсаалтад нэмнэ.
 
 ### 7. Эхний туршилт
@@ -111,7 +111,8 @@ celbeg-main/
 │   └── RUN_PENDING_003_to_017.sql — 003–017-г нэг дор
 ├── sw.js, manifest.json    — PWA
 ├── _headers               — Cloudflare Pages header (CSP, кэш)
-├── scripts/build.sh        — Cloudflare Pages build (dist/)
+├── scripts/build.mjs       — build → dist/ (Cloudflare Pages + апп)
+├── scripts/vendor.mjs      — npm сангуудыг js/vendor/ руу хуулна
 ├── netlify.toml            — хуучин Netlify тохиргоо (шилжүүлсний дараа устгана)
 ├── robots.txt
 └── sitemap.xml

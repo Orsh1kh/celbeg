@@ -44,7 +44,7 @@ self.addEventListener('fetch', event => {
   // GET only — POST/PUT/DELETE-г огт хамруулахгүй
   if (req.method !== 'GET') return;
 
-  // Skip cross-origin (Supabase, Google Fonts CDN, jsdelivr)
+  // Skip cross-origin (Supabase, Google Fonts CDN)
   if (url.origin !== self.location.origin) return;
 
   // Skip Supabase бүх дуудалт (магадгүй ижил origin биш ч)

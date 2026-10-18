@@ -1,0 +1,20 @@
+{
+  "appId": "mn.celbeg.app",
+  "appName": "CELBEG",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#0f0f0f",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0f0f0f",
+      "overlaysWebView": false
+    }
+  }
+}

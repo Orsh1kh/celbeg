@@ -56,6 +56,28 @@ function closeMobileNav() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// NATIVE APP (Capacitor: Android / iOS)
+// Вэб дээр window.Capacitor нь 'web' платформ тул эдгээр нь null байна.
+// ═══════════════════════════════════════════════════════════
+const SITE_URL      = 'https://celbeg.mn';
+const IS_NATIVE_APP = !!window.Capacitor?.isNativePlatform?.();
+const NativeApp     = IS_NATIVE_APP ? (window.capacitorApp?.App || null) : null;
+const NativeShare   = IS_NATIVE_APP ? (window.capacitorShare?.Share || null) : null;
+
+function initNativeApp() {
+  if (!IS_NATIVE_APP) return;
+  document.documentElement.classList.add('native-app');
+  // Android-ийн "Буцах" товч: нээлттэй цонх → өмнөх хуудас → нүүр → апп-аас гарах
+  NativeApp?.addListener('backButton', () => {
+    if ((history.state || {}).pushed) { history.back(); return; }
+    if (isDetailOpen()) { closeDetail(); return; }
+    for (const o of Object.values(ROUTE_OVERLAYS)) if (o.isOpen()) { o.close(); return; }
+    if (document.querySelector('.page.active')?.id !== 'page-home') { showPage('home', { replace: true }); return; }
+    NativeApp.exitApp();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 // ROUTER — хуудас бүр, зар бүр өөрийн URL-тай.
 // Утасны "Буцах" товч эхлээд нээлттэй цонхыг хааж, дараа нь өмнөх хуудас руу буцна.
 //   /                   → нүүр
@@ -1411,7 +1433,13 @@ function _routeDropZar() {
 async function shareListing() {
   const l = _currentListing;
   if (!l) return;
-  const url = `${location.origin}/?zar=${encodeURIComponent(l.id)}`;
+  // Апп дотор origin нь https://localhost тул үргэлж жинхэнэ домэйныг ашиглана
+  const url = `${SITE_URL}/?zar=${encodeURIComponent(l.id)}`;
+  if (NativeShare) {
+    try { await NativeShare.share({ title: l.title, text: `${l.title} — ${formatPrice(l.price)}`, url, dialogTitle: 'Зар хуваалцах' }); }
+    catch (e) { /* хэрэглэгч цуцалсан */ }
+    return;
+  }
   if (navigator.share) {
     try { await navigator.share({ title: l.title, text: `${l.title} — ${formatPrice(l.price)}`, url }); return; }
     catch (e) { if (e.name === 'AbortError') return; }   // хэрэглэгч цуцалсан
@@ -2813,6 +2841,7 @@ function renderShopsGrid(shops) {
 let _pwaInstallPromptEvent = null;
 
 function initPWA() {
+  if (IS_NATIVE_APP) return;   // апп-д service worker, "суулгах" санал хэрэггүй
   // Register service worker (only on https / localhost)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -2872,6 +2901,7 @@ function dismissPWA() {
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   initThumbFallback();
+  initNativeApp();
 
   // Init data defaults and populate all dropdowns + dynamic UI
   initDataDefaults();

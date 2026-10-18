@@ -17,7 +17,7 @@
    | Project name | `celbeg` |
    | Production branch | `main` |
    | Framework preset | **None** |
-   | Build command | `sh scripts/build.sh` |
+   | Build command | `node scripts/build.mjs` |
    | Build output directory | `dist` |
 5. **Save and Deploy** → 1–2 минутын дараа `https://celbeg.pages.dev` гэх мэт хаяг гарна.
 6. Тэр хаягийг Claude-д өгнө → header, файлууд зөв эсэхийг шалгана.

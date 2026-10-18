@@ -216,7 +216,7 @@ html:not([data-mode="vehicle"]) .hero-vehicle-only { display: none; }
 /* ═══════════════════════════════════════════════════════════
    LISTING DETAIL MODAL
 ═══════════════════════════════════════════════════════════ */
-#modal-detail { display: none; position: fixed; inset: 0; z-index: 500; padding: 20px; overflow-y: auto; }
+#modal-detail { display: none; position: fixed; inset: 0; z-index: 500; padding: calc(20px + var(--sat)) 20px calc(20px + var(--sab)); overflow-y: auto; }
 #modal-detail.open { display: flex; align-items: flex-start; justify-content: center; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); cursor: pointer; }
 .detail-panel { position: relative; z-index: 1; background: var(--bg2); border-radius: 16px; width: 100%; max-width: 920px; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; margin: auto; }
@@ -418,7 +418,7 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
   .hero-search-bar select, .hero-search-bar input { min-width: 100px; }
   .cat-grid { grid-template-columns: repeat(4, 1fr); }
   .auth-panel { padding: 24px 16px; margin: 12px; }
-  #modal-detail { padding: 8px; }
+  #modal-detail { padding: calc(8px + var(--sat)) 8px calc(8px + var(--sab)); }
   .my-listing-img { width: 80px; height: 64px; }
 }
 
@@ -563,7 +563,7 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
   transition: background .15s, transform .15s; backdrop-filter: blur(6px);
 }
 .lightbox-close:hover, .lightbox-nav:hover { background: rgba(255,255,255,.22); transform: scale(1.05); }
-.lightbox-close { top: 20px; right: 20px; }
+.lightbox-close { top: calc(20px + var(--sat)); right: 20px; }
 .lightbox-nav { top: 50%; margin-top: -22px; width: 50px; height: 50px; font-size: 28px; }
 .lightbox-nav.prev { left: 20px; }
 .lightbox-nav.next { right: 20px; }
@@ -577,7 +577,7 @@ footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 4
   .lightbox-nav { width: 40px; height: 40px; font-size: 22px; }
   .lightbox-nav.prev { left: 10px; }
   .lightbox-nav.next { right: 10px; }
-  .lightbox-close { top: 12px; right: 12px; }
+  .lightbox-close { top: calc(12px + var(--sat)); right: 12px; }
 }
 
 /* ── Header search clear button ────────────────────────── */
@@ -1543,3 +1543,20 @@ html[data-mode="vehicle"][data-theme="light"] .hero { background: linear-gradien
   .legal-table { font-size: 12px; }
   .legal-table th, .legal-table td { padding: 6px; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   АЮУЛГҮЙ БҮС (safe area) — апп болон notch-тэй утас
+   viewport-fit=cover үед контент статус мөр, доод зурвасны доор хүртэл
+   сунадаг тул тэдгээрээс зай авна. Энгийн browser дээр 0 байна.
+   --safe-area-inset-*: Capacitor Android (хуучин WebView); env(): шинэ WebView, iOS
+═══════════════════════════════════════════════════════════ */
+:root {
+  --sat: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --sab: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+#site-header       { padding-top: var(--sat); }
+#mobile-nav        { padding-top: calc(20px + var(--sat)); padding-bottom: calc(20px + var(--sab)); }
+#toast-container   { bottom: calc(24px + var(--sab)); }
+#scroll-top        { bottom: calc(24px + var(--sab)); }
+#pwa-install-banner { bottom: calc(12px + var(--sab)); }
+body               { padding-bottom: var(--sab); }
